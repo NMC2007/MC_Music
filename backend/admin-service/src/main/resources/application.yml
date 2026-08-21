@@ -4,9 +4,9 @@ spring:
     application:
         name: admin-service
     datasource:
-        password: ${DB_PASSWORD}
-        url: ${DB_URL}
-        username: ${DB_USERNAME}
+        password: ${DB_PASSWORD:Manhcuong281207@}
+        url: ${DB_URL:jdbc:postgresql://localhost:5432/mc_music_db?currentSchema=mc_music_admin_schema}
+        username: ${DB_USERNAME:postgres}
     jpa:
         database: POSTGRESQL
         database-platform: org.hibernate.dialect.PostgreSQLDialect

@@ -1,0 +1,113 @@
+version: '3.8'
+
+services:
+  postgres-db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init-docker.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mc_music_network
+
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+    container_name: api-gateway
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8686:8686"
+    networks:
+      - mc_music_network
+    depends_on:
+      users-service:
+        condition: service_started
+      artists-service:
+        condition: service_started
+      admin-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+
+  users-service:
+    build:
+      context: ./backend/users-service
+    container_name: users-service
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_users_schema
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  artists-service:
+    build:
+      context: ./backend/artists-service
+    container_name: artists-service
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_artists_schema
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  admin-service:
+    build:
+      context: ./backend/admin-service
+    container_name: admin-service
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_admin_schema
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  catalog-service:
+    build:
+      context: ./backend/catalog-service
+    container_name: catalog-service
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_catalog_schema
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+networks:
+  mc_music_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
