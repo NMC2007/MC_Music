@@ -1,0 +1,18 @@
+server:
+    port: 8083
+spring:
+    application:
+        name: artists-service
+    datasource:
+        password: ${DB_PASSWORD}
+        url: ${DB_URL}
+        username: ${DB_USERNAME}
+    jpa:
+        database: POSTGRESQL
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+        hibernate:
+            ddl-auto: update
+        properties:
+            hibernate:
+                format_sql: true
+        show-sql: true
