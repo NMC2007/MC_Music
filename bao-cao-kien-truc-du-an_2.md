@@ -149,5 +149,10 @@ Xây dựng nền tảng nghe nhạc trực tuyến gồm 3 hệ thống độc 
 
 ### 5.4. Catalog Service (`catalog_db`)
 - `genres`: `id`, `name`, `cover_image`
-- `albums`: `id`, `artist_id`, `artist_name` (nhân bản), `title`, `description`, `cover_image`, `release_date`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `created_at`
-- `songs`: `id`, `artist_id`, `artist_name`, `album_id`, `title`, `genre_id`, `duration_seconds`, `audio_url`, `audio_public_id`, `cover_image`, `play_count`, `like_count`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `is_deleted` (xóa mềm), `created_at`
+- `albums`: `id`, `owner_id` (quyền sở hữu), `title`, `album_type` (ALBUM, SINGLE, EP), `description`, `total_tracks`, `cover_image`, `release_date`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `created_at`
+- `songs`: `id`, `owner_id` (quyền sở hữu), `album_id`, `title`, `track_number`, `duration_ms`, `audio_url`, `audio_public_id`, `cover_image`, `explicit`, `play_count`, `like_count`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `is_deleted` (xóa mềm), `created_at`
+- `song_artists` (Nhiều nghệ sĩ/Feat): `song_id`, `artist_id`, `artist_name` (nhân bản), `role` (MAIN, FEATURED, PRODUCER)
+- `song_genres` (Đa thể loại): `song_id`, `genre_id`
+- `lyrics` (Lời bài hát): `song_id`, `content`, `synced_content`, `language`
+- `system_playlists` (Playlist hệ thống): `id`, `name`, `description`, `cover_image`, `created_by_admin_id`
+- `system_playlist_songs`: `playlist_id`, `song_id`, `added_at`, `position_order`

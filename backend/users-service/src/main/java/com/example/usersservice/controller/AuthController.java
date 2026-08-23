@@ -1,9 +1,7 @@
 package com.example.usersservice.controller;
 
-import com.example.usersservice.model.dto.ApiResponse;
-import com.example.usersservice.model.dto.AuthResponse;
-import com.example.usersservice.model.dto.LoginRequest;
-import com.example.usersservice.model.dto.RegisterRequest;
+import com.example.usersservice.model.dto.request.*;
+import com.example.usersservice.model.dto.response.*;
 import com.example.usersservice.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,5 +27,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse authResponse = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success(authResponse, "Đăng nhập thành công"));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<TokenRefreshResponse>> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
+        TokenRefreshResponse response = authService.refreshToken(request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Làm mới token thành công"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
     }
 }

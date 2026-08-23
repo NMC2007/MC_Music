@@ -1,7 +1,7 @@
 package com.example.usersservice.advice;
 
 import com.example.usersservice.exception.ApiException;
-import com.example.usersservice.model.dto.ApiResponse;
+import com.example.usersservice.model.dto.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;

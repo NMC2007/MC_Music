@@ -18,7 +18,7 @@ Cách tiếp cận này đảm bảo:
 
 1. **Khởi tạo Database:** 
    - Dựng PostgreSQL.
-   - Viết các script SQL tạo bảng cho 4 schema: `user_db`, `artist_db`, `admin_db`, `catalog_db`. 
+   - Viết các script SQL tạo bảng cho 4 schema: `user_db`, `artist_db`, `admin_db`, `catalog_db` (áp dụng cấu trúc mở rộng hỗ trợ đa nghệ sĩ, đa thể loại, lyrics và playlist hệ thống).
    - Đảm bảo các bảng có chứa các cột `is_active` (để khóa tài khoản), `status` (để duyệt/gỡ nhạc), `is_deleted` (để xóa mềm).
 2. **Khởi tạo hệ thống:** Setup API Gateway định tuyến cơ bản.
 3. **Thư viện JWT (`shared-auth-lib`):** Xây dựng module dùng chung chứa logic tạo và giải mã Access Token / Refresh Token.

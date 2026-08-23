@@ -75,4 +75,8 @@ public class JwtTokenProvider {
     public String getSubjectFromToken(String token) {
         return getClaimsFromToken(token).getSubject();
     }
+
+    public Date getExpirationDateFromToken(String token) {
+        return getClaimsFromToken(token).getExpiration();
+    }
 }
