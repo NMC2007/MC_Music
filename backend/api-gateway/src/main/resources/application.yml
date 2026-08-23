@@ -3,48 +3,23 @@ server:
 spring:
     application:
         name: api-gateway
-    cloud:
-        gateway:
-            mvc:
-                routes:
-                    - id: users-service
-                      uri: http://localhost:8082
-                      predicates:
-                          - Path=/api/user/**
-                    - id: artists-service
-                      uri: http://localhost:8083
-                      predicates:
-                          - Path=/api/artist/**
-                    - id: admin-service
-                      uri: http://localhost:8084
-                      predicates:
-                          - Path=/api/admin/**
-                    - id: catalog-service
-                      uri: http://localhost:8081
-                      predicates:
-                          - Path=/api/catalog/**
+
+service:
+    uri:
+        users: http://localhost:8082
+        catalog: http://localhost:8081
+        artists: http://localhost:8083
+        admin: http://localhost:8084
+
 ---
 spring:
     config:
         activate:
             on-profile: docker
-    cloud:
-        gateway:
-            mvc:
-                routes:
-                    - id: users-service
-                      uri: http://users-service:8082
-                      predicates:
-                          - Path=/api/user/**
-                    - id: artists-service
-                      uri: http://artists-service:8083
-                      predicates:
-                          - Path=/api/artist/**
-                    - id: admin-service
-                      uri: http://admin-service:8084
-                      predicates:
-                          - Path=/api/admin/**
-                    - id: catalog-service
-                      uri: http://catalog-service:8081
-                      predicates:
-                          - Path=/api/catalog/**
+            
+service:
+    uri:
+        users: http://users-service:8082
+        catalog: http://catalog-service:8081
+        artists: http://artists-service:8083
+        admin: http://admin-service:8084
