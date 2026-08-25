@@ -1,1 +1,2 @@
 rootProject.name = 'artists-service'
+includeBuild '../shared-auth-lib'
