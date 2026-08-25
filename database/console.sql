@@ -225,3 +225,15 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Reset search_path to default
 SET search_path TO public;
+
+-- ==========================================
+-- 6. Seed Data for Admin
+-- ==========================================
+SET search_path TO mc_music_admin_schema;
+
+INSERT INTO admins (email, password_hash, full_name, role) 
+VALUES ('admin@mcmusic.com', '<THAY_THE_BANG_CHUOI_BCRYPT_SINH_RA_TU_GenerateHashTest>', 'System Admin', 'SUPER_ADMIN')
+ON CONFLICT DO NOTHING;
+
+-- Reset search_path to default
+SET search_path TO public;
