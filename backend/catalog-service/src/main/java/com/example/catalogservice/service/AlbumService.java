@@ -1,0 +1,60 @@
+package com.example.catalogservice.service;
+
+import com.example.catalogservice.exception.ResourceNotFoundException;
+import com.example.catalogservice.model.dto.request.AlbumCreateRequest;
+import com.example.catalogservice.model.dto.response.AlbumResponse;
+import com.example.catalogservice.model.entity.Album;
+import com.example.catalogservice.repository.AlbumRepository;
+import org.modelmapper.ModelMapper;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+public class AlbumService {
+
+    private final AlbumRepository albumRepository;
+    private final CloudinaryService cloudinaryService;
+    private final ModelMapper modelMapper;
+
+    public AlbumService(AlbumRepository albumRepository, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
+        this.albumRepository = albumRepository;
+        this.cloudinaryService = cloudinaryService;
+        this.modelMapper = modelMapper;
+    }
+
+    @Transactional
+    public AlbumResponse createAlbum(AlbumCreateRequest request, UUID ownerId) throws IOException {
+        Album album = modelMapper.map(request, Album.class);
+        album.setOwnerId(ownerId);
+        album.setStatus("PENDING"); 
+        album.setTotalTracks(0);
+
+        if (request.getCoverImage() != null && !request.getCoverImage().isEmpty()) {
+            Map uploadResult = cloudinaryService.uploadImage(request.getCoverImage());
+            album.setCoverImage((String) uploadResult.get("secure_url"));
+        }
+
+        Album savedAlbum = albumRepository.save(album);
+        return modelMapper.map(savedAlbum, AlbumResponse.class);
+    }
+    
+    @Transactional(readOnly = true)
+    public List<AlbumResponse> getAlbumsByOwner(UUID ownerId) {
+        return albumRepository.findByOwnerId(ownerId).stream()
+                .map(album -> modelMapper.map(album, AlbumResponse.class))
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public AlbumResponse getAlbumById(UUID albumId) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new ResourceNotFoundException("Album not found with id: " + albumId));
+        return modelMapper.map(album, AlbumResponse.class);
+    }
+}

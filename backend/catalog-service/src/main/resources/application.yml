@@ -3,6 +3,10 @@ server:
 spring:
     application:
         name: catalog-service
+    servlet:
+        multipart:
+            max-file-size: 50MB
+            max-request-size: 50MB
     datasource:
         password: ${DB_PASSWORD:Manhcuong281207@}
         url: ${DB_URL:jdbc:postgresql://localhost:5432/mc_music_db?currentSchema=mc_music_catalog_schema}
@@ -16,3 +20,14 @@ spring:
             hibernate:
                 format_sql: true
         show-sql: true
+
+jwt:
+    secret:
+        user: ${JWT_SECRET_USER:superSecretKeyForMcMusicAppThatIsAtLeast32CharactersLong}
+        artist: ${JWT_SECRET_ARTIST:superSecretKeyForArtistsServiceThatIsAtLeast32CharsLong}
+        admin: ${JWT_SECRET_ADMIN:superSecretKeyForAdminServiceThatIsAtLeast32CharsLong}
+
+cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME:nemhjypf}
+    api-key: ${CLOUDINARY_API_KEY:198795169447897}
+    api-secret: ${CLOUDINARY_API_SECRET:oiV5gNYyZg2XDOy6q066x6MQ9YI}
