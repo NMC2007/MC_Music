@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface SongArtistRepository extends JpaRepository<SongArtist, UUID> {
     List<SongArtist> findBySongId(UUID songId);
+    boolean existsBySongIdAndArtistId(UUID songId, UUID artistId);
 }

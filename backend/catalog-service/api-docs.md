@@ -52,6 +52,31 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Endpoint:** `http://localhost:8686/api/catalog/artist/albums`
 - **Mô tả:** Lấy danh sách toàn bộ Album của nghệ sĩ.
 
+### 1.5. Cập nhật Lời bài hát (Lyrics)
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/catalog/artist/songs/{songId}/lyrics`
+- **Mô tả:** Thêm mới hoặc cập nhật lời bài hát. (Chỉ chủ sở hữu bài hát mới có quyền).
+- **Body (JSON):**
+  ```json
+  {
+      "content": "Lời bài hát ở đây...",
+      "language": "vi"
+  }
+  ```
+
+### 1.6. Thêm Nghệ sĩ phụ (Feat/Producer)
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/catalog/artist/songs/{songId}/artists`
+- **Mô tả:** Thêm nghệ sĩ tham gia sản xuất bài hát. (Chỉ chủ sở hữu bài hát mới có quyền).
+- **Body (JSON):**
+  ```json
+  {
+      "artistId": "uuid-cua-nghe-si",
+      "role": "FEATURED"
+  }
+  ```
+  *(Các giá trị role hợp lệ: `FEATURED`, `PRODUCER`)*
+
 ---
 
 ## 2. Dành cho Quản trị viên (Admin)
@@ -66,6 +91,23 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Method:** `PATCH`
 - **Endpoint:** `http://localhost:8686/api/catalog/admin/songs/{songId}/status`
 - **Mô tả:** Đổi trạng thái bài hát.
+- **Body (JSON):**
+  ```json
+  {
+      "status": "APPROVED" 
+  }
+  ```
+  *(Các giá trị hợp lệ: `APPROVED`, `REJECTED`, `TAKEDOWN`)*
+
+### 2.3. Lấy danh sách Album chờ duyệt
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/catalog/admin/albums/pending`
+- **Mô tả:** Lấy tất cả Album trên toàn hệ thống đang ở trạng thái `PENDING`.
+
+### 2.4. Cập nhật Trạng thái Album (Duyệt/Từ chối)
+- **Method:** `PATCH`
+- **Endpoint:** `http://localhost:8686/api/catalog/admin/albums/{albumId}/status`
+- **Mô tả:** Đổi trạng thái album.
 - **Body (JSON):**
   ```json
   {

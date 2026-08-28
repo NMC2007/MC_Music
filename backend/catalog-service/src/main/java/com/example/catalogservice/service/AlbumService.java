@@ -57,4 +57,19 @@ public class AlbumService {
                 .orElseThrow(() -> new ResourceNotFoundException("Album not found with id: " + albumId));
         return modelMapper.map(album, AlbumResponse.class);
     }
+
+    @Transactional(readOnly = true)
+    public List<AlbumResponse> getAlbumsByStatus(String status) {
+        return albumRepository.findByStatus(status).stream()
+                .map(album -> modelMapper.map(album, AlbumResponse.class))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void updateAlbumStatus(UUID albumId, String status) {
+        Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new ResourceNotFoundException("Album not found with id: " + albumId));
+        album.setStatus(status);
+        albumRepository.save(album);
+    }
 }

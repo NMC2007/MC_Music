@@ -31,7 +31,9 @@ Cách tiếp cận này đảm bảo:
 2. **Tích hợp Cloudinary:** Kết nối Cloudinary API để chuẩn bị cho việc upload file ảnh và file audio (mp3/wav).
 3. **Phát triển API cho Artist:** Viết API cho phép nghệ sĩ tải lên bài hát và tạo album (Trạng thái mặc định là `PENDING`).
 4. **Phát triển API cho Admin:** Viết API cho phép quản trị viên xem danh sách nhạc chờ duyệt và chuyển trạng thái sang `APPROVED`.
-5. **Phát triển API cho Public/User:** Viết API lấy danh sách nhạc, album nổi bật (chỉ lấy nhạc đã `APPROVED`) để chuẩn bị cho Giao diện User.
+5. **Phát triển API cho Public/User:** 
+   - Viết API lấy danh sách nhạc, album nổi bật (chỉ lấy nhạc đã `APPROVED`) để chuẩn bị cho Giao diện User.
+   - Phát triển API tìm kiếm nhạc/album (sử dụng truy vấn `LIKE` trong CSDL để đảm bảo hệ thống ổn định và ra mắt nhanh chóng ở phiên bản đầu).
 6. **Kiểm thử Postman:** Test toàn bộ luồng Upload -> Duyệt -> Nghe nhạc.
 
 ### Giai đoạn 3: Hoàn thiện User MVP (Sản phẩm cốt lõi)

@@ -46,7 +46,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/artist/auth/**", "/error").permitAll()
+                .requestMatchers("/api/artist/auth/**", "/api/internal/**", "/error").permitAll()
                 .anyRequest().authenticated()
             );
         return http.build();

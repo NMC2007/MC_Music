@@ -2,6 +2,8 @@ package com.example.catalogservice.controller;
 
 import com.example.catalogservice.model.dto.request.AlbumCreateRequest;
 import com.example.catalogservice.model.dto.request.SongUploadRequest;
+import com.example.catalogservice.model.dto.request.LyricsUpdateRequest;
+import com.example.catalogservice.model.dto.request.SongArtistAddRequest;
 import com.example.catalogservice.model.dto.response.AlbumResponse;
 import com.example.catalogservice.model.dto.response.ApiResponse;
 import com.example.catalogservice.model.dto.response.SongResponse;
@@ -65,5 +67,21 @@ public class ArtistCatalogController {
     public ResponseEntity<ApiResponse<List<SongResponse>>> getMySongs() {
         List<SongResponse> response = songService.getSongsByOwner(getCurrentArtistId());
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách bài hát thành công"));
+    }
+
+    @PostMapping("/songs/{songId}/lyrics")
+    public ResponseEntity<ApiResponse<Void>> updateLyrics(
+            @PathVariable UUID songId,
+            @Valid @RequestBody LyricsUpdateRequest request) {
+        songService.updateLyrics(songId, request, getCurrentArtistId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật lời bài hát thành công"));
+    }
+
+    @PostMapping("/songs/{songId}/artists")
+    public ResponseEntity<ApiResponse<Void>> addSongArtist(
+            @PathVariable UUID songId,
+            @Valid @RequestBody SongArtistAddRequest request) {
+        songService.addSongArtist(songId, request, getCurrentArtistId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Thêm nghệ sĩ phụ thành công"));
     }
 }

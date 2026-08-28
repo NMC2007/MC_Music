@@ -31,3 +31,11 @@ cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME:nemhjypf}
     api-key: ${CLOUDINARY_API_KEY:198795169447897}
     api-secret: ${CLOUDINARY_API_SECRET:oiV5gNYyZg2XDOy6q066x6MQ9YI}
+
+artists:
+    service:
+        url: ${ARTISTS_SERVICE_URL:http://localhost:8083}
+
+internal:
+    api:
+        secret: ${INTERNAL_API_SECRET:SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}

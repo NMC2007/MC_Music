@@ -10,4 +10,5 @@ import java.util.UUID;
 @Repository
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
     List<Album> findByOwnerId(UUID ownerId);
+    List<Album> findByStatus(String status);
 }
