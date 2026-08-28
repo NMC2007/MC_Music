@@ -26,6 +26,9 @@ public class Album {
     @Column(name = "owner_id", nullable = false)
     private UUID ownerId;
 
+    @Column(name = "owner_name")
+    private String ownerName;
+
     @Column(nullable = false)
     private String title;
 

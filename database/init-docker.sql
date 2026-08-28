@@ -137,6 +137,7 @@ CREATE TABLE IF NOT EXISTS genres (
 CREATE TABLE IF NOT EXISTS albums (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL,
+    owner_name VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     album_type VARCHAR(20) DEFAULT 'ALBUM',
     total_tracks INT DEFAULT 0,
@@ -150,6 +151,7 @@ CREATE TABLE IF NOT EXISTS albums (
 CREATE TABLE IF NOT EXISTS songs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_id UUID NOT NULL,
+    owner_name VARCHAR(255),
     album_id UUID REFERENCES albums(id) ON DELETE SET NULL,
     title VARCHAR(255) NOT NULL,
     track_number INT,

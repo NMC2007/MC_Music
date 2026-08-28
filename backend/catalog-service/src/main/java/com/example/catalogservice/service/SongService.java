@@ -57,6 +57,14 @@ public class SongService {
     public SongResponse uploadSong(SongUploadRequest request, UUID ownerId) throws IOException {
         Song song = modelMapper.map(request, Song.class);
         song.setOwnerId(ownerId);
+        
+        try {
+            ArtistInternalResponse artistInfo = artistServiceClient.getArtistById(ownerId);
+            song.setOwnerName(artistInfo.getStageName());
+        } catch (Exception e) {
+            song.setOwnerName("Unknown Artist");
+        }
+        
         song.setStatus("PENDING"); 
         
         if (request.getAlbumId() != null) {

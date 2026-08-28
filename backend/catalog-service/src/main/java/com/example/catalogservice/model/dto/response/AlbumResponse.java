@@ -7,6 +7,8 @@ import java.util.UUID;
 @Data
 public class AlbumResponse {
     private UUID id;
+    private UUID ownerId;
+    private String ownerName;
     private String title;
     private String albumType;
     private String description;

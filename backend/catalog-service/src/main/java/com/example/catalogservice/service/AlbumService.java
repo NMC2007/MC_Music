@@ -5,6 +5,8 @@ import com.example.catalogservice.model.dto.request.AlbumCreateRequest;
 import com.example.catalogservice.model.dto.response.AlbumResponse;
 import com.example.catalogservice.model.entity.Album;
 import com.example.catalogservice.repository.AlbumRepository;
+import com.example.catalogservice.client.ArtistServiceClient;
+import com.example.catalogservice.client.ArtistInternalResponse;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,11 +21,13 @@ import java.util.stream.Collectors;
 public class AlbumService {
 
     private final AlbumRepository albumRepository;
+    private final ArtistServiceClient artistServiceClient;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
 
-    public AlbumService(AlbumRepository albumRepository, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
+    public AlbumService(AlbumRepository albumRepository, ArtistServiceClient artistServiceClient, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
         this.albumRepository = albumRepository;
+        this.artistServiceClient = artistServiceClient;
         this.cloudinaryService = cloudinaryService;
         this.modelMapper = modelMapper;
     }
@@ -32,6 +36,14 @@ public class AlbumService {
     public AlbumResponse createAlbum(AlbumCreateRequest request, UUID ownerId) throws IOException {
         Album album = modelMapper.map(request, Album.class);
         album.setOwnerId(ownerId);
+        
+        try {
+            ArtistInternalResponse artistInfo = artistServiceClient.getArtistById(ownerId);
+            album.setOwnerName(artistInfo.getStageName());
+        } catch (Exception e) {
+            album.setOwnerName("Unknown Artist");
+        }
+        
         album.setStatus("PENDING"); 
         album.setTotalTracks(0);
 
