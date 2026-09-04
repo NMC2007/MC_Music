@@ -43,11 +43,8 @@ Cách tiếp cận này đảm bảo:
    - Dựa vào dữ liệu thật ở Catalog, viết các nghiệp vụ: Lấy nhạc ra trang chủ, Tạo Playlist, Thêm bài hát vào Playlist, Thả tim bài hát, Ghi nhận lịch sử nghe nhạc.
    - Viết logic gọi Internal API từ User Service sang Catalog Service để tăng lượt `play_count` và `like_count`.
 2. **Phát triển Frontend (User Web):**
-   - Khởi tạo project React + TailwindCSS.
-   - Xây dựng giao diện trang chủ, trang đăng nhập.
-   - Tích hợp Trình phát nhạc (Audio Player) toàn cục.
-   - Tích hợp API.
-> **=> MỐC QUAN TRỌNG:** Kết thúc Giai đoạn 3, hệ thống đã là một nền tảng nghe nhạc hoàn chỉnh, sử dụng nhạc thật trên Cloudinary!
+   - *(Tạm thời trì hoãn)*: Trọng tâm hiện tại là lập trình và kiểm thử toàn bộ Backend API cho đến khi ổn định hoàn toàn trước khi tiến hành xây dựng giao diện.
+> **=> MỐC QUAN TRỌNG:** Kết thúc Giai đoạn 3 (Backend), hệ thống đã có đầy đủ API để một nền tảng nghe nhạc hoạt động, sử dụng nhạc thật trên Cloudinary!
 
 ### Giai đoạn 4: Triển khai Artist Web & Hoàn thiện Artist Service
 *Mục tiêu: Cung cấp giao diện trực quan cho nghệ sĩ quản lý kho nhạc.*
@@ -73,6 +70,6 @@ Cách tiếp cận này đảm bảo:
 |---|---|---|
 | 1 | Database (4 schemas), Auth (3 Services), Gateway | (Chưa tiến hành) |
 | 2 | Catalog Core, Cloudinary, API Upload & Duyệt nhạc | (Chưa tiến hành) |
-| 3 | User Service, Giao tiếp nội bộ (Internal API) | **User Web (Sản phẩm cốt lõi)** |
-| 4 | Artist Service (Hồ sơ, Dashboard) | **Artist Web** |
-| 5 | Admin Service (Khóa tài khoản) | **Admin Web** |
+| 3 | User Service, Giao tiếp nội bộ (Internal API) | **(Tạm hoãn chưa làm Frontend)** |
+| 4 | Artist Service (Hồ sơ, Dashboard) | **(Tạm hoãn)** |
+| 5 | Admin Service (Khóa tài khoản) | **(Tạm hoãn)** |

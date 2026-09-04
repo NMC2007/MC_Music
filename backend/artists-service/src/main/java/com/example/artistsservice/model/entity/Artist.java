@@ -32,6 +32,9 @@ public class Artist {
     
     @Builder.Default
     private Boolean isActive = true;
+
+    @Builder.Default
+    private Integer followerCount = 0;
     
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();

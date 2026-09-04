@@ -136,11 +136,12 @@ Xây dựng nền tảng nghe nhạc trực tuyến gồm 3 hệ thống độc 
 - `playlists`: `id`, `user_id`, `name`, `description`, `cover_image`, `is_public`, `created_at`
 - `playlist_songs`: `playlist_id`, `song_id`, `song_title` (nhân bản), `artist_name` (nhân bản), `cover_image` (nhân bản), `added_at`
 - `favorites`: `user_id`, `song_id`, `song_title` (nhân bản), `artist_name` (nhân bản), `cover_image` (nhân bản), `created_at`
+- `favorite_albums`: `user_id`, `album_id`, `album_title` (nhân bản), `artist_name` (nhân bản), `cover_image` (nhân bản), `created_at`
 - `follows`: `user_id`, `artist_id`, `artist_name` (nhân bản), `avatar_url` (nhân bản), `created_at`
 - `play_history`: `id`, `user_id`, `song_id`, `song_title` (nhân bản), `artist_name` (nhân bản), `played_at`, `duration_listened`
 
 ### 5.2. Artist Service (`artist_db`)
-- `artists`: `id`, `email`, `password_hash`, `stage_name`, `biography`, `avatar_url`, `cover_url`, `is_active` (để Admin khóa), `created_at`
+- `artists`: `id`, `email`, `password_hash`, `stage_name`, `biography`, `avatar_url`, `cover_url`, `is_active` (để Admin khóa), `follower_count`, `created_at`
 - `refresh_tokens`: `id`, `artist_id`, `token`, `expires_at`, `created_at`
 
 ### 5.3. Admin Service (`admin_db`)
@@ -149,7 +150,7 @@ Xây dựng nền tảng nghe nhạc trực tuyến gồm 3 hệ thống độc 
 
 ### 5.4. Catalog Service (`catalog_db`)
 - `genres`: `id`, `name`, `cover_image`
-- `albums`: `id`, `owner_id` (quyền sở hữu), `owner_name` (nhân bản tên nghệ sĩ), `title`, `album_type` (ALBUM, SINGLE, EP), `description`, `total_tracks`, `cover_image`, `release_date`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `created_at`
+- `albums`: `id`, `owner_id` (quyền sở hữu), `owner_name` (nhân bản tên nghệ sĩ), `title`, `album_type` (ALBUM, SINGLE, EP), `description`, `total_tracks`, `cover_image`, `release_date`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `like_count`, `created_at`
 - `songs`: `id`, `owner_id` (quyền sở hữu), `owner_name` (nhân bản tên nghệ sĩ), `album_id`, `title`, `track_number`, `duration_ms`, `audio_url`, `audio_public_id`, `cover_image`, `explicit`, `play_count`, `like_count`, `status` (PENDING, APPROVED, REJECTED, TAKEDOWN), `is_deleted` (xóa mềm), `created_at`
 - `song_artists` (Nhiều nghệ sĩ/Feat): `song_id`, `artist_id`, `artist_name` (nhân bản), `role` (MAIN, FEATURED, PRODUCER)
 - `song_genres` (Đa thể loại): `song_id`, `genre_id`

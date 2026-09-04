@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS favorites (
     PRIMARY KEY (user_id, song_id)
 );
 
+CREATE TABLE IF NOT EXISTS favorite_albums (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    album_id UUID NOT NULL,
+    album_title VARCHAR(255) NOT NULL,
+    artist_name VARCHAR(255),
+    cover_image VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, album_id)
+);
+
 CREATE TABLE IF NOT EXISTS follows (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     artist_id UUID NOT NULL,
@@ -90,6 +100,7 @@ CREATE TABLE IF NOT EXISTS artists (
     avatar_url VARCHAR(500),
     cover_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
+    follower_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -145,6 +156,7 @@ CREATE TABLE IF NOT EXISTS albums (
     cover_image VARCHAR(500),
     release_date DATE,
     status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'TAKEDOWN')),
+    like_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
