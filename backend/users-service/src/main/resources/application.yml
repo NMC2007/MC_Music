@@ -21,3 +21,11 @@ jwt:
   secret: ${JWT_SECRET:superSecretKeyForMcMusicAppThatIsAtLeast32CharactersLong}
   access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}
   refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000}
+
+catalog:
+  service:
+    url: ${CATALOG_SERVICE_URL:http://localhost:8081}
+
+internal:
+  api:
+    secret: ${INTERNAL_API_SECRET:SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}

@@ -23,4 +23,16 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
            "AND (:keyword IS NULL OR LOWER(s.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%'))) " +
            "AND (:genreId IS NULL OR g.id = :genreId)")
     Page<Song> findPublicSongs(@Param("keyword") String keyword, @Param("genreId") UUID genreId, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Song s SET s.playCount = s.playCount + 1 WHERE s.id = :id")
+    void incrementPlayCount(@Param("id") UUID id);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Song s SET s.likeCount = s.likeCount + 1 WHERE s.id = :id")
+    void incrementLikeCount(@Param("id") UUID id);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Song s SET s.likeCount = s.likeCount - 1 WHERE s.id = :id AND s.likeCount > 0")
+    void decrementLikeCount(@Param("id") UUID id);
 }

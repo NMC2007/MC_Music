@@ -59,6 +59,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/catalog/public/**").permitAll()
+                .requestMatchers("/api/internal/catalog/**").permitAll()
                 .requestMatchers("/api/catalog/test-cloudinary/**").permitAll()
                 .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/catalog/test-security").authenticated()
