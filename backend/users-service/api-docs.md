@@ -134,6 +134,102 @@ Nhóm API này dùng để quản lý danh sách phát cá nhân của người 
 
 ---
 
-## 3. Dữ liệu người dùng khác (Sắp triển khai)
+## 3. Lịch sử và Yêu thích (Favorites & History)
 
-_(Các API thả tim bài hát, lịch sử nghe nhạc... sẽ được cập nhật tại đây khi hoàn thành)._
+Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nhạc của người dùng.
+**Yêu cầu:** Tất cả API trong nhóm này đều yêu cầu header `Authorization: Bearer <accessToken>`.
+
+### 3.1. Yêu thích bài hát
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/user/favorites/{songId}`
+- **Mô tả:** Đánh dấu một bài hát là yêu thích. Hệ thống sẽ tự động gọi sang Catalog Service để tăng `likeCount`.
+- **Response thành công (201 Created):**
+  Trả về thông báo thành công.
+
+### 3.2. Bỏ yêu thích bài hát
+
+- **Method:** `DELETE`
+- **Endpoint:** `http://localhost:8686/api/user/favorites/{songId}`
+- **Mô tả:** Gỡ bỏ một bài hát khỏi danh sách yêu thích. Hệ thống sẽ tự động gọi sang Catalog Service để giảm `likeCount`.
+- **Response thành công (200 OK):**
+  Trả về thông báo thành công.
+
+### 3.3. Lấy danh sách bài hát yêu thích
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/user/favorites`
+- **Mô tả:** Lấy danh sách toàn bộ bài hát yêu thích của người dùng hiện tại.
+- **Response thành công (200 OK):**
+  Trả về mảng chi tiết bài hát yêu thích, sắp xếp mới nhất lên đầu.
+
+### 3.4. Yêu thích Album
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/user/favorites/albums/{albumId}`
+- **Mô tả:** Đánh dấu một album là yêu thích. Hệ thống sẽ tự động gọi sang Catalog Service để tăng `likeCount`.
+- **Response thành công (201 Created):**
+  Trả về thông báo thành công.
+
+### 3.5. Bỏ yêu thích Album
+
+- **Method:** `DELETE`
+- **Endpoint:** `http://localhost:8686/api/user/favorites/albums/{albumId}`
+- **Mô tả:** Gỡ bỏ một album khỏi danh sách yêu thích. Hệ thống sẽ tự động gọi sang Catalog Service để giảm `likeCount`.
+- **Response thành công (200 OK):**
+  Trả về thông báo thành công.
+
+### 3.6. Lấy danh sách Album yêu thích
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/user/favorites/albums`
+- **Mô tả:** Lấy danh sách toàn bộ album yêu thích của người dùng hiện tại.
+- **Response thành công (200 OK):**
+  Trả về mảng chi tiết album yêu thích, sắp xếp mới nhất lên đầu.
+
+### 3.7. Theo dõi Nghệ sĩ
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/user/follows/artists/{artistId}`
+- **Mô tả:** Theo dõi một nghệ sĩ. Hệ thống sẽ tự động gọi sang Artists Service để tăng `followerCount`.
+- **Response thành công (201 Created):**
+  Trả về thông báo thành công.
+
+### 3.8. Hủy theo dõi Nghệ sĩ
+
+- **Method:** `DELETE`
+- **Endpoint:** `http://localhost:8686/api/user/follows/artists/{artistId}`
+- **Mô tả:** Hủy theo dõi một nghệ sĩ. Hệ thống sẽ tự động gọi sang Artists Service để giảm `followerCount`.
+- **Response thành công (200 OK):**
+  Trả về thông báo thành công.
+
+### 3.9. Lấy danh sách Nghệ sĩ đang theo dõi
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/user/follows/artists`
+- **Mô tả:** Lấy danh sách toàn bộ nghệ sĩ mà người dùng hiện tại đang theo dõi.
+- **Response thành công (200 OK):**
+  Trả về mảng chi tiết album yêu thích, sắp xếp mới nhất lên đầu.
+
+### 3.10. Ghi nhận lịch sử nghe nhạc
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/user/history`
+- **Mô tả:** Ghi nhận 1 lần nghe bài hát của người dùng. Hệ thống sẽ tự động gọi sang Catalog Service để tăng `playCount`.
+- **Body (JSON):**
+  ```json
+  {
+    "songId": "<UUID_BÀI_HÁT>",
+    "durationListened": 120
+  }
+  ```
+- **Response thành công (201 Created):**
+  Trả về thông báo ghi nhận thành công.
+
+### 3.11. Lấy lịch sử nghe nhạc
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/user/history`
+- **Mô tả:** Lấy lịch sử nghe nhạc gần đây của người dùng hiện tại.
+- **Response thành công (200 OK):**
+  Trả về mảng lịch sử nghe nhạc, sắp xếp mới nhất lên đầu.

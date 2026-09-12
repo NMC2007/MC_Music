@@ -22,4 +22,13 @@ public interface CatalogServiceClient {
 
     @GetMapping("/api/internal/catalog/songs/{id}")
     SongInternalResponse getSongDetails(@PathVariable("id") UUID id);
+
+    @PutMapping("/api/internal/catalog/albums/{id}/increment-like")
+    void incrementAlbumLike(@PathVariable("id") UUID id);
+
+    @PutMapping("/api/internal/catalog/albums/{id}/decrement-like")
+    void decrementAlbumLike(@PathVariable("id") UUID id);
+
+    @GetMapping("/api/internal/catalog/albums/{id}")
+    AlbumInternalResponse getAlbumDetails(@PathVariable("id") UUID id);
 }

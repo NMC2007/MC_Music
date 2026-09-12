@@ -25,6 +25,9 @@ jwt:
 catalog:
   service:
     url: ${CATALOG_SERVICE_URL:http://localhost:8081}
+artist:
+  service:
+    url: ${ARTIST_SERVICE_URL:http://localhost:8083}
 
 internal:
   api:
