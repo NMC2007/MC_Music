@@ -25,10 +25,10 @@ Tài liệu này đóng vai trò là "Kim chỉ nam" cho toàn bộ quá trình 
 Màu sắc chủ đạo đã được chốt là **#fa2d48 (Đỏ Neon)**. Nó đại diện cho sự năng động và nhiệt huyết.
 
 ### 3.1. Màu nền (Backgrounds - Dark Mode)
-Để tạo chiều sâu, chúng ta không dùng một màu đen duy nhất mà dùng hệ thống màu xám đậm:
-- **Base Background (`bg-neutral-950`)**: Nền chính của toàn bộ ứng dụng (`#0a0a0a`).
-- **Surface/Sidebar (`bg-neutral-900`)**: Nền của thanh Sidebar, Bottom Player, hoặc các Card (`#171717`).
-- **Elevated/Hover (`bg-neutral-800`)**: Nền khi hover vào một dòng bài hát hoặc component nổi (`#262626`).
+Để tạo chiều sâu, chúng ta không dùng một màu đen duy nhất mà dùng hệ thống màu Spotify Red Theme:
+- **Base Background (`bg-spotify-black`)**: Nền chính của toàn bộ ứng dụng (`#000000`).
+- **Surface/Sidebar (`bg-spotify-base`)**: Nền của thanh Sidebar, Main view (`#121212`).
+- **Elevated/Hover (`bg-spotify-card` / `bg-spotify-hover`)**: Nền cho Card, khi hover vào một dòng bài hát hoặc component nổi (`#181818` / `#282828`).
 
 ### 3.2. Màu thương hiệu (Brand Colors)
 - **Primary (`text-primary`, `bg-primary`)**: `#fa2d48` (Dùng cho Nút Play, Nút bấm chính, text đang active, hover links).
@@ -36,8 +36,8 @@ Màu sắc chủ đạo đã được chốt là **#fa2d48 (Đỏ Neon)**. Nó �
 - **Primary Glow**: Sử dụng bóng đổ màu đỏ (drop-shadow hoặc box-shadow) với độ mờ (opacity) khoảng 20-30% cho các thành phần nhấn mạnh.
 
 ### 3.3. Màu chữ (Typography Colors)
-- **Primary Text (`text-white` / `text-neutral-50`)**: Dùng cho tiêu đề, tên bài hát, chữ nhấn mạnh.
-- **Secondary Text (`text-neutral-400`)**: Dùng cho tên nghệ sĩ, thời lượng, mô tả phụ (`#a3a3a3`).
+- **Primary Text (`text-spotify-text`)**: Dùng cho tiêu đề, tên bài hát, chữ nhấn mạnh (`#ffffff`).
+- **Secondary Text (`text-spotify-sub`)**: Dùng cho tên nghệ sĩ, thời lượng, mô tả phụ (`#a7a7a7`).
 - **Disabled Text (`text-neutral-600`)**: Dùng cho icon hoặc text bị vô hiệu hóa.
 
 ---
@@ -83,23 +83,23 @@ Layout bắt buộc chia làm 3 vùng độc lập, không làm trang web cuộn
 
 ### 6.2. Card (Bài hát / Album)
 - Card phải có hiệu ứng hover mượt mà: khi hover, nền sáng lên một chút và nút Play (bị ẩn mặc định) sẽ xuất hiện đè lên ảnh cover.
-- Class nền Card: `p-4 bg-neutral-900/40 hover:bg-neutral-800 transition-colors rounded-lg group cursor-pointer`
+- Class nền Card: `p-4 bg-spotify-card hover:bg-spotify-hover transition-colors rounded-lg group cursor-pointer`
 
 ### 6.3. Inputs & Forms
 - Ô tìm kiếm / Nhập liệu: Nền xám đậm, không viền, đổi màu viền sang đỏ khi Focus.
-- Class: `bg-neutral-800 text-white placeholder-neutral-500 rounded-full px-4 py-3 outline-none focus:ring-2 focus:ring-[#fa2d48]/50 transition-all w-full`
+- Class: `bg-spotify-card-hover text-spotify-text placeholder-spotify-sub rounded-full px-4 py-3 outline-none focus:ring-2 focus:ring-[#fa2d48]/50 transition-all w-full`
 
 ### 6.4. Scrollbar (Thanh cuộn)
 - Tuỳ biến thanh cuộn mỏng, màu tối để không phá vỡ UI.
-- Class (Tailwind plugins hoặc CSS thuần): `scrollbar-thin scrollbar-thumb-neutral-700 scrollbar-track-transparent hover:scrollbar-thumb-neutral-500`
+- Class (Tailwind plugins hoặc CSS thuần): `scrollbar-thin` (được cấu hình trong index.css)
 
 ---
 
 ## 7. UX & Hiệu ứng (Animations)
 - Sử dụng utility `transition-all duration-300 ease-in-out` trên hầu hết các phần tử có tương tác.
 - **Glassmorphism**: Áp dụng cho Topbar khi cuộn trang.
-  - Class: `bg-neutral-950/80 backdrop-blur-md sticky top-0 z-40`
-- **Skeleton Loading**: Khi đang gọi API, tuyệt đối không để trống màn hình. Trình bày các cục xám nhấp nháy (`animate-pulse bg-neutral-800`) giữ nguyên form layout.
+  - Class: `bg-spotify-black/80 backdrop-blur-md sticky top-0 z-40`
+- **Skeleton Loading**: Khi đang gọi API, tuyệt đối không để trống màn hình. Trình bày các cục xám nhấp nháy (`animate-pulse bg-spotify-card`) giữ nguyên form layout.
 
 ---
 
