@@ -9,6 +9,7 @@ import {
   Repeat,
 } from "lucide-react";
 import { usePlayerStore } from "../store/usePlayerStore";
+import { Button } from "../components/ui/Button";
 
 export const BottomPlayer = () => {
   const { currentSong, isPlaying, setIsPlaying, playNext, playPrevious } =
@@ -43,20 +44,22 @@ export const BottomPlayer = () => {
       <div className="flex-1 max-w-2xl flex flex-col items-center justify-center gap-2">
         {/* Nút bấm */}
         <div className="flex items-center gap-6">
-          <button className="text-spotify-sub hover:text-white transition">
+          <Button variant="ghost" size="sm" iconOnly className="hover:bg-transparent text-spotify-sub hover:text-white" tooltip="Trộn bài" tooltipPosition="top">
             <Shuffle size={18} />
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={playPrevious}
-            className="text-spotify-sub hover:text-white transition"
+            variant="ghost" size="sm" iconOnly className="hover:bg-transparent text-spotify-sub hover:text-white"
+            tooltip="Trước" tooltipPosition="top"
           >
             <SkipBack size={20} fill="currentColor" />
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={() => setIsPlaying(!isPlaying)}
-            className="w-8 h-8 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 transition-transform"
+            variant="white" size="sm" iconOnly
+            tooltip={isPlaying ? "Tạm dừng" : "Phát"} tooltipPosition="top"
           >
             {isPlaying ? (
               <Pause size={18} fill="currentColor" strokeWidth={0} />
@@ -68,18 +71,19 @@ export const BottomPlayer = () => {
                 className="translate-x-[2px]"
               />
             )}
-          </button>
+          </Button>
 
-          <button
+          <Button
             onClick={playNext}
-            className="text-spotify-sub hover:text-white transition"
+            variant="ghost" size="sm" iconOnly className="hover:bg-transparent text-spotify-sub hover:text-white"
+            tooltip="Tiếp" tooltipPosition="top"
           >
             <SkipForward size={20} fill="currentColor" />
-          </button>
+          </Button>
 
-          <button className="text-spotify-sub hover:text-white transition">
+          <Button variant="ghost" size="sm" iconOnly className="hover:bg-transparent text-spotify-sub hover:text-white" tooltip="Lặp lại" tooltipPosition="top">
             <Repeat size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Thanh Progress */}
@@ -94,9 +98,9 @@ export const BottomPlayer = () => {
 
       {/* 3. Điều khiển Âm lượng (Bên phải) */}
       <div className="w-[30%] flex items-center justify-end gap-2 text-spotify-sub">
-        <button className="hover:text-white transition">
+        <Button variant="ghost" size="sm" iconOnly className="hover:bg-transparent text-spotify-sub hover:text-white" tooltip="Âm lượng" tooltipPosition="top">
           <Volume2 size={20} />
-        </button>
+        </Button>
         <div className="w-24 h-1 bg-spotify-hover rounded-full overflow-hidden cursor-pointer group">
           <div className="w-full h-full bg-white group-hover:bg-spotify-primary relative rounded-full"></div>
         </div>

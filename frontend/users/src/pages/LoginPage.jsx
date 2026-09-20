@@ -68,7 +68,7 @@ export const LoginPage = () => {
             {errors.password && <p className="text-spotify-primary text-xs mt-2">{errors.password.message}</p>}
           </div>
 
-          <Button type="submit" variant="primary" className="w-full mt-8" disabled={isSubmitting}>
+          <Button type="submit" variant="primary" size="lg" className="w-full mt-8" disabled={isSubmitting}>
             {isSubmitting ? 'Đang xử lý...' : 'Đăng nhập'}
           </Button>
         </form>

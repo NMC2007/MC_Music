@@ -16,7 +16,7 @@ export const MainLayout = () => {
         <div className="flex-1 flex flex-col relative overflow-hidden bg-spotify-base rounded-lg">
           <Topbar />
           {/* Outlet là nơi render các trang (Home, Search,...). pt-16 để chừa chỗ cho Topbar (h-16) */}
-          <main className="flex-1 overflow-y-auto scrollbar-thin px-6 pb-6 pt-20">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin px-6 pb-6 pt-20">
             <Outlet />
           </main>
         </div>
