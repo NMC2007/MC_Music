@@ -9,5 +9,4 @@ public class FollowArtistResponse {
     private UUID artistId;
     private String artistName;
     private String avatar;
-    private LocalDateTime createdAt;
 }

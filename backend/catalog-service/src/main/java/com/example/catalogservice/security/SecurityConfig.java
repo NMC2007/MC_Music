@@ -14,18 +14,14 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
-    @Autowired
-    @Qualifier("handlerExceptionResolver")
-    private HandlerExceptionResolver exceptionResolver;
 
     @Value("${jwt.secret.user}")
     private String userSecret;
@@ -68,12 +64,18 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             .exceptionHandling(exceptions -> exceptions
-                .authenticationEntryPoint((request, response, authException) -> 
-                    exceptionResolver.resolveException(request, response, null, authException)
-                )
-                .accessDeniedHandler((request, response, accessDeniedException) -> 
-                    exceptionResolver.resolveException(request, response, null, accessDeniedException)
-                )
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    String json = String.format("{\"success\":false,\"statusCode\":401,\"message\":\"Xác thực thất bại, token không hợp lệ hoặc không được cung cấp\",\"data\":null,\"timestamp\":\"%s\"}", java.time.LocalDateTime.now().toString());
+                    response.getWriter().write(json);
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    String json = String.format("{\"success\":false,\"statusCode\":403,\"message\":\"Không có quyền truy cập vào tài nguyên này\",\"data\":null,\"timestamp\":\"%s\"}", java.time.LocalDateTime.now().toString());
+                    response.getWriter().write(json);
+                })
             )
             .addFilterBefore(multiIssuerJwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

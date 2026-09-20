@@ -70,4 +70,14 @@ public class PublicCatalogController {
         Page<AlbumResponse> albums = publicCatalogService.getAlbumsByArtist(artistId, pageable);
         return ResponseEntity.ok(ApiResponse.success(albums, "Lấy danh sách album của nghệ sĩ thành công"));
     }
+
+    @GetMapping("/albums/{albumId}/songs")
+    public ResponseEntity<ApiResponse<Page<SongResponse>>> getSongsByAlbum(
+            @PathVariable UUID albumId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<SongResponse> songs = publicCatalogService.getSongsByAlbum(albumId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(songs, "Lấy danh sách bài hát trong album thành công"));
+    }
 }

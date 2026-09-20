@@ -57,6 +57,19 @@ public class PublicCatalogService {
     }
 
     @Transactional(readOnly = true)
+    public Page<SongResponse> getSongsByAlbum(UUID albumId, Pageable pageable) {
+        com.example.catalogservice.model.entity.Album album = albumRepository.findById(albumId)
+                .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Album không tồn tại"));
+                
+        if (!"APPROVED".equals(album.getStatus())) {
+            throw new com.example.catalogservice.exception.ResourceNotFoundException("Album chưa được duyệt hoặc không khả dụng");
+        }
+        
+        return songRepository.findByAlbumIdAndStatusAndIsDeletedFalse(albumId, "APPROVED", pageable)
+                .map(song -> modelMapper.map(song, SongResponse.class));
+    }
+
+    @Transactional(readOnly = true)
     public List<GenreResponse> getAllGenres() {
         return genreRepository.findAll().stream()
                 .map(genre -> modelMapper.map(genre, GenreResponse.class))

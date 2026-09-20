@@ -179,6 +179,15 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
 
+### 3.6. Lấy danh sách Bài hát trong một Album
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/catalog/public/albums/{albumId}/songs`
+- **Mô tả:** Lấy danh sách các Bài hát công khai (`APPROVED`) nằm trong một album cụ thể. Sẽ báo lỗi 404 nếu album không tồn tại hoặc chưa được duyệt.
+- **Query Parameters:**
+  - `page` (Int, Optional): Số trang (Mặc định: 0).
+  - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+
 ---
 
 ## 4. Dành cho Người nghe nhạc (User)
