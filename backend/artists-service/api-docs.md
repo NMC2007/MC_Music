@@ -81,6 +81,10 @@ Nhóm API này dùng để quản lý tài khoản của Nghệ sĩ (Artist) - n
 - **Query Parameters:**
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.
+    - **Các giá trị field hợp lệ:** `followerCount`, `createdAt`, `stageName`
+    - **Các giá trị direction hợp lệ:** `asc`, `desc`
+    - **Ví dụ:** `sort=followerCount,desc` (nghệ sĩ nhiều follower nhất lên đầu)
 - **Response thành công (200 OK):**
   ```json
   {
@@ -92,10 +96,14 @@ Nhóm API này dùng để quản lý tài khoản của Nghệ sĩ (Artist) - n
               {
                   "id": "uuid",
                   "stageName": "Sơn Tùng M-TP",
-                  "avatarUrl": "http..."
+                  "avatarUrl": "http...",
+                  "coverUrl": "http...",
+                  "biography": "Tiểu sử nghệ sĩ...",
+                  "followerCount": 150000,
+                  "createdAt": "2026-01-15T08:00:00"
               }
           ],
-          "pageable": { ... },
+          "pageable": { "...": "..." },
           "totalElements": 20,
           "totalPages": 2
       },

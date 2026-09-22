@@ -2,8 +2,8 @@ import axios from "axios";
 import { useAuthStore } from "../store/useAuthStore";
 
 // Đảm bảo lấy biến môi trường theo chuẩn của Vite (có tiền tố VITE_)
-// Sử dụng toán tử || để cung cấp giá trị dự phòng (fallback) an toàn là cổng 8686
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8686/api";
+// Sử dụng proxy của Vite để tránh lỗi CORS
+const API_BASE_URL = "/api";
 
 const api = axios.create({
     baseURL: API_BASE_URL,

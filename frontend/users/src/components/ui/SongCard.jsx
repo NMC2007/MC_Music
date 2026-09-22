@@ -1,6 +1,7 @@
 import React from "react";
 import { Play } from "lucide-react";
 import { Button } from "./Button";
+import { CoverImage } from "./CoverImage";
 
 export const SongCard = ({
   title,
@@ -31,11 +32,10 @@ export const SongCard = ({
       onClick={onClick}
     >
       <div className="relative mb-4">
-        <img
-          src={
-            imageUrl || "https://placehold.co/400x400/181818/ffffff?text=Cover"
-          }
+        <CoverImage
+          src={imageUrl}
           alt={title}
+          isArtist={isArtist}
           className={`w-full aspect-square object-cover shadow-lg ${isArtist ? "rounded-full" : "rounded-md"}`}
         />
         {/* Nút Play sẽ hiển thị hiệu ứng trượt lên và sáng lên khi hover vào thẻ card */}

@@ -135,6 +135,10 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 **Yêu cầu:** Không cần Token. Mọi user kể cả chưa đăng nhập đều có thể gọi.
 
+> **Lưu ý về tham số `sort`:**
+> Tham số `sort` nhận giá trị theo định dạng `field,direction` (VD: `playCount,desc`).
+> Nếu field không hợp lệ, hệ thống sẽ tự động fallback về sort mặc định `createdAt,desc` để đảm bảo an toàn.
+
 ### 3.1. Lấy danh sách Bài hát Công khai
 
 - **Method:** `GET`
@@ -145,6 +149,30 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
   - `genreId` (UUID, Optional): Lọc bài hát theo Thể loại.
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.
+    - **Các giá trị field hợp lệ:** `playCount`, `likeCount`, `createdAt`, `title`
+    - **Ví dụ:** `sort=playCount,desc` (bài hát thịnh hành nhất lên đầu)
+- **Response — Mỗi item trong `content` trả về:**
+  ```json
+  {
+    "id": "uuid",
+    "ownerId": "uuid-nghe-si",
+    "ownerName": "Sơn Tùng M-TP",
+    "title": "Tên bài hát",
+    "durationSeconds": 245,
+    "audioUrl": "https://...",
+    "coverImage": "https://...",
+    "explicit": false,
+    "playCount": 1000000,
+    "likeCount": 50000,
+    "status": "APPROVED",
+    "createdAt": "2026-08-01T10:00:00",
+    "artists": [
+      { "artistId": "uuid", "artistName": "Tên nghệ sĩ", "role": "MAIN" }
+    ],
+    "genres": [{ "id": "uuid", "name": "Pop" }]
+  }
+  ```
 
 ### 3.2. Lấy danh sách Thể loại
 
@@ -160,6 +188,26 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Query Parameters:**
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.
+    - **Các giá trị field hợp lệ:** `likeCount`, `createdAt`, `title`, `releaseDate`, `totalTracks`
+    - **Ví dụ:** `sort=likeCount,desc` (album được yêu thích nhất lên đầu)
+- **Response — Mỗi item trong `content` trả về:**
+  ```json
+  {
+    "id": "uuid",
+    "ownerId": "uuid-nghe-si",
+    "ownerName": "Sơn Tùng M-TP",
+    "title": "Tên album",
+    "albumType": "ALBUM",
+    "totalTracks": 10,
+    "description": "Mô tả album...",
+    "coverImage": "https://...",
+    "releaseDate": "2026-07-15",
+    "status": "APPROVED",
+    "likeCount": 20000,
+    "createdAt": "2026-07-01T09:00:00"
+  }
+  ```
 
 ### 3.4. Lấy danh sách Bài hát của một Nghệ sĩ
 
@@ -169,6 +217,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Query Parameters:**
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Các field hợp lệ: `playCount`, `likeCount`, `createdAt`, `title`. Mặc định: `createdAt,desc`.
 
 ### 3.5. Lấy danh sách Album của một Nghệ sĩ
 
@@ -178,6 +227,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Query Parameters:**
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Các field hợp lệ: `likeCount`, `createdAt`, `title`, `releaseDate`, `totalTracks`. Mặc định: `createdAt,desc`.
 
 ### 3.6. Lấy danh sách Bài hát trong một Album
 
@@ -187,6 +237,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Query Parameters:**
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Các field hợp lệ: `playCount`, `likeCount`, `createdAt`, `title`. Mặc định: `createdAt,desc`.
 
 ---
 

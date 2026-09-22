@@ -11,80 +11,29 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { useAuthStore } from "../store/useAuthStore";
+import { toast } from "sonner";
 
 // --- MOCK DATA ---
-const filters = ["Playlist", "Podcast", "Album", "Nghệ sĩ"];
+const filters = ["Playlist", "Album", "Nghệ sĩ"];
 
-const mockLibrary = [
-  {
-    id: 1,
-    type: "liked",
-    title: "Bài hát đã thích",
-    subtitle: "Danh sách phát • Nguyn Manh Cuon",
-    pinned: true,
-  },
-  {
-    id: 2,
-    type: "episodes",
-    title: "Tập của bạn",
-    subtitle: "Danh sách phát • Các tập đã lưu và tải xuống",
-    pinned: true,
-  },
-  {
-    id: 3,
-    type: "artist",
-    title: "RPT MCK",
-    subtitle: "Nghệ sĩ",
-    image: "https://i.pravatar.cc/150?u=rpt",
-  },
-  {
-    id: 4,
-    type: "artist",
-    title: "Vũ.",
-    subtitle: "Nghệ sĩ",
-    image: "https://i.pravatar.cc/150?u=vu",
-  },
-  {
-    id: 5,
-    type: "album",
-    title: "Show Của Đen",
-    subtitle: "Album • Đen",
-    image: "https://picsum.photos/seed/den/150/150",
-  },
-  {
-    id: 6,
-    type: "artist",
-    title: "Modern Talking",
-    subtitle: "Nghệ sĩ",
-    image: "https://i.pravatar.cc/150?u=modern",
-  },
-  {
-    id: 7,
-    type: "artist",
-    title: "Charlie Puth",
-    subtitle: "Nghệ sĩ",
-    image: "https://i.pravatar.cc/150?u=charlie",
-  },
-  {
-    id: 8,
-    type: "artist",
-    title: "Táo",
-    subtitle: "Nghệ sĩ",
-    image: "https://i.pravatar.cc/150?u=tao",
-  },
-  {
-    id: 9,
-    type: "artist",
-    title: "Đen",
-    subtitle: "Nghệ sĩ",
-    image: "https://i.pravatar.cc/150?u=den2",
-  },
-];
+const mockLibrary = [];
 
 export const Sidebar = () => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const [width, setWidth] = useState(320); // Mặc định w-80 = 320px để rộng rãi hiển thị list
   const [isResizing, setIsResizing] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  const handleProtectedAction = (actionName) => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để sử dụng tính năng này!", {
+        description: `Bạn cần đăng nhập để ${actionName}.`,
+      });
+      return false;
+    }
+    return true;
+  };
 
   useEffect(() => {
     const handleMouseMove = (e) => {
@@ -160,7 +109,13 @@ export const Sidebar = () => {
             <span className="text-base truncate">Thư viện</span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-            <Button variant="dark" size="sm" tooltip="Tạo danh sách phát mới" tooltipPosition="bottom-right">
+            <Button 
+              variant="dark" 
+              size="sm" 
+              tooltip="Tạo danh sách phát mới" 
+              tooltipPosition="bottom-right"
+              onClick={() => handleProtectedAction("tạo danh sách phát mới")}
+            >
               <Plus size={16} />
               Tạo
             </Button>
@@ -168,7 +123,8 @@ export const Sidebar = () => {
         </div>
 
         {/* Filters */}
-        <div className="relative group/filter flex-shrink-0">
+        {isAuthenticated && (
+          <div className="relative group/filter flex-shrink-0">
           {showLeft && (
             <>
               <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-spotify-base from-30% to-transparent z-[5] pointer-events-none" />
@@ -206,10 +162,12 @@ export const Sidebar = () => {
               </Button>
             </>
           )}
-        </div>
+          </div>
+        )}
 
         {/* Sub-header (Search & Sort) */}
-        <div className="flex items-center justify-between px-4 py-2 flex-shrink-0 mt-1 h-10">
+        {isAuthenticated && (
+          <div className="flex items-center justify-between px-4 py-2 flex-shrink-0 mt-1 h-10">
           {isSearchExpanded ? (
             <div className="relative flex items-center bg-[#2a2a2a] rounded-md h-8 px-2 flex-1 mr-2">
               <Search size={16} className="text-spotify-sub flex-shrink-0" />
@@ -236,56 +194,76 @@ export const Sidebar = () => {
             {!isSearchExpanded && <span>Gần đây</span>}
             <List size={18} />
           </Button>
-        </div>
+          </div>
+        )}
 
         {/* List Items */}
         <div className="flex-1 overflow-y-auto scrollbar-thin px-2 pb-2">
-          {mockLibrary.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] cursor-pointer group transition-colors"
-            >
-              {/* Thumbnail */}
-              <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center overflow-hidden">
-                {item.type === "liked" && (
-                  <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-blue-300 flex items-center justify-center rounded-md">
-                    <Heart size={20} className="text-white fill-white" />
-                  </div>
-                )}
-                {item.type === "episodes" && (
-                  <div className="w-full h-full bg-[#006450] flex items-center justify-center rounded-md">
-                    <Bookmark
-                      size={20}
-                      className="text-[#1ed760] fill-[#1ed760]"
-                    />
-                  </div>
-                )}
-                {(item.type === "artist" || item.type === "album") && (
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    className={`w-full h-full object-cover ${item.type === "artist" ? "rounded-full" : "rounded-md"}`}
-                  />
-                )}
-              </div>
-
-              {/* Text Content */}
-              <div className="flex flex-col flex-1 min-w-0 justify-center">
-                <span className="text-sm font-medium text-white truncate">
-                  {item.title}
-                </span>
-                <div className="flex items-center gap-1 text-xs text-spotify-sub mt-0.5 overflow-hidden">
-                  {item.pinned && (
-                    <Pin
-                      size={12}
-                      className="text-[#1ed760] fill-[#1ed760] flex-shrink-0 rotate-45"
+          {isAuthenticated ? (
+            mockLibrary.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center gap-3 p-2 rounded-md hover:bg-[#1a1a1a] cursor-pointer group transition-colors"
+              >
+                {/* Thumbnail */}
+                <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center overflow-hidden">
+                  {item.type === "liked" && (
+                    <div className="w-full h-full bg-gradient-to-br from-indigo-600 to-blue-300 flex items-center justify-center rounded-md">
+                      <Heart size={20} className="text-white fill-white" />
+                    </div>
+                  )}
+                  {item.type === "episodes" && (
+                    <div className="w-full h-full bg-[#006450] flex items-center justify-center rounded-md">
+                      <Bookmark
+                        size={20}
+                        className="text-[#1ed760] fill-[#1ed760]"
+                      />
+                    </div>
+                  )}
+                  {(item.type === "artist" || item.type === "album") && (
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className={`w-full h-full object-cover ${item.type === "artist" ? "rounded-full" : "rounded-md"}`}
                     />
                   )}
-                  <span className="truncate">{item.subtitle}</span>
+                </div>
+
+                {/* Text Content */}
+                <div className="flex flex-col flex-1 min-w-0 justify-center">
+                  <span className="text-sm font-medium text-white truncate">
+                    {item.title}
+                  </span>
+                  <div className="flex items-center gap-1 text-xs text-spotify-sub mt-0.5 overflow-hidden">
+                    {item.pinned && (
+                      <Pin
+                        size={12}
+                        className="text-[#1ed760] fill-[#1ed760] flex-shrink-0 rotate-45"
+                      />
+                    )}
+                    <span className="truncate">{item.subtitle}</span>
+                  </div>
                 </div>
               </div>
+            ))
+          ) : (
+            <div className="bg-[#242424] rounded-lg p-5 mt-2 flex flex-col gap-4 text-white">
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-base">Tạo danh sách phát đầu tiên của bạn</span>
+                <span className="text-sm font-medium">Rất dễ! Chúng tôi sẽ giúp bạn</span>
+              </div>
+              <div className="mt-1">
+                <Button 
+                  variant="white" 
+                  size="sm" 
+                  className="font-bold text-black rounded-full px-4 w-max"
+                  onClick={() => handleProtectedAction("tạo danh sách phát mới")}
+                >
+                  Tạo danh sách phát
+                </Button>
+              </div>
             </div>
-          ))}
+          )}
         </div>
       </div>
 

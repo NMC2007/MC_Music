@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -15,4 +16,8 @@ public class ArtistPublicResponse {
     private UUID id;
     private String stageName;
     private String avatarUrl;
+    private String coverUrl;
+    private String biography;
+    private Integer followerCount;
+    private LocalDateTime createdAt;
 }
