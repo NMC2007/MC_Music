@@ -14,6 +14,7 @@ import { usePlayerStore } from "../store/usePlayerStore";
 import { useAuthStore } from "../store/useAuthStore";
 import { Button } from "../components/ui/Button";
 import { toast } from "sonner";
+import { showLoginToast } from "../utils/toastUtils";
 
 export const BottomPlayer = () => {
   const { currentSong, isPlaying, setIsPlaying, playNext, playPrevious } =
@@ -29,7 +30,7 @@ export const BottomPlayer = () => {
   // Xử lý Play/Pause khi state isPlaying thay đổi
   useEffect(() => {
     if (!audioRef.current) return;
-    
+
     // Đảm bảo audio load lại source mới khi bài hát thay đổi
     if (audioRef.current.src !== currentSong?.audioUrl) {
       audioRef.current.src = currentSong?.audioUrl;
@@ -92,9 +93,7 @@ export const BottomPlayer = () => {
 
   const handleLike = () => {
     if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để sử dụng tính năng này!", {
-        description: "Bạn cần đăng nhập để thêm bài hát vào danh sách yêu thích.",
-      });
+      showLoginToast("thêm bài hát vào danh sách yêu thích");
       return;
     }
     // TODO: Gọi API thêm bài hát vào yêu thích
@@ -133,12 +132,12 @@ export const BottomPlayer = () => {
             {currentSong.artist || currentSong.ownerName}
           </p>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          iconOnly 
-          className="ml-2 hover:bg-transparent text-spotify-sub hover:text-white" 
-          tooltip="Lưu vào Thư viện" 
+        <Button
+          variant="ghost"
+          size="sm"
+          iconOnly
+          className="ml-2 hover:bg-transparent text-spotify-sub hover:text-white"
+          tooltip="Lưu vào Thư viện"
           tooltipPosition="top"
           onClick={handleLike}
         >

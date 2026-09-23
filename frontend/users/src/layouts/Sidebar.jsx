@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { useAuthStore } from "../store/useAuthStore";
-import { toast } from "sonner";
+import { showLoginToast } from "../utils/toastUtils";
 
 // --- MOCK DATA ---
 const filters = ["Playlist", "Album", "Nghệ sĩ"];
@@ -27,9 +27,7 @@ export const Sidebar = () => {
 
   const handleProtectedAction = (actionName) => {
     if (!isAuthenticated) {
-      toast.error("Vui lòng đăng nhập để sử dụng tính năng này!", {
-        description: `Bạn cần đăng nhập để ${actionName}.`,
-      });
+      showLoginToast(actionName);
       return false;
     }
     return true;

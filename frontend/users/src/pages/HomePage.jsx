@@ -11,6 +11,12 @@ export const HomePage = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const setCurrentSong = usePlayerStore((state) => state.setCurrentSong);
 
+  const formatAlbumType = (type) => {
+    if (!type) return "Album";
+    if (type.toUpperCase() === "EP") return "EP";
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+  };
+
   // Fetch Public Songs
   const { data: songsData, isLoading: isLoadingSongs } = useQuery({
     queryKey: ["publicSongs", "trending"],
@@ -124,7 +130,7 @@ export const HomePage = () => {
               <SongCard
                 type="album"
                 title={album.title}
-                subtitle={album.ownerName}
+                subtitle={`${formatAlbumType(album.albumType)} | ${album.ownerName}`}
                 artistName={album.ownerName}
                 imageUrl={album.coverImage}
                 onPlayClick={() => console.log("Play album", album.id)}
