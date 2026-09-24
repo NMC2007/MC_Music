@@ -6,6 +6,8 @@ import { Toaster } from 'sonner';
 import { MainLayout } from './layouts/MainLayout';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
+import { AlbumPage } from './pages/AlbumPage';
+import { ArtistPage } from './pages/ArtistPage';
 
 // Khởi tạo React Query Client
 const queryClient = new QueryClient({
@@ -28,6 +30,8 @@ function App() {
           {/* Group 1: Các trang được bọc trong MainLayout (Có Sidebar & Player) */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/album/:id" element={<AlbumPage />} />
+            <Route path="/artist/:id" element={<ArtistPage />} />
             {/* Các trang sau này như /search, /library sẽ thêm vào đây */}
           </Route>
           

@@ -111,8 +111,44 @@ Nhóm API này dùng để quản lý tài khoản của Nghệ sĩ (Artist) - n
   }
   ```
 
+### 2.2. Lấy thông tin chi tiết một nghệ sĩ
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/artist/public/artists/{id}`
+- **Mô tả:** Lấy thông tin chi tiết (profile) của một nghệ sĩ cụ thể theo ID. Chỉ trả về thông tin nếu nghệ sĩ đang hoạt động (is_active = true). Không yêu cầu đăng nhập.
+- **Path Parameters:**
+  - `id` (UUID, Required): ID của nghệ sĩ.
+- **Response thành công (200 OK):**
+  ```json
+  {
+      "success": true,
+      "statusCode": 200,
+      "message": "Lấy thông tin nghệ sĩ thành công",
+      "data": {
+          "id": "uuid",
+          "stageName": "Sơn Tùng M-TP",
+          "avatarUrl": "http...",
+          "coverUrl": "http...",
+          "biography": "Tiểu sử nghệ sĩ...",
+          "followerCount": 150000,
+          "createdAt": "2026-01-15T08:00:00"
+      },
+      "timestamp": "2026-09-20T11:00:00Z"
+  }
+  ```
+- **Response lỗi (404 Not Found):**
+  ```json
+  {
+      "success": false,
+      "statusCode": 404,
+      "message": "Không tìm thấy nghệ sĩ hoặc nghệ sĩ đã bị khóa",
+      "data": null,
+      "timestamp": "2026-09-20T11:00:00Z"
+  }
+  ```
+
 ---
 
 ## 3. CRUD & Quản lý Nhạc (Sắp triển khai)
+
 
 _(Các API cập nhật tiểu sử, upload bài hát, tạo album, xem thống kê lượt nghe... sẽ được cập nhật tại đây khi hoàn thành)._

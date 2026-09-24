@@ -57,14 +57,16 @@ export const SectionCarousel = ({ title, children }) => {
 
   return (
     <section className="relative group/carousel">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white hover:underline cursor-pointer">
-          {title}
-        </h2>
-        <span className="text-sm font-bold text-spotify-sub hover:text-white cursor-pointer">
-          Hiện tất cả
-        </span>
-      </div>
+      {title && (
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white hover:underline cursor-pointer">
+            {title}
+          </h2>
+          <span className="text-sm font-bold text-spotify-sub hover:text-white cursor-pointer">
+            Hiện tất cả
+          </span>
+        </div>
+      )}
 
       <div className="relative">
         {/* Fade trái và Nút Prev */}

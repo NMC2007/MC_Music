@@ -66,4 +66,13 @@ public class PublicArtistController {
 
         return ResponseEntity.ok(ApiResponse.success(responseData, "Lấy danh sách nghệ sĩ thành công"));
     }
+
+    @GetMapping("/artists/{id}")
+    public ResponseEntity<ApiResponse<ArtistPublicResponse>> getArtistProfile(@PathVariable java.util.UUID id) {
+        Artist artist = artistRepository.findByIdAndIsActiveTrue(id)
+                .orElseThrow(() -> new com.example.artistsservice.exception.ApiException(org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy nghệ sĩ hoặc nghệ sĩ đã bị khóa"));
+        
+        ArtistPublicResponse responseData = modelMapper.map(artist, ArtistPublicResponse.class);
+        return ResponseEntity.ok(ApiResponse.success(responseData, "Lấy thông tin nghệ sĩ thành công"));
+    }
 }

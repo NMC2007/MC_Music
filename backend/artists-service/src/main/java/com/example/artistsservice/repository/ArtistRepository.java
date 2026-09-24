@@ -12,6 +12,7 @@ public interface ArtistRepository extends JpaRepository<Artist, UUID> {
     Optional<Artist> findByEmail(String email);
     boolean existsByEmail(String email);
     org.springframework.data.domain.Page<Artist> findByIsActiveTrue(org.springframework.data.domain.Pageable pageable);
+    Optional<Artist> findByIdAndIsActiveTrue(UUID id);
 
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("UPDATE Artist a SET a.followerCount = a.followerCount + 1 WHERE a.id = :id")
