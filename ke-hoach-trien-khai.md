@@ -1,14 +1,14 @@
 # Kế hoạch triển khai dự án — Nền tảng nghe nhạc (MC Music)
 
-## 1. Phương pháp triển khai (Vertical Slicing)
+## 1. Phương pháp triển khai (Backend-First Strategy)
 
-Kế hoạch triển khai dự án tuân theo mô hình **Phát triển cắt dọc (Vertical Slicing)**, lấy trải nghiệm của User làm trọng tâm ưu tiên. Tuy nhiên, thay vì sử dụng dữ liệu giả (Mock Data), chúng ta sẽ phát triển ngay các API cốt lõi cho Artist (để tải nhạc) và Admin (để duyệt nhạc) từ sớm. Điều này cho phép nền tảng nghe nhạc của User được vận hành với **dữ liệu thật 100%** ngay từ những bước đầu tiên.
+Kế hoạch triển khai dự án tuân theo mô hình **Backend-First**, tập trung hoàn thiện toàn bộ hệ thống API (Backend) và kiểm thử đảm bảo hoạt động mượt mà trước khi tiến hành xây dựng giao diện (Frontend). Do thời gian dự án ngắn, việc tập trung dứt điểm Backend sẽ giúp tránh bị phân mảnh nguồn lực.
 
 Cách tiếp cận này đảm bảo:
-- Rủi ro thấp nhất: Luôn có một ứng dụng nghe nhạc hoàn chỉnh có thể báo cáo/demo.
+- Rủi ro thấp nhất: Luôn có một hệ thống API ổn định được tài liệu hóa rõ ràng.
 - Kiểm thử liên tục (Test-driven): Postman được áp dụng ngay sau khi mỗi API hoàn thành.
 - Kiến trúc bền vững: Cấu trúc Database đã được thiết kế sẵn các cột trạng thái để phục vụ tận các tính năng nâng cao của Admin mà không cần đập đi xây lại.
-- Dữ liệu thực tế: Toàn bộ quá trình Upload - Duyệt - Phát nhạc được thử nghiệm trơn tru qua Cloudinary.
+- Dữ liệu thực tế: Toàn bộ quá trình Upload - Duyệt - Phát nhạc được thử nghiệm trơn tru qua Cloudinary trước khi hiển thị lên UI.
 
 ---
 
@@ -36,31 +36,27 @@ Cách tiếp cận này đảm bảo:
    - Phát triển API tìm kiếm nhạc/album (sử dụng truy vấn `LIKE` trong CSDL để đảm bảo hệ thống ổn định và ra mắt nhanh chóng ở phiên bản đầu).
 6. **Kiểm thử Postman:** Test toàn bộ luồng Upload -> Duyệt -> Nghe nhạc.
 
-### Giai đoạn 3: Hoàn thiện User MVP (Sản phẩm cốt lõi)
-*Mục tiêu: Có một trang web nghe nhạc hoàn chỉnh (Spotify Clone) dành cho User.*
+### Giai đoạn 3: Hoàn thiện User MVP Backend
+*Mục tiêu: Xây dựng toàn bộ API nghiệp vụ phục vụ cho người dùng cuối.*
 
 1. **Phát triển API User Service:**
-   - Dựa vào dữ liệu thật ở Catalog, viết các nghiệp vụ: Lấy nhạc ra trang chủ, Tạo Playlist, Thêm bài hát vào Playlist, Thả tim bài hát, Ghi nhận lịch sử nghe nhạc.
+   - Lấy nhạc ra trang chủ, Tạo Playlist, Thêm bài hát vào Playlist, Thả tim bài hát, Ghi nhận lịch sử nghe nhạc.
    - Viết logic gọi Internal API từ User Service sang Catalog Service để tăng lượt `play_count` và `like_count`.
-2. **Phát triển Frontend (User Web):**
-   - *(Tạm thời trì hoãn)*: Trọng tâm hiện tại là lập trình và kiểm thử toàn bộ Backend API cho đến khi ổn định hoàn toàn trước khi tiến hành xây dựng giao diện.
-> **=> MỐC QUAN TRỌNG:** Kết thúc Giai đoạn 3 (Backend), hệ thống đã có đầy đủ API để một nền tảng nghe nhạc hoạt động, sử dụng nhạc thật trên Cloudinary!
+2. **Kiểm thử Postman:** Test toàn bộ luồng tạo playlist và tương tác.
 
-### Giai đoạn 4: Triển khai Artist Web & Hoàn thiện Artist Service
-*Mục tiêu: Cung cấp giao diện trực quan cho nghệ sĩ quản lý kho nhạc.*
+### Giai đoạn 4: Hoàn thiện Artist & Admin MVP Backend
+*Mục tiêu: Dứt điểm toàn bộ API quản lý tài khoản và thống kê trước khi sang Frontend.*
 
 1. **Phát triển API Artist Service:** Các nghiệp vụ quản lý hồ sơ, lấy thống kê từ Catalog Service.
-2. **Phát triển Frontend (Artist Web):**
-   - Khởi tạo project React riêng.
-   - Xây dựng giao diện Dashboard, giao diện kéo thả Upload Nhạc/Album (Gọi API Catalog đã làm ở Giai đoạn 2).
+2. **Phát triển API Admin Service:** Lấy danh sách User/Artist, thực hiện khóa/mở tài khoản (`is_active = false/true`).
+> **=> MỐC QUAN TRỌNG:** Kết thúc Giai đoạn 4, hệ thống BACKEND ĐÃ HOÀN CHỈNH 100% VÀ ĐƯỢC KIỂM THỬ KỸ CÀNG.
 
-### Giai đoạn 5: Triển khai Admin Web
-*Mục tiêu: Hệ thống quản trị end-to-end hoàn chỉnh.*
+### Giai đoạn 5: Triển khai Frontend đồng loạt
+*Mục tiêu: Hệ thống frontend end-to-end hoàn chỉnh.*
 
-1. **Phát triển API Admin Service:** Lấy danh sách User/Artist, thực hiện khóa/mở tài khoản (`is_active = false/true`).
-2. **Phát triển Frontend (Admin Web):**
-   - Khởi tạo project React riêng.
-   - Xây dựng bảng điều khiển quản trị viên: Quản lý bài hát chờ duyệt (Gọi API Catalog đã làm ở Giai đoạn 2), Quản lý tài khoản.
+1. **Phát triển User Web:** Giao diện nghe nhạc, trang chủ, danh sách phát.
+2. **Phát triển Artist Web:** Bảng điều khiển nghệ sĩ, quản lý bài hát chờ duyệt.
+3. **Phát triển Admin Web:** Bảng điều khiển quản trị viên duyệt bài hát và quản lý tài khoản.
 
 ---
 
@@ -70,6 +66,6 @@ Cách tiếp cận này đảm bảo:
 |---|---|---|
 | 1 | Database (4 schemas), Auth (3 Services), Gateway | (Chưa tiến hành) |
 | 2 | Catalog Core, Cloudinary, API Upload & Duyệt nhạc | (Chưa tiến hành) |
-| 3 | User Service, Giao tiếp nội bộ (Internal API) | **(Tạm hoãn chưa làm Frontend)** |
-| 4 | Artist Service (Hồ sơ, Dashboard) | **(Tạm hoãn)** |
-| 5 | Admin Service (Khóa tài khoản) | **(Tạm hoãn)** |
+| 3 | User Service, Giao tiếp nội bộ (Internal API) | (Chưa tiến hành) |
+| 4 | Artist Service, Admin Service | (Chưa tiến hành) |
+| 5 | (Hỗ trợ, sửa lỗi Backend) | **Triển khai đồng loạt User, Artist, Admin Web** |

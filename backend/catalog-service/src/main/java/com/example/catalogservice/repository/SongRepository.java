@@ -18,6 +18,9 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     Page<Song> findByAlbumIdAndStatusAndIsDeletedFalse(UUID albumId, String status, Pageable pageable);
     List<Song> findByStatusAndIsDeletedFalse(String status);
     List<Song> findByStatus(String status);
+    int countByAlbumId(UUID albumId);
+    List<Song> findByAlbumId(UUID albumId);
+    long countByAlbumIdAndStatus(UUID albumId, String status);
 
     @Query("SELECT DISTINCT s FROM Song s LEFT JOIN s.genres g " +
            "WHERE s.status = 'APPROVED' AND s.isDeleted = false " +

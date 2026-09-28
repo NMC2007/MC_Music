@@ -4,7 +4,9 @@ import com.example.catalogservice.exception.ResourceNotFoundException;
 import com.example.catalogservice.model.dto.request.AlbumCreateRequest;
 import com.example.catalogservice.model.dto.response.AlbumResponse;
 import com.example.catalogservice.model.entity.Album;
+import com.example.catalogservice.model.entity.Song;
 import com.example.catalogservice.repository.AlbumRepository;
+import com.example.catalogservice.repository.SongRepository;
 import com.example.catalogservice.client.ArtistServiceClient;
 import com.example.catalogservice.client.ArtistInternalResponse;
 import org.modelmapper.ModelMapper;
@@ -21,12 +23,14 @@ import java.util.stream.Collectors;
 public class AlbumService {
 
     private final AlbumRepository albumRepository;
+    private final SongRepository songRepository;
     private final ArtistServiceClient artistServiceClient;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
 
-    public AlbumService(AlbumRepository albumRepository, ArtistServiceClient artistServiceClient, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
+    public AlbumService(AlbumRepository albumRepository, SongRepository songRepository, ArtistServiceClient artistServiceClient, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
         this.albumRepository = albumRepository;
+        this.songRepository = songRepository;
         this.artistServiceClient = artistServiceClient;
         this.cloudinaryService = cloudinaryService;
         this.modelMapper = modelMapper;
@@ -83,5 +87,15 @@ public class AlbumService {
                 .orElseThrow(() -> new ResourceNotFoundException("Album not found with id: " + albumId));
         album.setStatus(status);
         albumRepository.save(album);
+
+        // Quy tắc nghiệp vụ: Nếu Admin duyệt ALBUM, tự động duyệt toàn bộ bài hát trong album đó.
+        // Nếu Admin TẦY XUốNG (TAKEDOWN) hoặc TỪ CHỐI album, cầp nhật trạng thái của tất cả bài hát theo.
+        if ("APPROVED".equals(status) || "REJECTED".equals(status) || "TAKEDOWN".equals(status)) {
+            List<Song> songs = songRepository.findByAlbumId(albumId);
+            for (Song song : songs) {
+                song.setStatus(status);
+            }
+            songRepository.saveAll(songs);
+        }
     }
 }

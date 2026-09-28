@@ -47,6 +47,7 @@ public class PlayHistoryService {
                 .songId(request.getSongId())
                 .songTitle(songInfo.getTitle())
                 .artistName(songInfo.getOwnerName())
+                .coverImage(songInfo.getCoverImage())
                 .durationListened(request.getDurationListened())
                 .playedAt(LocalDateTime.now())
                 .build();

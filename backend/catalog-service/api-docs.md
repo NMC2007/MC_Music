@@ -27,13 +27,16 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/catalog/artist/songs`
-- **Mô tả:** Đăng tải một bài hát mới. Trạng thái mặc định sẽ là `PENDING`.
+- **Mô tả:** Đăng tải một bài hát mới. Trạng thái mặc định sẽ là `PENDING`. Nếu bài hát thuộc một album mà không điền `trackNumber`, hệ thống sẽ tự động gán `trackNumber` theo thứ tự tiếp theo.
 - **Content-Type:** `multipart/form-data`
-- **Body:**
+- **Body (Form Data):**
   - `title` (Text): Tên bài hát (Bắt buộc)
   - `audioFile` (File): File nhạc mp3/wav (Bắt buộc)
   - `coverImage` (File): File ảnh bìa (Không bắt buộc)
   - `albumId` (Text): UUID của Album nếu có (Không bắt buộc)
+  - `trackNumber` (Int): Số thứ tự trong Album. Nếu để trống hệ thống sẽ tự sinh (Không bắt buộc)
+  - `genreIds` (List<UUID>): Danh sách ID Thể loại. (Cách điền form-data: truyền một chuỗi cách nhau bằng dấu phẩy `id1,id2` HOẶC tạo nhiều key có cùng tên `genreIds`). (Bắt buộc)
+  - `explicit` (Boolean): Nội dung nhạy cảm 18+ hay không, mặc định là false (Không bắt buộc)
 
 ### 1.2. Lấy danh sách Bài hát của tôi (My Songs)
 
@@ -58,7 +61,35 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Endpoint:** `http://localhost:8686/api/catalog/artist/albums`
 - **Mô tả:** Lấy danh sách toàn bộ Album của nghệ sĩ.
 
-### 1.5. Cập nhật Lời bài hát (Lyrics)
+### 1.5. Thêm Bài hát vào Album
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/catalog/artist/albums/{albumId}/songs`
+- **Mô tả:** Đưa một bài hát đã đăng tải vào một Album. Nếu không truyền `trackNumber`, hệ thống sẽ tự sinh số thứ tự nằm ở cuối album.
+- **Body (JSON):**
+  ```json
+  {
+    "songId": "uuid-cua-bai-hat",
+    "trackNumber": 1
+  }
+  ```
+
+### 1.6. Thay đổi Thứ tự Bài hát trong Album
+
+- **Method:** `PUT`
+- **Endpoint:** `http://localhost:8686/api/catalog/artist/albums/{albumId}/songs/reorder`
+- **Mô tả:** Cập nhật lại số thứ tự (trackNumber) của nhiều bài hát cùng lúc. Dùng cho tính năng kéo thả trên Frontend.
+- **Body (JSON):**
+  ```json
+  {
+    "songOrders": [
+      { "songId": "uuid-bai-1", "trackNumber": 1 },
+      { "songId": "uuid-bai-2", "trackNumber": 2 }
+    ]
+  }
+  ```
+
+### 1.7. Cập nhật Lời bài hát (Lyrics)
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/catalog/artist/songs/{songId}/lyrics`
@@ -71,7 +102,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
   }
   ```
 
-### 1.6. Thêm Nghệ sĩ phụ (Feat/Producer)
+### 1.8. Thêm Nghệ sĩ phụ (Feat/Producer)
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/catalog/artist/songs/{songId}/artists`
@@ -101,7 +132,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 - **Method:** `PATCH`
 - **Endpoint:** `http://localhost:8686/api/catalog/admin/songs/{songId}/status`
-- **Mô tả:** Đổi trạng thái bài hát.
+- **Mô tả:** Đổi trạng thái bài hát. **Quy tắc nghiệp vụ:** Nếu duyệt (`APPROVED`) một bài hát thuộc Album và đó là bài hát cuối cùng còn PENDING trong Album đó, hệ thống sẽ tự động duyệt Album luôn.
 - **Body (JSON):**
   ```json
   {
@@ -120,7 +151,10 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 - **Method:** `PATCH`
 - **Endpoint:** `http://localhost:8686/api/catalog/admin/albums/{albumId}/status`
-- **Mô tả:** Đổi trạng thái album.
+- **Mô tả:** Đổi trạng thái album. **Quy tắc nghiệp vụ (Cascade):** Khi Admin cập nhật trạng thái Album, toàn bộ bài hát trong Album đó sẽ tự động được cập nhật theo trạng thái tương tự.
+  - Duyệt (`APPROVED`) Album → Toàn bộ bài hát cũng `APPROVED`.
+  - Từ chối (`REJECTED`) Album → Toàn bộ bài hát cũng `REJECTED`.
+  - Gỡ xuống (`TAKEDOWN`) Album → Toàn bộ bài hát cũng `TAKEDOWN`.
 - **Body (JSON):**
   ```json
   {

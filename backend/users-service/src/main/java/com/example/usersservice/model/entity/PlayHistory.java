@@ -34,6 +34,9 @@ public class PlayHistory {
     @Column(name = "artist_name", nullable = false)
     private String artistName;
 
+    @Column(name = "cover_image")
+    private String coverImage;
+
     @CreationTimestamp
     @Column(name = "played_at", updatable = false)
     private LocalDateTime playedAt;

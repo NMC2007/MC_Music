@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS play_history (
     song_id UUID NOT NULL,
     song_title VARCHAR(255) NOT NULL,
     artist_name VARCHAR(255) NOT NULL,
+    cover_image VARCHAR(500),
     played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     duration_listened INT DEFAULT 0
 );

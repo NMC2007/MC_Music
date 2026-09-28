@@ -84,4 +84,20 @@ public class ArtistCatalogController {
         songService.addSongArtist(songId, request, getCurrentArtistId());
         return ResponseEntity.ok(ApiResponse.success(null, "Thêm nghệ sĩ phụ thành công"));
     }
+
+    @PostMapping("/albums/{albumId}/songs")
+    public ResponseEntity<ApiResponse<Void>> addSongToAlbum(
+            @PathVariable UUID albumId,
+            @Valid @RequestBody com.example.catalogservice.model.dto.request.AlbumSongAddRequest request) {
+        songService.addSongToAlbum(albumId, request, getCurrentArtistId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Thêm bài hát vào album thành công"));
+    }
+
+    @PutMapping("/albums/{albumId}/songs/reorder")
+    public ResponseEntity<ApiResponse<Void>> reorderSongsInAlbum(
+            @PathVariable UUID albumId,
+            @Valid @RequestBody com.example.catalogservice.model.dto.request.AlbumSongReorderRequest request) {
+        songService.reorderSongsInAlbum(albumId, request, getCurrentArtistId());
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật thứ tự bài hát thành công"));
+    }
 }
