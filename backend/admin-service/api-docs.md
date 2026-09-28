@@ -62,6 +62,40 @@ _Lưu ý: Không có tính năng Đăng ký (Register) cho Admin. Tài khoản �
 
 ---
 
-## 2. Quản lý Hệ thống (Sắp triển khai)
+## 2. Quản lý Người dùng (Users)
 
-_(Các API quản lý Users, Artists, duyệt bài hát, thống kê hệ thống... sẽ được cập nhật tại đây khi hoàn thành)._
+**Yêu cầu:** Gửi kèm Header `Authorization: Bearer <ACCESS_TOKEN_CỦA_ADMIN>`.
+
+### 2.1. Lấy danh sách Người dùng
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/admin/users`
+- **Mô tả:** Lấy danh sách tất cả người dùng trong hệ thống có phân trang.
+- **Query Parameters:**
+  - `page` (Int, Optional): Số trang (Mặc định: 0).
+  - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp (VD: `createdAt,desc`).
+
+### 2.2. Lấy thông tin chi tiết một Người dùng
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/admin/users/{id}`
+- **Mô tả:** Lấy thông tin chi tiết của một người dùng dựa vào ID, bao gồm trạng thái hoạt động (isActive) để phục vụ việc khóa/mở khóa.
+
+---
+
+## 3. Quản lý Nghệ sĩ (Artists)
+
+**Yêu cầu:** Gửi kèm Header `Authorization: Bearer <ACCESS_TOKEN_CỦA_ADMIN>`.
+
+### 3.1. Lấy danh sách Nghệ sĩ
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/admin/artists`
+- **Mô tả:** Lấy danh sách tất cả nghệ sĩ trong hệ thống (bao gồm cả nghệ sĩ đã bị khóa) có phân trang.
+- **Query Parameters:**
+  - `page` (Int, Optional): Số trang (Mặc định: 0).
+  - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp (VD: `createdAt,desc`).
+
+### 3.2. Lấy thông tin chi tiết một Nghệ sĩ
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/admin/artists/{id}`
+- **Mô tả:** Lấy thông tin chi tiết của một nghệ sĩ dựa vào ID, bao gồm trạng thái hoạt động (isActive) để phục vụ việc khóa/mở khóa.

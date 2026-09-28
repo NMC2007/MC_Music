@@ -26,6 +26,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -158,10 +160,9 @@ public class SongService {
     }
 
     @Transactional(readOnly = true)
-    public List<SongResponse> getSongsByStatus(String status) {
-        return songRepository.findByStatus(status).stream()
-                .map(song -> modelMapper.map(song, SongResponse.class))
-                .collect(Collectors.toList());
+    public Page<SongResponse> getSongsByStatus(String status, Pageable pageable) {
+        return songRepository.findByStatus(status, pageable)
+                .map(song -> modelMapper.map(song, SongResponse.class));
     }
 
     @Transactional(readOnly = true)

@@ -127,6 +127,10 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/catalog/admin/songs/pending`
 - **Mô tả:** Lấy tất cả bài hát trên toàn hệ thống đang ở trạng thái `PENDING`.
+- **Query Parameters:**
+  - `page` (Int, Optional): Số trang (Mặc định: 0).
+  - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.
 
 ### 2.2. Cập nhật Trạng thái Bài hát (Duyệt/Từ chối)
 

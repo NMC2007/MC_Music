@@ -5,6 +5,10 @@ import com.example.catalogservice.model.dto.response.SongResponse;
 import com.example.catalogservice.model.dto.response.AlbumResponse;
 import com.example.catalogservice.service.SongService;
 import com.example.catalogservice.service.AlbumService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,8 +29,24 @@ public class AdminCatalogController {
     }
 
     @GetMapping("/songs/pending")
-    public ResponseEntity<ApiResponse<List<SongResponse>>> getPendingSongs() {
-        List<SongResponse> response = songService.getSongsByStatus("PENDING");
+    public ResponseEntity<ApiResponse<Page<SongResponse>>> getPendingSongs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sort) {
+        
+        Sort sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
+        if (sort != null && !sort.isBlank()) {
+            String[] parts = sort.split(",");
+            String field = parts[0].trim();
+            Sort.Direction direction = Sort.Direction.DESC;
+            if (parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")) {
+                direction = Sort.Direction.ASC;
+            }
+            sortObj = Sort.by(direction, field);
+        }
+        
+        Pageable pageable = PageRequest.of(page, size, sortObj);
+        Page<SongResponse> response = songService.getSongsByStatus("PENDING", pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách bài hát chờ duyệt thành công"));
     }
 

@@ -18,6 +18,7 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     Page<Song> findByAlbumIdAndStatusAndIsDeletedFalse(UUID albumId, String status, Pageable pageable);
     List<Song> findByStatusAndIsDeletedFalse(String status);
     List<Song> findByStatus(String status);
+    Page<Song> findByStatus(String status, Pageable pageable);
     int countByAlbumId(UUID albumId);
     List<Song> findByAlbumId(UUID albumId);
     long countByAlbumIdAndStatus(UUID albumId, String status);
