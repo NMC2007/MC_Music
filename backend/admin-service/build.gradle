@@ -28,6 +28,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+    // Fix: JDK HttpURLConnection không hỗ trợ PATCH. Dùng Apache HttpClient 5 thay thế.
+    // Spring Cloud OpenFeign auto-configure HttpClient 5 khi detect dependency này.
+    implementation 'io.github.openfeign:feign-hc5'
     implementation 'com.music:shared-auth-lib:0.0.1-SNAPSHOT'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'

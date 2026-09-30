@@ -7,9 +7,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.example.usersservice.exception.ApiException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -57,7 +60,7 @@ public class InternalUserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserInternalResponse> getUserById(@PathVariable UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng với ID: " + id));
                 
         UserInternalResponse response = UserInternalResponse.builder()
                 .id(user.getId())
@@ -69,5 +72,24 @@ public class InternalUserController {
                 .build();
                 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Cập nhật trạng thái khóa/mở khóa tài khoản User.
+     * Chỉ được gọi từ Admin Service thông qua Internal API (yêu cầu header X-Internal-Secret).
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Void> updateUserStatus(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Boolean> payload) {
+        Boolean isActive = payload.get("isActive");
+        if (isActive == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng với ID: " + id));
+        user.setIsActive(isActive);
+        userRepository.save(user);
+        return ResponseEntity.ok().build();
     }
 }

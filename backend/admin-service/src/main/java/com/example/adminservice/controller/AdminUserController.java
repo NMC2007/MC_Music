@@ -32,4 +32,25 @@ public class AdminUserController {
         Map<String, Object> response = userServiceClient.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin người dùng thành công"));
     }
+
+    /**
+     * Khóa hoặc mở khóa tài khoản User.
+     * Admin gọi endpoint này, Admin Service sẽ tiếp tục gọi Internal API sang User Service.
+     * Body: { "isActive": true } để mở khóa, { "isActive": false } để khóa.
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<Void>> updateUserStatus(
+            @PathVariable UUID id,
+            @RequestBody Map<String, Boolean> payload) {
+        Boolean isActive = payload.get("isActive");
+        if (isActive == null) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(400, "Trường 'isActive' là bắt buộc"));
+        }
+        userServiceClient.updateUserStatus(id, payload);
+        String message = Boolean.TRUE.equals(isActive)
+                ? "Mở khóa tài khoản thành công"
+                : "Khóa tài khoản thành công";
+        return ResponseEntity.ok(ApiResponse.success(null, message));
+    }
 }

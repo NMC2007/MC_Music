@@ -61,6 +61,44 @@ public class GlobalHandleException {
                 .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), "Truy cập bị từ chối: Bạn không có quyền thực hiện hành động này"));
     }
 
+    @ExceptionHandler(feign.FeignException.class)
+    public ResponseEntity<ApiResponse<Void>> handleFeignException(feign.FeignException ex) {
+        int status = ex.status();
+        if (status <= 0) {
+            status = HttpStatus.INTERNAL_SERVER_ERROR.value();
+        }
+
+        String message = "Lỗi khi gọi service nội bộ";
+        if (status == 404) {
+            message = "Không tìm thấy dữ liệu yêu cầu";
+        } else if (status == 400) {
+            message = "Yêu cầu không hợp lệ";
+        }
+
+        // Parse thông báo lỗi gốc từ response body của service nội bộ
+        try {
+            String responseBody = ex.contentUTF8();
+            if (responseBody != null && !responseBody.isBlank()) {
+                // Sử dụng string manipulation cơ bản để tránh phụ thuộc vào thư viện bên ngoài
+                String searchKey = "\"message\":\"";
+                int startIndex = responseBody.indexOf(searchKey);
+                if (startIndex != -1) {
+                    int messageStart = startIndex + searchKey.length();
+                    int messageEnd = responseBody.indexOf("\"", messageStart);
+                    if (messageEnd != -1) {
+                        message = responseBody.substring(messageStart, messageEnd);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // Fallback to default message
+        }
+
+        return ResponseEntity
+                .status(status)
+                .body(ApiResponse.error(status, message));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneralException(Exception ex) {
         return ResponseEntity
