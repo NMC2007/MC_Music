@@ -10,7 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 @Component
 public class InternalApiInterceptor implements HandlerInterceptor {
 
-    @Value("${internal.api.secret:SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}")
+    @Value("${internal.api.secret}")
     private String internalApiSecret;
 
     @Override

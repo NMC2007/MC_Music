@@ -48,7 +48,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, MultiIssuerJwtFilter multiIssuerJwtFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, MultiIssuerJwtFilter multiIssuerJwtFilter, com.example.catalogservice.security.InternalApiFilter internalApiFilter) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -77,6 +77,7 @@ public class SecurityConfig {
                     response.getWriter().write(json);
                 })
             )
+            .addFilterBefore(internalApiFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(multiIssuerJwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

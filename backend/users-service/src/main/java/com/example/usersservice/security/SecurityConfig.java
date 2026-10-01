@@ -50,7 +50,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, com.example.usersservice.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, 
+            com.example.usersservice.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter,
+            com.example.usersservice.security.InternalApiFilter internalApiFilter) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -66,6 +68,7 @@ public class SecurityConfig {
                     exceptionResolver.resolveException(request, response, null, accessDeniedException)
                 )
             )
+            .addFilterBefore(internalApiFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

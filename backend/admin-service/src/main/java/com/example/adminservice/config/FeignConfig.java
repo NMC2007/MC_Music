@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FeignConfig {
 
-    @Value("${internal.api.secret:SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}")
+    @Value("${internal.api.secret}")
     private String internalApiSecret;
 
     @Bean
