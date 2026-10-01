@@ -110,10 +110,15 @@ public class PlaylistService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlaylistSongResponse> getPlaylistSongs(UUID playlistId) {
-        if (!playlistRepository.existsById(playlistId)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy playlist");
+    public List<PlaylistSongResponse> getPlaylistSongs(UUID playlistId, UUID userId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy playlist"));
+
+        // Chỉ chủ sở hữu mới được xem playlist private
+        if (!playlist.getIsPublic() && !playlist.getUserId().equals(userId)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Bạn không có quyền xem playlist này");
         }
+
         return playlistSongRepository.findByPlaylistIdOrderByAddedAtDesc(playlistId).stream()
                 .map(ps -> modelMapper.map(ps, PlaylistSongResponse.class))
                 .collect(Collectors.toList());

@@ -15,11 +15,14 @@ import com.example.artistsservice.model.dto.response.ArtistAdminInternalResponse
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/internal/artists")
 public class InternalArtistController {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("stageName", "createdAt", "followerCount");
 
     private final ArtistRepository artistRepository;
 
@@ -54,6 +57,9 @@ public class InternalArtistController {
             Sort.Direction direction = Sort.Direction.DESC;
             if (parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")) {
                 direction = Sort.Direction.ASC;
+            }
+            if (!ALLOWED_SORT_FIELDS.contains(field)) {
+                field = "createdAt";
             }
             sortObj = Sort.by(direction, field);
         }

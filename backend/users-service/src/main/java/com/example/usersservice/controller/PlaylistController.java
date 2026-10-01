@@ -69,7 +69,7 @@ public class PlaylistController {
     @GetMapping("/{playlistId}/songs")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ApiResponse<List<PlaylistSongResponse>>> getPlaylistSongs(@PathVariable UUID playlistId) {
-        List<PlaylistSongResponse> response = playlistService.getPlaylistSongs(playlistId);
+        List<PlaylistSongResponse> response = playlistService.getPlaylistSongs(playlistId, getCurrentUserId());
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách bài hát trong playlist thành công"));
     }
 }

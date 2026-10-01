@@ -11,13 +11,17 @@ import com.example.usersservice.exception.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/internal/users")
 public class InternalUserController {
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("email", "fullName", "createdAt");
 
     private final UserRepository userRepository;
 
@@ -38,6 +42,9 @@ public class InternalUserController {
             Sort.Direction direction = Sort.Direction.DESC;
             if (parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")) {
                 direction = Sort.Direction.ASC;
+            }
+            if (!ALLOWED_SORT_FIELDS.contains(field)) {
+                field = "createdAt";
             }
             sortObj = Sort.by(direction, field);
         }
@@ -79,6 +86,7 @@ public class InternalUserController {
      * Chỉ được gọi từ Admin Service thông qua Internal API (yêu cầu header X-Internal-Secret).
      */
     @PatchMapping("/{id}/status")
+    @Transactional
     public ResponseEntity<Void> updateUserStatus(
             @PathVariable UUID id,
             @RequestBody Map<String, Boolean> payload) {

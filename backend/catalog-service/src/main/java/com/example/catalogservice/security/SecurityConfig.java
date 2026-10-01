@@ -56,9 +56,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/catalog/public/**").permitAll()
                 .requestMatchers("/api/internal/catalog/**").permitAll()
-                .requestMatchers("/api/catalog/test-cloudinary/**").permitAll()
                 .requestMatchers("/error").permitAll()
-                .requestMatchers("/api/catalog/test-security").authenticated()
                 .requestMatchers("/api/catalog/artist/**").hasRole("ARTIST")
                 .requestMatchers("/api/catalog/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                 .anyRequest().authenticated()
@@ -85,7 +83,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*"));
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "https://your-production-domain.com"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
