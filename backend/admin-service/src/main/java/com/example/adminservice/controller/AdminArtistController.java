@@ -3,6 +3,7 @@ package com.example.adminservice.controller;
 import com.example.adminservice.client.ArtistServiceClient;
 import com.example.adminservice.model.dto.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/admin/artists")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminArtistController {
 
     private final ArtistServiceClient artistServiceClient;

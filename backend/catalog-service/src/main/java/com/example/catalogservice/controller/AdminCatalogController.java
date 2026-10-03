@@ -10,15 +10,41 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/catalog/admin")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 public class AdminCatalogController {
+
+    private static final Set<String> SONG_SORTABLE_FIELDS = Set.of(
+            "playCount", "likeCount", "createdAt", "title"
+    );
+    private static final Set<String> ALBUM_SORTABLE_FIELDS = Set.of(
+            "likeCount", "createdAt", "title", "releaseDate", "totalTracks"
+    );
+
+    private Sort buildSafeSort(String sortParam, Set<String> allowedFields, String defaultField) {
+        if (sortParam == null || sortParam.isBlank()) {
+            return Sort.by(Sort.Direction.DESC, defaultField);
+        }
+        String[] parts = sortParam.split(",");
+        String field = parts[0].trim();
+        Sort.Direction direction = Sort.Direction.DESC;
+        if (parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")) {
+            direction = Sort.Direction.ASC;
+        }
+        if (!allowedFields.contains(field)) {
+            return Sort.by(Sort.Direction.DESC, defaultField);
+        }
+        return Sort.by(direction, field);
+    }
 
     private final SongService songService;
     private final AlbumService albumService;
@@ -34,16 +60,7 @@ public class AdminCatalogController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String sort) {
         
-        Sort sortObj = Sort.by(Sort.Direction.DESC, "createdAt");
-        if (sort != null && !sort.isBlank()) {
-            String[] parts = sort.split(",");
-            String field = parts[0].trim();
-            Sort.Direction direction = Sort.Direction.DESC;
-            if (parts.length > 1 && parts[1].trim().equalsIgnoreCase("asc")) {
-                direction = Sort.Direction.ASC;
-            }
-            sortObj = Sort.by(direction, field);
-        }
+        Sort sortObj = buildSafeSort(sort, SONG_SORTABLE_FIELDS, "createdAt");
         
         Pageable pageable = PageRequest.of(page, size, sortObj);
         Page<SongResponse> response = songService.getSongsByStatus("PENDING", pageable);
@@ -64,8 +81,13 @@ public class AdminCatalogController {
     }
 
     @GetMapping("/albums/pending")
-    public ResponseEntity<ApiResponse<List<AlbumResponse>>> getPendingAlbums() {
-        List<AlbumResponse> response = albumService.getAlbumsByStatus("PENDING");
+    public ResponseEntity<ApiResponse<Page<AlbumResponse>>> getPendingAlbums(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String sort) {
+        Sort sortObj = buildSafeSort(sort, ALBUM_SORTABLE_FIELDS, "createdAt");
+        Pageable pageable = PageRequest.of(page, size, sortObj);
+        Page<AlbumResponse> response = albumService.getAlbumsByStatus("PENDING", pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách album chờ duyệt thành công"));
     }
 

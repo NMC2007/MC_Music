@@ -92,7 +92,7 @@ public class InternalUserController {
             @RequestBody Map<String, Boolean> payload) {
         Boolean isActive = payload.get("isActive");
         if (isActive == null) {
-            return ResponseEntity.badRequest().build();
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Trường 'isActive' là bắt buộc");
         }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng với ID: " + id));

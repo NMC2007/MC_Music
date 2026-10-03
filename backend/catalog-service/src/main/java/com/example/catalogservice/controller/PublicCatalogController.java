@@ -121,4 +121,22 @@ public class PublicCatalogController {
         Page<SongResponse> songs = publicCatalogService.getSongsByAlbum(albumId, pageable);
         return ResponseEntity.ok(ApiResponse.success(songs, "Lấy danh sách bài hát trong album thành công"));
     }
+
+    @GetMapping("/songs/{id}")
+    public ResponseEntity<ApiResponse<SongResponse>> getSongById(@PathVariable UUID id) {
+        SongResponse song = publicCatalogService.getSongById(id);
+        return ResponseEntity.ok(ApiResponse.success(song, "Lấy thông tin bài hát thành công"));
+    }
+
+    @GetMapping("/albums/{id}")
+    public ResponseEntity<ApiResponse<AlbumResponse>> getAlbumById(@PathVariable UUID id) {
+        AlbumResponse album = publicCatalogService.getAlbumById(id);
+        return ResponseEntity.ok(ApiResponse.success(album, "Lấy thông tin album thành công"));
+    }
+
+    @GetMapping("/songs/{id}/lyrics")
+    public ResponseEntity<ApiResponse<com.example.catalogservice.model.dto.response.LyricsResponse>> getLyricsBySongId(@PathVariable UUID id) {
+        com.example.catalogservice.model.dto.response.LyricsResponse lyrics = publicCatalogService.getLyricsBySongId(id);
+        return ResponseEntity.ok(ApiResponse.success(lyrics, "Lấy lời bài hát thành công"));
+    }
 }

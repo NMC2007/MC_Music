@@ -149,7 +149,11 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/catalog/admin/albums/pending`
-- **Mô tả:** Lấy tất cả Album trên toàn hệ thống đang ở trạng thái `PENDING`.
+- **Mô tả:** Lấy tất cả Album trên toàn hệ thống đang ở trạng thái `PENDING`. Dữ liệu trả về được phân trang.
+- **Query Parameters:**
+  - `page` (Int, Optional): Số trang (Mặc định: 0).
+  - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
+  - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.
 
 ### 2.4. Cập nhật Trạng thái Album (Duyệt/Từ chối)
 
@@ -276,6 +280,38 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
   - `sort` (String, Optional): Sắp xếp kết quả. Các field hợp lệ: `playCount`, `likeCount`, `createdAt`, `title`. Mặc định: `createdAt,desc`.
+
+### 3.7. Lấy chi tiết một Bài hát
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/catalog/public/songs/{id}`
+- **Mô tả:** Lấy thông tin chi tiết của một bài hát (bao gồm thông tin audio, artist, genres) để phát nhạc. Bài hát phải ở trạng thái `APPROVED` và không bị xóa.
+- **Path Variables:**
+  - `id` (UUID): ID của bài hát.
+
+### 3.8. Lấy chi tiết một Album
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/catalog/public/albums/{id}`
+- **Mô tả:** Lấy thông tin metadata chi tiết của một Album. Album phải ở trạng thái `APPROVED`.
+- **Path Variables:**
+  - `id` (UUID): ID của album.
+
+### 3.9. Lấy Lời bài hát
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/catalog/public/songs/{id}/lyrics`
+- **Mô tả:** Lấy lời bài hát của một bài hát. Nếu bài hát không có lời, sẽ trả về lỗi 404.
+- **Path Variables:**
+  - `id` (UUID): ID của bài hát.
+- **Response `data`:**
+  ```json
+  {
+    "id": "uuid",
+    "content": "Lời bài hát ở đây...",
+    "language": "vi"
+  }
+  ```
 
 ---
 

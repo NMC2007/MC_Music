@@ -72,7 +72,54 @@ Nhóm API này dùng để quản lý tài khoản người nghe nhạc (đăng 
 
 ---
 
-## 2. Playlists
+## 2. Thông tin cá nhân (Profile)
+
+Nhóm API này dùng để lấy và cập nhật thông tin cá nhân của người dùng đang đăng nhập.
+**Yêu cầu:** Gửi kèm Header `Authorization: Bearer <accessToken>`.
+
+### 2.1. Lấy thông tin cá nhân (Get Profile)
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/user/me`
+- **Mô tả:** Lấy thông tin profile của người dùng hiện tại (dựa vào token).
+- **Response thành công (200 OK):**
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Lấy thông tin profile thành công",
+    "data": {
+      "id": "uuid",
+      "email": "user1@example.com",
+      "fullName": "Nguyễn Văn A",
+      "avatarUrl": "https://...",
+      "createdAt": "2026-08-01T10:00:00"
+    }
+  }
+  ```
+
+### 2.2. Cập nhật thông tin cá nhân (Update Profile)
+
+- **Method:** `PUT`
+- **Endpoint:** `http://localhost:8686/api/user/me`
+- **Content-Type:** `multipart/form-data`
+- **Mô tả:** Cập nhật tên hiển thị và ảnh đại diện của người dùng. Ảnh avatar được upload trực tiếp (tự động lưu lên Cloudinary). Nếu không gửi `avatarFile`, avatar hiện tại sẽ được giữ nguyên.
+- **Body (Form-Data):**
+  | Key | Type | Required | Mô tả |
+  |---|---|---|---|
+  | `fullName` | Text | ❌ Không bắt buộc | Tên hiển thị mới. Từ 2 đến 50 ký tự. Nếu không truyền sẽ giữ nguyên. |
+  | `avatarFile` | File | ❌ Không bắt buộc | File ảnh avatar. Chỉ chấp nhận `.jpg`, `.jpeg`, `.png`. Tối đa 5MB. |
+- **Response thành công (200 OK):**
+  Trả về thông tin profile sau khi đã cập nhật (bao gồm `avatarUrl` mới nếu có upload ảnh).
+- **Lỗi có thể gặp:**
+  - `400 Bad Request`: Trống toàn bộ thông tin (không gửi tên, không gửi ảnh).
+  - `400 Bad Request`: `fullName` quá ngắn/dài (nếu có truyền).
+  - `400 Bad Request`: File ảnh không đúng định dạng (không phải jpg/png).
+  - `500 Internal Server Error`: Lỗi upload ảnh từ phía Cloudinary.
+
+---
+
+## 3. Playlists
 
 Nhóm API này dùng để quản lý danh sách phát cá nhân của người dùng.
 **Yêu cầu:** Tất cả API trong nhóm này đều yêu cầu header `Authorization: Bearer <accessToken>`.

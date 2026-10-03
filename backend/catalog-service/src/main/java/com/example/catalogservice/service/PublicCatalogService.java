@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.catalogservice.repository.LyricsRepository;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,13 +23,15 @@ public class PublicCatalogService {
     private final SongRepository songRepository;
     private final AlbumRepository albumRepository;
     private final GenreRepository genreRepository;
+    private final LyricsRepository lyricsRepository;
     private final ModelMapper modelMapper;
 
     public PublicCatalogService(SongRepository songRepository, AlbumRepository albumRepository,
-                                GenreRepository genreRepository, ModelMapper modelMapper) {
+                                GenreRepository genreRepository, LyricsRepository lyricsRepository, ModelMapper modelMapper) {
         this.songRepository = songRepository;
         this.albumRepository = albumRepository;
         this.genreRepository = genreRepository;
+        this.lyricsRepository = lyricsRepository;
         this.modelMapper = modelMapper;
     }
 
@@ -42,6 +45,33 @@ public class PublicCatalogService {
     public Page<AlbumResponse> getPublicAlbums(Pageable pageable) {
         return albumRepository.findByStatus("APPROVED", pageable)
                 .map(album -> modelMapper.map(album, AlbumResponse.class));
+    }
+
+    @Transactional(readOnly = true)
+    public SongResponse getSongById(UUID id) {
+        com.example.catalogservice.model.entity.Song song = songRepository.findById(id)
+                .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Bài hát không tồn tại"));
+        if (!"APPROVED".equals(song.getStatus()) || Boolean.TRUE.equals(song.getIsDeleted())) {
+            throw new com.example.catalogservice.exception.ResourceNotFoundException("Bài hát không tồn tại hoặc chưa được duyệt");
+        }
+        return modelMapper.map(song, SongResponse.class);
+    }
+
+    @Transactional(readOnly = true)
+    public AlbumResponse getAlbumById(UUID id) {
+        com.example.catalogservice.model.entity.Album album = albumRepository.findById(id)
+                .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Album không tồn tại"));
+        if (!"APPROVED".equals(album.getStatus())) {
+            throw new com.example.catalogservice.exception.ResourceNotFoundException("Album không tồn tại hoặc chưa được duyệt");
+        }
+        return modelMapper.map(album, AlbumResponse.class);
+    }
+
+    @Transactional(readOnly = true)
+    public com.example.catalogservice.model.dto.response.LyricsResponse getLyricsBySongId(UUID songId) {
+        com.example.catalogservice.model.entity.Lyrics lyrics = lyricsRepository.findBySongId(songId)
+                .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Không tìm thấy lời bài hát"));
+        return modelMapper.map(lyrics, com.example.catalogservice.model.dto.response.LyricsResponse.class);
     }
 
     @Transactional(readOnly = true)

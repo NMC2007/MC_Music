@@ -81,6 +81,12 @@ public class AlbumService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<AlbumResponse> getAlbumsByStatus(String status, org.springframework.data.domain.Pageable pageable) {
+        return albumRepository.findByStatus(status, pageable)
+                .map(album -> modelMapper.map(album, AlbumResponse.class));
+    }
+
     @Transactional
     public void updateAlbumStatus(UUID albumId, String status) {
         Album album = albumRepository.findById(albumId)
