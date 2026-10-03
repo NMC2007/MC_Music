@@ -57,4 +57,9 @@ public class InternalCatalogController {
     public ResponseEntity<AlbumResponse> getAlbumDetails(@PathVariable UUID id) {
         return ResponseEntity.ok(internalCatalogService.getAlbumDetails(id));
     }
+
+    @GetMapping("/artists/{id}/stats")
+    public ResponseEntity<com.example.catalogservice.repository.projection.ArtistStatsProjection> getArtistStats(@PathVariable UUID id) {
+        return ResponseEntity.ok(internalCatalogService.getArtistStats(id));
+    }
 }

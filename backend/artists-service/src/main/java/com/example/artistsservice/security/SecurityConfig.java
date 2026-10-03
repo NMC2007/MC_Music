@@ -11,6 +11,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -44,6 +46,10 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
+    @Autowired
+    @Qualifier("handlerExceptionResolver")
+    private org.springframework.web.servlet.HandlerExceptionResolver exceptionResolver;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, 
             com.example.artistsservice.security.jwt.JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -54,6 +60,14 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/artist/auth/**", "/api/artist/public/**", "/api/internal/**", "/error").permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> 
+                    exceptionResolver.resolveException(request, response, null, authException)
+                )
+                .accessDeniedHandler((request, response, accessDeniedException) -> 
+                    exceptionResolver.resolveException(request, response, null, accessDeniedException)
+                )
             )
             .addFilterBefore(internalApiFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

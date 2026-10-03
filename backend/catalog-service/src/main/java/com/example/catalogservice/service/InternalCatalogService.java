@@ -76,4 +76,9 @@ public class InternalCatalogService {
                 .orElseThrow(() -> new ResourceNotFoundException("Album not found"));
         return modelMapper.map(album, com.example.catalogservice.model.dto.response.AlbumResponse.class);
     }
+
+    @Transactional(readOnly = true)
+    public com.example.catalogservice.repository.projection.ArtistStatsProjection getArtistStats(UUID artistId) {
+        return songRepository.getArtistStats(artistId);
+    }
 }

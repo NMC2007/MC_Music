@@ -22,9 +22,11 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final org.springframework.web.servlet.HandlerExceptionResolver exceptionResolver;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, @org.springframework.beans.factory.annotation.Qualifier("handlerExceptionResolver") org.springframework.web.servlet.HandlerExceptionResolver exceptionResolver) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.exceptionResolver = exceptionResolver;
     }
 
     @Override
@@ -51,6 +53,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (Exception ex) {
             logger.error("Could not set user authentication in security context", ex);
+            exceptionResolver.resolveException(request, response, null, ex);
+            return;
         }
 
         filterChain.doFilter(request, response);

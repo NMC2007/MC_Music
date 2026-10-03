@@ -29,6 +29,9 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
            "AND (:genreId IS NULL OR g.id = :genreId)")
     Page<Song> findPublicSongs(@Param("keyword") String keyword, @Param("genreId") UUID genreId, Pageable pageable);
 
+    @Query("SELECT COUNT(s) as totalSongs, COALESCE(SUM(s.playCount), 0) as totalPlays, COALESCE(SUM(s.likeCount), 0) as totalLikes FROM Song s WHERE s.ownerId = :artistId AND s.isDeleted = false")
+    com.example.catalogservice.repository.projection.ArtistStatsProjection getArtistStats(@Param("artistId") UUID artistId);
+
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE Song s SET s.playCount = s.playCount + 1 WHERE s.id = :id")
     void incrementPlayCount(@Param("id") UUID id);

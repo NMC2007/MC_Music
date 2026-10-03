@@ -148,7 +148,27 @@ Nhóm API này dùng để quản lý tài khoản của Nghệ sĩ (Artist) - n
 
 ---
 
-## 3. CRUD & Quản lý Nhạc (Sắp triển khai)
+## 3. Artist Profile & Dashboard (Yêu cầu đăng nhập - ROLE_ARTIST)
 
+Các API dưới đây yêu cầu header `Authorization: Bearer <Access Token>`.
 
-_(Các API cập nhật tiểu sử, upload bài hát, tạo album, xem thống kê lượt nghe... sẽ được cập nhật tại đây khi hoàn thành)._
+### 3.1. Lấy thông tin cá nhân (Profile)
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/artist/me`
+- **Mô tả:** Trả về thông tin cá nhân của nghệ sĩ đang đăng nhập.
+
+### 3.2. Cập nhật thông tin cá nhân (Profile)
+- **Method:** `PUT`
+- **Endpoint:** `http://localhost:8686/api/artist/me`
+- **Mô tả:** Cập nhật nghệ danh, tiểu sử, ảnh đại diện và ảnh bìa.
+- **Headers:** `Content-Type: multipart/form-data`
+- **Form Data:**
+  - `stageName` (String, Required): Nghệ danh.
+  - `biography` (String, Optional): Tiểu sử.
+  - `avatarFile` (File, Optional): File ảnh đại diện (JPG/PNG).
+  - `coverFile` (File, Optional): File ảnh bìa (JPG/PNG).
+
+### 3.3. Xem thống kê tổng quan (Dashboard)
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/artist/dashboard`
+- **Mô tả:** Lấy số liệu thống kê lượt nghe, lượt thích, số bài hát và số lượng người theo dõi của nghệ sĩ đang đăng nhập.
