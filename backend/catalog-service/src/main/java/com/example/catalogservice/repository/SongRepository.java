@@ -13,7 +13,7 @@ import java.util.UUID;
 
 @Repository
 public interface SongRepository extends JpaRepository<Song, UUID> {
-    List<Song> findByOwnerId(UUID ownerId);
+    Page<Song> findByOwnerId(UUID ownerId, Pageable pageable);
     Page<Song> findByOwnerIdAndStatusAndIsDeletedFalse(UUID ownerId, String status, Pageable pageable);
     Page<Song> findByAlbumIdAndStatusAndIsDeletedFalse(UUID albumId, String status, Pageable pageable);
     List<Song> findByStatusAndIsDeletedFalse(String status);

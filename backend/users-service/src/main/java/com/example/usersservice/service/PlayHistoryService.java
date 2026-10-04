@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class PlayHistoryService {
@@ -62,9 +64,8 @@ public class PlayHistoryService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlayHistoryResponse> getUserPlayHistory(UUID userId) {
-        return playHistoryRepository.findByUserIdOrderByPlayedAtDesc(userId).stream()
-                .map(ph -> modelMapper.map(ph, PlayHistoryResponse.class))
-                .collect(Collectors.toList());
+    public Page<PlayHistoryResponse> getUserPlayHistory(UUID userId, Pageable pageable) {
+        return playHistoryRepository.findByUserIdOrderByPlayedAtDesc(userId, pageable)
+                .map(ph -> modelMapper.map(ph, PlayHistoryResponse.class));
     }
 }

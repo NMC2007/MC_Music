@@ -14,7 +14,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import java.util.UUID;
 
 @RestController
@@ -42,8 +46,11 @@ public class PlaylistController {
 
     @GetMapping
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<List<PlaylistResponse>>> getMyPlaylists() {
-        List<PlaylistResponse> response = playlistService.getUserPlaylists(getCurrentUserId());
+    public ResponseEntity<ApiResponse<Page<PlaylistResponse>>> getMyPlaylists(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<PlaylistResponse> response = playlistService.getUserPlaylists(getCurrentUserId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách playlist thành công"));
     }
 
@@ -68,8 +75,12 @@ public class PlaylistController {
 
     @GetMapping("/{playlistId}/songs")
     @PreAuthorize("hasRole('USER')")
-    public ResponseEntity<ApiResponse<List<PlaylistSongResponse>>> getPlaylistSongs(@PathVariable UUID playlistId) {
-        List<PlaylistSongResponse> response = playlistService.getPlaylistSongs(playlistId, getCurrentUserId());
+    public ResponseEntity<ApiResponse<Page<PlaylistSongResponse>>> getPlaylistSongs(
+            @PathVariable UUID playlistId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PlaylistSongResponse> response = playlistService.getPlaylistSongs(playlistId, getCurrentUserId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách bài hát trong playlist thành công"));
     }
 }

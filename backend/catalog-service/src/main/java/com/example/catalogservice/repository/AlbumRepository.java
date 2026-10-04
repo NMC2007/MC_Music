@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Repository
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
-    List<Album> findByOwnerId(UUID ownerId);
+    Page<Album> findByOwnerId(UUID ownerId, Pageable pageable);
 
     Page<Album> findByOwnerIdAndStatus(UUID ownerId, String status, Pageable pageable);
 

@@ -16,8 +16,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -48,8 +52,11 @@ public class ArtistCatalogController {
     }
 
     @GetMapping("/albums")
-    public ResponseEntity<ApiResponse<List<AlbumResponse>>> getMyAlbums() {
-        List<AlbumResponse> response = albumService.getAlbumsByOwner(getCurrentArtistId());
+    public ResponseEntity<ApiResponse<Page<AlbumResponse>>> getMyAlbums(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<AlbumResponse> response = albumService.getAlbumsByOwner(getCurrentArtistId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách album thành công"));
     }
 
@@ -64,8 +71,11 @@ public class ArtistCatalogController {
     }
 
     @GetMapping("/songs")
-    public ResponseEntity<ApiResponse<List<SongResponse>>> getMySongs() {
-        List<SongResponse> response = songService.getSongsByOwner(getCurrentArtistId());
+    public ResponseEntity<ApiResponse<Page<SongResponse>>> getMySongs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<SongResponse> response = songService.getSongsByOwner(getCurrentArtistId(), pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách bài hát thành công"));
     }
 

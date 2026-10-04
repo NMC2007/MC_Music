@@ -9,7 +9,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.util.UUID;
 
 @RestController
@@ -43,9 +46,13 @@ public class FollowArtistController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<FollowArtistResponse>>> getUserFollowedArtists(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Page<FollowArtistResponse>>> getUserFollowedArtists(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        List<FollowArtistResponse> data = followArtistService.getUserFollowedArtists(userId);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FollowArtistResponse> data = followArtistService.getUserFollowedArtists(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(data, "Lấy danh sách nghệ sĩ đang theo dõi thành công"));
     }
 }

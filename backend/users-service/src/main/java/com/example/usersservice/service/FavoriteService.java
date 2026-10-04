@@ -18,9 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class FavoriteService {
@@ -88,10 +88,9 @@ public class FavoriteService {
     }
 
     @Transactional(readOnly = true)
-    public List<FavoriteResponse> getUserFavorites(UUID userId) {
-        return favoriteRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(f -> modelMapper.map(f, FavoriteResponse.class))
-                .collect(Collectors.toList());
+    public Page<FavoriteResponse> getUserFavorites(UUID userId, Pageable pageable) {
+        return favoriteRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(f -> modelMapper.map(f, FavoriteResponse.class));
     }
 
     @Transactional
@@ -145,9 +144,8 @@ public class FavoriteService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.example.usersservice.model.dto.response.FavoriteAlbumResponse> getUserFavoriteAlbums(UUID userId) {
-        return favoriteAlbumRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(f -> modelMapper.map(f, com.example.usersservice.model.dto.response.FavoriteAlbumResponse.class))
-                .collect(Collectors.toList());
+    public Page<com.example.usersservice.model.dto.response.FavoriteAlbumResponse> getUserFavoriteAlbums(UUID userId, Pageable pageable) {
+        return favoriteAlbumRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(f -> modelMapper.map(f, com.example.usersservice.model.dto.response.FavoriteAlbumResponse.class));
     }
 }

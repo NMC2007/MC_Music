@@ -11,7 +11,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.util.UUID;
 
 @RestController
@@ -36,9 +39,13 @@ public class PlayHistoryController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<PlayHistoryResponse>>> getUserPlayHistory(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Page<PlayHistoryResponse>>> getUserPlayHistory(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        List<PlayHistoryResponse> data = playHistoryService.getUserPlayHistory(userId);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PlayHistoryResponse> data = playHistoryService.getUserPlayHistory(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(data, "Lấy lịch sử nghe nhạc thành công"));
     }
 }

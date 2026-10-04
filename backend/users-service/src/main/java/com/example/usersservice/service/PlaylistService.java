@@ -18,9 +18,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class PlaylistService {
@@ -50,10 +50,9 @@ public class PlaylistService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlaylistResponse> getUserPlaylists(UUID userId) {
-        return playlistRepository.findByUserId(userId).stream()
-                .map(p -> modelMapper.map(p, PlaylistResponse.class))
-                .collect(Collectors.toList());
+    public Page<PlaylistResponse> getUserPlaylists(UUID userId, Pageable pageable) {
+        return playlistRepository.findByUserId(userId, pageable)
+                .map(p -> modelMapper.map(p, PlaylistResponse.class));
     }
 
     @Transactional
@@ -110,7 +109,7 @@ public class PlaylistService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlaylistSongResponse> getPlaylistSongs(UUID playlistId, UUID userId) {
+    public Page<PlaylistSongResponse> getPlaylistSongs(UUID playlistId, UUID userId, Pageable pageable) {
         Playlist playlist = playlistRepository.findById(playlistId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy playlist"));
 
@@ -119,8 +118,7 @@ public class PlaylistService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Bạn không có quyền xem playlist này");
         }
 
-        return playlistSongRepository.findByPlaylistIdOrderByAddedAtDesc(playlistId).stream()
-                .map(ps -> modelMapper.map(ps, PlaylistSongResponse.class))
-                .collect(Collectors.toList());
+        return playlistSongRepository.findByPlaylistIdOrderByAddedAtDesc(playlistId, pageable)
+                .map(ps -> modelMapper.map(ps, PlaylistSongResponse.class));
     }
 }

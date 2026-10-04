@@ -61,10 +61,9 @@ public class AlbumService {
     }
     
     @Transactional(readOnly = true)
-    public List<AlbumResponse> getAlbumsByOwner(UUID ownerId) {
-        return albumRepository.findByOwnerId(ownerId).stream()
-                .map(album -> modelMapper.map(album, AlbumResponse.class))
-                .collect(Collectors.toList());
+    public org.springframework.data.domain.Page<AlbumResponse> getAlbumsByOwner(UUID ownerId, org.springframework.data.domain.Pageable pageable) {
+        return albumRepository.findByOwnerId(ownerId, pageable)
+                .map(album -> modelMapper.map(album, AlbumResponse.class));
     }
     
     @Transactional(readOnly = true)

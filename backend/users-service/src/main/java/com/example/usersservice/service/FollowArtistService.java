@@ -14,9 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Service
 public class FollowArtistService {
@@ -81,9 +81,8 @@ public class FollowArtistService {
     }
 
     @Transactional(readOnly = true)
-    public List<FollowArtistResponse> getUserFollowedArtists(UUID userId) {
-        return followArtistRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
-                .map(f -> modelMapper.map(f, FollowArtistResponse.class))
-                .collect(Collectors.toList());
+    public Page<FollowArtistResponse> getUserFollowedArtists(UUID userId, Pageable pageable) {
+        return followArtistRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(f -> modelMapper.map(f, FollowArtistResponse.class));
     }
 }

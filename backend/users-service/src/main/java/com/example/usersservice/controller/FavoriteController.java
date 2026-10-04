@@ -9,7 +9,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+
 import java.util.UUID;
 
 @RestController
@@ -43,9 +46,13 @@ public class FavoriteController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<FavoriteResponse>>> getUserFavorites(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Page<FavoriteResponse>>> getUserFavorites(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        List<FavoriteResponse> data = favoriteService.getUserFavorites(userId);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FavoriteResponse> data = favoriteService.getUserFavorites(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(data, "Lấy danh sách yêu thích thành công"));
     }
 
@@ -69,9 +76,13 @@ public class FavoriteController {
     }
 
     @GetMapping("/albums")
-    public ResponseEntity<ApiResponse<List<com.example.usersservice.model.dto.response.FavoriteAlbumResponse>>> getUserFavoriteAlbums(Authentication authentication) {
+    public ResponseEntity<ApiResponse<Page<com.example.usersservice.model.dto.response.FavoriteAlbumResponse>>> getUserFavoriteAlbums(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
         UUID userId = UUID.fromString(authentication.getName());
-        List<com.example.usersservice.model.dto.response.FavoriteAlbumResponse> data = favoriteService.getUserFavoriteAlbums(userId);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<com.example.usersservice.model.dto.response.FavoriteAlbumResponse> data = favoriteService.getUserFavoriteAlbums(userId, pageable);
         return ResponseEntity.ok(ApiResponse.success(data, "Lấy danh sách album yêu thích thành công"));
     }
 }

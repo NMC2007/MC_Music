@@ -130,10 +130,9 @@ public class SongService {
     }
     
     @Transactional(readOnly = true)
-    public List<SongResponse> getSongsByOwner(UUID ownerId) {
-        return songRepository.findByOwnerId(ownerId).stream()
-                .map(song -> modelMapper.map(song, SongResponse.class))
-                .collect(Collectors.toList());
+    public Page<SongResponse> getSongsByOwner(UUID ownerId, Pageable pageable) {
+        return songRepository.findByOwnerId(ownerId, pageable)
+                .map(song -> modelMapper.map(song, SongResponse.class));
     }
 
     @Transactional
