@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface SongArtistRepository extends JpaRepository<SongArtist, UUID> {
     List<SongArtist> findBySongId(UUID songId);
     boolean existsBySongIdAndArtistId(UUID songId, UUID artistId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE SongArtist sa SET sa.artistName = :newName WHERE sa.artistId = :artistId")
+    void updateArtistName(@org.springframework.data.repository.query.Param("artistId") UUID artistId, @org.springframework.data.repository.query.Param("newName") String newName);
 }

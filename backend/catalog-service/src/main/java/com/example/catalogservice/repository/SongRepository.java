@@ -43,4 +43,8 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE Song s SET s.likeCount = s.likeCount - 1 WHERE s.id = :id AND s.likeCount > 0")
     void decrementLikeCount(@Param("id") UUID id);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Song s SET s.ownerName = :newName WHERE s.ownerId = :artistId")
+    void updateOwnerName(@Param("artistId") UUID artistId, @Param("newName") String newName);
 }

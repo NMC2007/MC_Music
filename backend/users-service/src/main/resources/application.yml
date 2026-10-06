@@ -3,6 +3,8 @@ server:
 spring:
   application:
     name: users-service
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
   servlet:
     multipart:
       max-file-size: 5MB

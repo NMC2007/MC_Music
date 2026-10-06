@@ -27,4 +27,8 @@ public interface AlbumRepository extends JpaRepository<Album, UUID> {
     @Modifying
     @org.springframework.data.jpa.repository.Query("UPDATE Album a SET a.likeCount = a.likeCount - 1 WHERE a.id = :id AND a.likeCount > 0")
     void decrementLikeCount(@org.springframework.data.repository.query.Param("id") UUID id);
+
+    @Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE Album a SET a.ownerName = :newName WHERE a.ownerId = :artistId")
+    void updateOwnerName(@org.springframework.data.repository.query.Param("artistId") UUID artistId, @org.springframework.data.repository.query.Param("newName") String newName);
 }

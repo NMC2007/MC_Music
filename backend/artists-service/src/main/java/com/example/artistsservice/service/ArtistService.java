@@ -7,9 +7,11 @@ import com.example.artistsservice.model.dto.response.ArtistDashboardResponse;
 import com.example.artistsservice.model.dto.response.ArtistProfileResponse;
 import com.example.artistsservice.model.entity.Artist;
 import com.example.artistsservice.repository.ArtistRepository;
+import com.example.artistsservice.model.dto.event.ArtistProfileUpdatedEvent;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.io.IOException;
 import java.util.Map;
@@ -21,13 +23,16 @@ public class ArtistService {
     private final ArtistRepository artistRepository;
     private final CloudinaryService cloudinaryService;
     private final CatalogServiceClient catalogServiceClient;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public ArtistService(ArtistRepository artistRepository,
                          CloudinaryService cloudinaryService,
-                         CatalogServiceClient catalogServiceClient) {
+                         CatalogServiceClient catalogServiceClient,
+                         KafkaTemplate<String, Object> kafkaTemplate) {
         this.artistRepository = artistRepository;
         this.cloudinaryService = cloudinaryService;
         this.catalogServiceClient = catalogServiceClient;
+        this.kafkaTemplate = kafkaTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +56,7 @@ public class ArtistService {
         Artist artist = artistRepository.findById(artistId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy hồ sơ nghệ sĩ"));
 
+        String oldName = artist.getStageName();
         artist.setStageName(request.getStageName());
         if (request.getBiography() != null) {
             artist.setBiography(request.getBiography());
@@ -71,6 +77,19 @@ public class ArtistService {
         }
 
         Artist updatedArtist = artistRepository.save(artist);
+
+        try {
+            ArtistProfileUpdatedEvent event = ArtistProfileUpdatedEvent.builder()
+                    .artistId(updatedArtist.getId().toString())
+                    .oldName(oldName)
+                    .newName(updatedArtist.getStageName())
+                    .newAvatarUrl(updatedArtist.getAvatarUrl())
+                    .build();
+            kafkaTemplate.send("artist-events-topic", event).get();
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed to send Kafka event: " + e.getMessage());
+        }
 
         return ArtistProfileResponse.builder()
                 .id(updatedArtist.getId())
