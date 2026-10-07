@@ -12,4 +12,7 @@ import java.util.UUID;
 @Repository
 public interface PlaylistSongRepository extends JpaRepository<PlaylistSong, PlaylistSongId> {
     Page<PlaylistSong> findByPlaylistIdOrderByAddedAtDesc(UUID playlistId, Pageable pageable);
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("UPDATE PlaylistSong ps SET ps.artistName = :newName WHERE ps.artistName = :oldName")
+    void updateArtistName(@org.springframework.data.repository.query.Param("oldName") String oldName, @org.springframework.data.repository.query.Param("newName") String newName);
 }
