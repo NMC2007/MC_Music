@@ -38,14 +38,17 @@ export const SongCard = ({
           isArtist={isArtist}
           className={`w-full aspect-square object-cover shadow-lg ${isArtist ? "rounded-full" : "rounded-md"}`}
         />
+
         {/* Nút Play sẽ hiển thị hiệu ứng trượt lên và sáng lên khi hover vào thẻ card */}
         <Button
-          variant="primary" size="md" iconOnly
+          variant="primary"
+          size="md"
+          iconOnly
           onClick={(e) => {
             e.stopPropagation();
             if (onPlayClick) onPlayClick();
           }}
-          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0"
+          className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0 shadow-[0_8px_16px_rgba(250,45,72,0.4)]"
         >
           <Play size={24} className="fill-white text-white ml-1" />
         </Button>

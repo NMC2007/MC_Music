@@ -55,3 +55,32 @@ export const getAlbumSongs = async (albumId, params = {}) => {
   const response = await api.get(`/catalog/public/albums/${albumId}/songs`, { params });
   return response.data;
 };
+
+/**
+ * Lấy thông tin chi tiết một bài hát theo ID
+ * @param {String} id 
+ */
+export const getSongById = async (id) => {
+  const response = await api.get(`/catalog/public/songs/${id}`);
+  return response.data;
+};
+
+/**
+ * Lấy lời bài hát theo ID bài hát
+ * @param {String} songId 
+ * @returns {Promise<Object>} ApiResponse chứa LyricsResponse (id, content, language)
+ */
+export const getSongLyrics = async (songId) => {
+  const response = await api.get(`/catalog/public/songs/${songId}/lyrics`);
+  return response.data;
+};
+
+/**
+ * Lấy thông tin chi tiết một album theo ID
+ * @param {String} id 
+ */
+export const getAlbumById = async (id) => {
+  const response = await api.get(`/catalog/public/albums/${id}`);
+  return response.data;
+};
+

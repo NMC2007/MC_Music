@@ -6,7 +6,6 @@ import {
   Pause,
   Shuffle,
   MoreHorizontal,
-  UserPlus,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -18,21 +17,21 @@ import {
   getAlbumSongs,
 } from "../api/catalog/public";
 import { usePlayerStore } from "../store/usePlayerStore";
-import { useAuthStore } from "../store/useAuthStore";
-import { showLoginToast } from "../utils/toastUtils";
+import { useFollowArtists } from "../hooks/useFollowArtists";
 import { Button } from "../components/ui/Button";
 import { SongRow } from "../components/ui/SongRow";
 import { SongCard } from "../components/ui/SongCard";
 import { SectionCarousel } from "../components/ui/SectionCarousel";
-import { CoverImage } from "../components/ui/CoverImage";
 import { SkeletonRow, SkeletonCard } from "../components/ui/Skeleton";
 
 export const ArtistPage = () => {
   const { id: artistId } = useParams();
   const navigate = useNavigate();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { currentSong, isPlaying, setIsPlaying, setCurrentSong } =
+  const { isFollowing, toggleFollowArtist } = useFollowArtists();
+  const { currentSong, isPlaying, setIsPlaying, playSongWithContext } =
     usePlayerStore();
+
+  const isFollowed = isFollowing(artistId);
 
   const [showAllSongs, setShowAllSongs] = useState(false);
   // Filter: null = tất cả, "ALBUM" = album, "EP" = ep
@@ -89,23 +88,25 @@ export const ArtistPage = () => {
       setIsPlaying(false);
       return;
     }
-    setCurrentSong(allSongs[0]);
-    setIsPlaying(true);
+    playSongWithContext(allSongs[0], allSongs, 0);
   };
 
   const handleShufflePlay = () => {
     if (allSongs.length === 0) return;
     const randomIndex = Math.floor(Math.random() * allSongs.length);
-    setCurrentSong(allSongs[randomIndex]);
-    setIsPlaying(true);
+    playSongWithContext(allSongs[randomIndex], allSongs, randomIndex);
   };
 
   const handleFollow = () => {
-    if (!isAuthenticated) {
-      showLoginToast("theo dõi nghệ sĩ");
-      return;
-    }
-    // TODO: Gọi API follow nghệ sĩ
+    if (!artist) return;
+    toggleFollowArtist({
+      artistId,
+      id: artistId,
+      artistName: artist.stageName,
+      stageName: artist.stageName,
+      avatar: artist.avatarUrl,
+      avatarUrl: artist.avatarUrl,
+    });
   };
 
   const handlePlayAlbumCard = async (albumId) => {
@@ -116,9 +117,7 @@ export const ArtistPage = () => {
       });
       const songs = res.data?.content || [];
       if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
-        setCurrentSong(songs[randomIndex]);
-        setIsPlaying(true);
+        playSongWithContext(songs[0], songs, 0);
       }
     } catch (err) {
       console.error(err);
@@ -210,16 +209,13 @@ export const ArtistPage = () => {
           <Shuffle size={22} />
         </Button>
 
-        {/* Nút Follow */}
-        <Button
-          variant="secondary"
-          size="md"
+        {/* Nút Follow tối giản theo thiết kế */}
+        <button
           onClick={handleFollow}
-          className="flex items-center gap-2"
+          className="px-4 py-1.5 rounded-full border border-neutral-500/60 hover:border-white text-white font-bold text-sm bg-transparent hover:scale-105 active:scale-95 transition-all cursor-pointer select-none"
         >
-          <UserPlus size={18} />
-          Theo dõi
-        </Button>
+          {isFollowed ? "Đang theo dõi" : "Theo dõi"}
+        </button>
 
         {/* Nút thêm */}
         <Button variant="ghost" size="md" iconOnly>
@@ -252,7 +248,7 @@ export const ArtistPage = () => {
                     index={idx + 1}
                     song={song}
                     isPlaying={isPlaying && currentSong?.id === song.id}
-                    onPlayClick={() => setCurrentSong(song)}
+                    onPlayClick={() => playSongWithContext(song, allSongs, idx)}
                   />
                 ))}
               </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { SongCard } from "../components/ui/SongCard";
@@ -11,13 +11,43 @@ import {
   getPublicAlbums,
   getArtistSongs,
   getAlbumSongs,
+  getSongById,
 } from "../api/catalog/public";
 import { getPublicArtists } from "../api/artists/public";
+import { getUserPlayHistoryApi } from "../api/history/history";
+import { useFavorites } from "../hooks/useFavorites";
+import { useFollowArtists } from "../hooks/useFollowArtists";
 
 export const HomePage = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { setCurrentSong, setIsPlaying } = usePlayerStore();
+  const { playSongWithContext } = usePlayerStore();
+  const { favoriteSongs, isLoadingSongs: isLoadingFavorites } = useFavorites();
+  const { followedArtists, isLoadingFollowed } = useFollowArtists();
   const navigate = useNavigate();
+
+  const handlePlayHistoryCard = async (historyItem) => {
+    try {
+      const res = await getSongById(historyItem.songId);
+      const song = res?.data;
+      if (song) {
+        playSongWithContext(song, [song]);
+      }
+    } catch (err) {
+      console.error("Lỗi khi phát bài hát từ lịch sử:", err);
+    }
+  };
+
+  const handlePlayFavoriteCard = async (favItem) => {
+    try {
+      const res = await getSongById(favItem.songId);
+      const song = res?.data;
+      if (song) {
+        playSongWithContext(song, [song]);
+      }
+    } catch (err) {
+      console.error("Lỗi khi phát bài hát từ danh sách yêu thích:", err);
+    }
+  };
 
   const handlePlayArtistCard = async (artistId) => {
     try {
@@ -28,8 +58,7 @@ export const HomePage = () => {
       const songs = res.data?.content || [];
       if (songs.length > 0) {
         const randomIndex = Math.floor(Math.random() * songs.length);
-        setCurrentSong(songs[randomIndex]);
-        setIsPlaying(true);
+        playSongWithContext(songs[randomIndex], songs, randomIndex);
       }
     } catch (err) {
       console.error(err);
@@ -44,9 +73,7 @@ export const HomePage = () => {
       });
       const songs = res.data?.content || [];
       if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
-        setCurrentSong(songs[randomIndex]);
-        setIsPlaying(true);
+        playSongWithContext(songs[0], songs, 0);
       }
     } catch (err) {
       console.error(err);
@@ -76,10 +103,34 @@ export const HomePage = () => {
     queryFn: () => getPublicAlbums({ size: 10, sort: "likeCount,desc" }),
   });
 
+  // Fetch Lịch sử nghe gần đây (chỉ khi đã đăng nhập, lấy size 30 để sau khi lọc trùng vẫn đủ bài hiển thị)
+  const { data: historyData, isLoading: isLoadingHistory } = useQuery({
+    queryKey: ["userPlayHistory", "home", 30],
+    queryFn: () => getUserPlayHistoryApi({ page: 0, size: 30 }),
+    enabled: !!isAuthenticated,
+  });
+
   // Trích xuất dữ liệu từ response (chuẩn hóa API backend trả về format: data.data.content)
   const songs = songsData?.data?.content || [];
   const artists = artistsData?.data?.content || [];
   const albums = albumsData?.data?.content || [];
+
+  // Lọc trùng lặp bài hát theo songId (giữ lại lượt nghe mới nhất của mỗi bài hát)
+  const recentSongs = useMemo(() => {
+    const rawHistory = historyData?.data?.content || [];
+    const seenSongIds = new Set();
+    const uniqueList = [];
+
+    for (const item of rawHistory) {
+      const songId = item.songId || item.id;
+      if (songId && !seenSongIds.has(songId)) {
+        seenSongIds.add(songId);
+        uniqueList.push(item);
+      }
+    }
+
+    return uniqueList.slice(0, 10);
+  }, [historyData]);
 
   // Tạo khung Skeleton khi đang tải (sử dụng component chuẩn mới)
   const renderSkeletons = (count = 5, isArtist = false) => {
@@ -99,21 +150,86 @@ export const HomePage = () => {
       {isAuthenticated && (
         <>
           <SectionCarousel title="Nghe gần đây">
-            <div className="col-span-full py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2 w-full">
-              <span>Tính năng "Nghe gần đây" đang được phát triển.</span>
-            </div>
+            {isLoadingHistory ? (
+              renderSkeletons()
+            ) : recentSongs.length > 0 ? (
+              recentSongs.map((item) => (
+                <div
+                  key={item.id || item.songId}
+                  className="w-[140px] sm:w-[170px] md:w-[190px] lg:w-[210px] flex-shrink-0"
+                >
+                  <SongCard
+                    type="song"
+                    title={item.songTitle}
+                    subtitle={item.artistName}
+                    artistName={item.artistName}
+                    imageUrl={item.coverImage}
+                    onClick={() => handlePlayHistoryCard(item)}
+                    onPlayClick={() => handlePlayHistoryCard(item)}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2 w-full">
+                <span>Bạn chưa có bài hát nào trong lịch sử nghe gần đây.</span>
+              </div>
+            )}
           </SectionCarousel>
           <SectionCarousel title="Bài hát yêu thích">
-            <div className="col-span-full py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2 w-full">
-              <span>Tính năng "Bài hát yêu thích" đang được phát triển.</span>
-            </div>
+            {isLoadingFavorites ? (
+              renderSkeletons()
+            ) : favoriteSongs.length > 0 ? (
+              favoriteSongs.map((item) => (
+                <div
+                  key={item.songId}
+                  className="w-[140px] sm:w-[170px] md:w-[190px] lg:w-[210px] flex-shrink-0"
+                >
+                  <SongCard
+                    type="song"
+                    title={item.songTitle}
+                    subtitle={item.artistName}
+                    artistName={item.artistName}
+                    imageUrl={item.coverImage}
+                    onClick={() => handlePlayFavoriteCard(item)}
+                    onPlayClick={() => handlePlayFavoriteCard(item)}
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2 w-full">
+                <span>Bạn chưa có bài hát nào trong danh sách yêu thích.</span>
+              </div>
+            )}
           </SectionCarousel>
-          <SectionCarousel title="Nghệ sĩ bạn yêu thích">
-            <div className="col-span-full py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2 w-full">
-              <span>
-                Tính năng "Nghệ sĩ bạn yêu thích" đang được phát triển.
-              </span>
-            </div>
+          <SectionCarousel title="Nghệ sĩ bạn theo dõi">
+            {isLoadingFollowed ? (
+              renderSkeletons(5, true)
+            ) : followedArtists.length > 0 ? (
+              followedArtists.map((artist) => (
+                <div
+                  key={artist.artistId || artist.id}
+                  className="w-[140px] sm:w-[170px] md:w-[190px] lg:w-[210px] flex-shrink-0"
+                >
+                  <SongCard
+                    type="artist"
+                    title={artist.artistName || artist.stageName}
+                    subtitle="Nghệ sĩ"
+                    artistName={artist.artistName || artist.stageName}
+                    imageUrl={artist.avatar || artist.avatarUrl}
+                    onClick={() =>
+                      navigate(`/artist/${artist.artistId || artist.id}`)
+                    }
+                    onPlayClick={() =>
+                      handlePlayArtistCard(artist.artistId || artist.id)
+                    }
+                  />
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2 w-full">
+                <span>Bạn chưa theo dõi nghệ sĩ nào. Hãy theo dõi các nghệ sĩ để nhận cập nhật mới nhất!</span>
+              </div>
+            )}
           </SectionCarousel>
         </>
       )}
@@ -125,7 +241,7 @@ export const HomePage = () => {
         {isLoadingSongs ? (
           renderSkeletons()
         ) : songs.length > 0 ? (
-          songs.map((song) => (
+          songs.map((song, idx) => (
             <div
               key={song.id}
               className="w-[140px] sm:w-[170px] md:w-[190px] lg:w-[210px] flex-shrink-0"
@@ -136,10 +252,9 @@ export const HomePage = () => {
                 subtitle={song.ownerName}
                 artistName={song.ownerName}
                 imageUrl={song.coverImage}
-                onClick={() => {}}
+                onClick={() => playSongWithContext(song, songs, idx)}
                 onPlayClick={() => {
-                  setCurrentSong(song);
-                  setIsPlaying(true);
+                  playSongWithContext(song, songs, idx);
                 }}
               />
             </div>
