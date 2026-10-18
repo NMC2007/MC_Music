@@ -11,6 +11,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AlbumPage } from './pages/AlbumPage';
 import { ArtistPage } from './pages/ArtistPage';
 import { LikedSongsPage } from './pages/LikedSongsPage';
+import { PlaylistPage } from './pages/PlaylistPage';
 
 // Khởi tạo React Query Client
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/album/:id" element={<AlbumPage />} />
             <Route path="/artist/:id" element={<ArtistPage />} />
+            <Route path="/playlist/:id" element={<PlaylistPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/collection/tracks" element={<LikedSongsPage />} />
             <Route path="/liked" element={<LikedSongsPage />} />

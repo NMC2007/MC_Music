@@ -9,6 +9,7 @@ import {
   Play,
   ChevronLeft,
   ChevronRight,
+  ListMusic,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "../components/ui/Button";
@@ -16,8 +17,11 @@ import { CoverImage } from "../components/ui/CoverImage";
 import { useAuthStore } from "../store/useAuthStore";
 import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
+import { usePlaylists } from "../hooks/usePlaylists";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { getArtistSongs, getAlbumSongs, getSongById } from "../api/catalog/public";
+import { getPlaylistSongsApi } from "../api/users/playlists";
+import { CreatePlaylistModal } from "../components/playlist/CreatePlaylistModal";
 import { showLoginToast } from "../utils/toastUtils";
 
 // Danh mục bộ lọc theo đúng thiết kế tham khảo
@@ -30,6 +34,7 @@ export const Sidebar = () => {
 
   const { favoriteSongs, favoriteAlbums } = useFavorites();
   const { followedArtists } = useFollowArtists();
+  const { playlists } = usePlaylists();
   const { playSongWithContext } = usePlayerStore();
 
   const isLikedActive = location.pathname === "/collection/tracks";
@@ -39,6 +44,7 @@ export const Sidebar = () => {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const handleProtectedAction = (actionName) => {
     if (!isAuthenticated) {
@@ -158,7 +164,36 @@ export const Sidebar = () => {
     }
   };
 
-  // --- Tổng hợp và lọc danh sách Nghệ sĩ & Album ---
+  // --- Phát danh sách phát (Playlist) ---
+  const handlePlayPlaylist = async (e, playlistId) => {
+    e.stopPropagation();
+    try {
+      const res = await getPlaylistSongsApi(playlistId, { size: 50 });
+      const songs = res?.data?.content || [];
+      if (songs.length > 0) {
+        const pool = songs.map((s) => ({
+          id: s.songId,
+          title: s.songTitle,
+          artist: s.artistName,
+          artistName: s.artistName,
+          coverImage: s.coverImage,
+        }));
+        const firstSongRes = await getSongById(songs[0].songId);
+        if (firstSongRes?.data) {
+          playSongWithContext(firstSongRes.data, pool, 0);
+        } else {
+          navigate(`/playlist/${playlistId}`);
+        }
+      } else {
+        navigate(`/playlist/${playlistId}`);
+      }
+    } catch (err) {
+      console.error("Lỗi phát playlist từ Sidebar:", err);
+      navigate(`/playlist/${playlistId}`);
+    }
+  };
+
+  // --- Tổng hợp và lọc danh sách Nghệ sĩ, Album & Playlist ---
   const libraryItems = useMemo(() => {
     let items = [];
 
@@ -198,7 +233,19 @@ export const Sidebar = () => {
       });
     });
 
-    // 3. Áp dụng bộ lọc danh mục
+    // 3. Thêm danh sách Playlist của người dùng
+    playlists.forEach((playlist) => {
+      items.push({
+        id: playlist.id,
+        title: playlist.name,
+        subtitle: `Danh sách phát • ${playlist.isPublic ? "Công khai" : "Riêng tư"}`,
+        image: playlist.coverImage || null,
+        type: "playlist",
+        raw: playlist,
+      });
+    });
+
+    // 4. Áp dụng bộ lọc danh mục
     if (selectedFilter) {
       if (selectedFilter === "Album") {
         items = items.filter((item) => item.type === "album" && item.albumType !== "EP");
@@ -211,7 +258,7 @@ export const Sidebar = () => {
       }
     }
 
-    // 4. Áp dụng tìm kiếm theo từ khóa
+    // 5. Áp dụng tìm kiếm theo từ khóa
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       items = items.filter(
@@ -222,7 +269,7 @@ export const Sidebar = () => {
     }
 
     return items;
-  }, [followedArtists, favoriteAlbums, selectedFilter, searchQuery]);
+  }, [followedArtists, favoriteAlbums, playlists, selectedFilter, searchQuery]);
 
   // Kiểm tra hiển thị mục "Bài hát đã thích"
   const shouldShowLikedSongs =
@@ -249,7 +296,11 @@ export const Sidebar = () => {
               size="sm"
               tooltip="Tạo danh sách phát mới"
               tooltipPosition="bottom-right"
-              onClick={() => handleProtectedAction("tạo danh sách phát mới")}
+              onClick={() => {
+                if (handleProtectedAction("tạo danh sách phát mới")) {
+                  setIsCreateModalOpen(true);
+                }
+              }}
             >
               <Plus size={16} />
               Tạo
@@ -419,13 +470,16 @@ export const Sidebar = () => {
                 </div>
               )}
 
-              {/* 2. Danh sách toàn bộ các Nghệ sĩ và Album yêu thích bên dưới */}
+              {/* 2. Danh sách toàn bộ các Nghệ sĩ, Album & Playlist bên dưới */}
               {libraryItems.map((item) => {
                 const isArtist = item.type === "artist";
                 const isAlbum = item.type === "album";
+                const isPlaylist = item.type === "playlist";
                 const itemPath = isArtist
                   ? `/artist/${item.id}`
-                  : `/album/${item.id}`;
+                  : isAlbum
+                  ? `/album/${item.id}`
+                  : `/playlist/${item.id}`;
                 const isActive = location.pathname === itemPath;
 
                 return (
@@ -436,13 +490,15 @@ export const Sidebar = () => {
                         navigate(itemPath);
                       } else if (isAlbum) {
                         navigate(itemPath, { state: { album: item.raw } });
+                      } else if (isPlaylist) {
+                        navigate(itemPath, { state: { playlist: item.raw } });
                       }
                     }}
                     className={`flex items-center gap-3 p-2 rounded-md cursor-pointer group transition-all duration-200 select-none ${
                       isActive ? "bg-[#282828]" : "hover:bg-[#1a1a1a]"
                     }`}
                   >
-                    {/* Ảnh đại diện: Nghệ sĩ hình TRÒN, Album hình VUÔNG */}
+                    {/* Ảnh đại diện: Nghệ sĩ hình TRÒN, Album & Playlist hình VUÔNG */}
                     <div
                       className="relative group/cover flex-shrink-0"
                       onClick={(e) => {
@@ -450,6 +506,8 @@ export const Sidebar = () => {
                           handlePlayArtist(e, item.id);
                         } else if (isAlbum) {
                           handlePlayAlbum(e, item.id);
+                        } else if (isPlaylist) {
+                          handlePlayPlaylist(e, item.id);
                         }
                       }}
                     >
@@ -479,9 +537,9 @@ export const Sidebar = () => {
                         />
                       </div>
 
-                      {/* Tippy / Tooltip hiển thị: "Phát [tên nghệ sĩ/album]" khi hover vào ảnh */}
+                      {/* Tippy / Tooltip hiển thị: "Phát [tên nghệ sĩ/album/playlist]" khi hover vào ảnh */}
                       <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-[#282828] text-white text-xs font-semibold px-2.5 py-1.5 rounded-md opacity-0 delay-0 group-hover/cover:opacity-100 group-hover/cover:delay-[1500ms] transition-opacity duration-200 pointer-events-none z-50 whitespace-nowrap shadow-[0_8px_24px_rgba(0,0,0,0.85)] border border-white/10">
-                        Phát {item.title || (isAlbum ? (item.raw?.albumTitle || "Album") : "")}
+                        Phát {item.title || (isAlbum ? (item.raw?.albumTitle || "Album") : "Danh sách phát")}
                       </div>
                     </div>
 
@@ -527,9 +585,11 @@ export const Sidebar = () => {
                   variant="white"
                   size="sm"
                   className="font-bold text-black rounded-full px-4 w-max"
-                  onClick={() =>
-                    handleProtectedAction("tạo danh sách phát mới")
-                  }
+                  onClick={() => {
+                    if (handleProtectedAction("tạo danh sách phát mới")) {
+                      setIsCreateModalOpen(true);
+                    }
+                  }}
                 >
                   Tạo danh sách phát
                 </Button>
@@ -538,6 +598,12 @@ export const Sidebar = () => {
           )}
         </div>
       </div>
+
+      {/* Modal Tạo Playlist */}
+      <CreatePlaylistModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
 
       {/* Resizer Handle */}
       <div

@@ -48,3 +48,15 @@
     @apply bg-spotify-black text-spotify-text font-sans antialiased overflow-x-hidden;
   }
 }
+
+/* Keyframes cuộn ngang mượt mà cho bài hát và nghệ sĩ dài */
+@keyframes marquee-scroll {
+  0%,
+  20% {
+    transform: translateX(0);
+  }
+  80%,
+  100% {
+    transform: translateX(var(--marquee-distance, 0px));
+  }
+}

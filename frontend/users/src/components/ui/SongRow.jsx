@@ -2,11 +2,19 @@ import React, { useState } from "react";
 import { Play, Heart } from "lucide-react";
 import { CoverImage } from "./CoverImage";
 import { useFavorites } from "../../hooks/useFavorites";
+import { AddToPlaylistMenu } from "../playlist/AddToPlaylistMenu";
 
 /**
- * Component hiển thị 1 dòng bài hát trong danh sách ngang (Album Detail, Artist Profile).
+ * Component hiển thị 1 dòng bài hát trong danh sách ngang (Album Detail, Artist Profile, Playlist Detail).
  */
-export const SongRow = ({ index, song, onPlayClick, isPlaying }) => {
+export const SongRow = ({
+  index,
+  song,
+  onPlayClick,
+  isPlaying,
+  currentPlaylistId = null,
+  onRemove = null,
+}) => {
   const [isHovered, setIsHovered] = useState(false);
   const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
 
@@ -98,6 +106,15 @@ export const SongRow = ({ index, song, onPlayClick, isPlaying }) => {
       {/* Thời lượng */}
       <div className="w-12 text-sm text-spotify-sub text-right">
         {formatDuration(song.durationMs || (song.durationSeconds ? song.durationSeconds * 1000 : 0))}
+      </div>
+
+      {/* Tùy chọn khác (Thêm vào playlist / Gỡ khỏi playlist) */}
+      <div className="w-8 flex items-center justify-end">
+        <AddToPlaylistMenu
+          song={song}
+          currentPlaylistId={currentPlaylistId}
+          onRemove={onRemove}
+        />
       </div>
     </div>
   );

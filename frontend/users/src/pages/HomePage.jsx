@@ -14,7 +14,7 @@ import {
   getSongById,
 } from "../api/catalog/public";
 import { getPublicArtists } from "../api/artists/public";
-import { getUserPlayHistoryApi } from "../api/history/history";
+import { getUserPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
 

@@ -18,7 +18,9 @@ import { useAuthStore } from "../store/useAuthStore";
 import { Button } from "../components/ui/Button";
 import { QueueDrawer } from "../components/player/QueueDrawer";
 import { LyricsModal } from "../components/player/LyricsModal";
-import { addPlayHistoryApi } from "../api/history/history";
+import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
+import { MarqueeText } from "../components/ui/MarqueeText";
+import { addPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
 
 export const BottomPlayer = () => {
@@ -252,43 +254,57 @@ export const BottomPlayer = () => {
           onEnded={handleEnded}
         />
 
-        {/* 1. Thông tin bài hát (Bên trái) */}
-        <div className="w-[30%] flex items-center gap-3">
+        {/* 1. Thông tin bài hát (Bên trái) - Kích thước cố định & tự động cuộn ngang khi tên dài */}
+        <div className="w-[30%] min-w-[200px] max-w-[320px] flex items-center gap-3 z-10">
           <img
             src={currentSong.coverUrl || currentSong.coverImage}
             alt="Cover"
-            className="w-14 h-14 rounded-md object-cover shadow-sm"
+            className="w-14 h-14 rounded-md object-cover shadow-sm flex-shrink-0"
           />
-          <div className="hidden sm:block">
-            <h4 className="text-sm font-bold text-white line-clamp-1 cursor-pointer hover:underline">
-              {currentSong.title}
-            </h4>
-            <p className="text-xs text-spotify-sub line-clamp-1 cursor-pointer hover:underline hover:text-white mt-0.5">
-              {currentSong.artist || currentSong.ownerName || currentSong.artistName}
-            </p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            iconOnly
-            className={`ml-2 hover:bg-transparent transition-all duration-200 ${
-              isLiked
-                ? "!text-[#fa2d48] hover:!text-[#ff4b63] scale-105"
-                : "text-spotify-sub hover:text-white"
-            }`}
-            tooltip={isLiked ? "Xóa khỏi Thư viện" : "Lưu vào Thư viện"}
-            tooltipPosition="top"
-            onClick={() => toggleFavoriteSong(currentSong)}
-          >
-            <Heart
-              size={18}
-              className={isLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
+          <div className="flex-1 min-w-0 flex flex-col justify-center overflow-hidden">
+            <MarqueeText
+              as="h4"
+              text={currentSong.title || "Chưa có bài hát"}
+              className="text-sm font-bold text-white cursor-pointer hover:underline"
             />
-          </Button>
+            <MarqueeText
+              as="p"
+              text={currentSong.artist || currentSong.ownerName || currentSong.artistName || "Nghệ sĩ"}
+              className="text-xs text-spotify-sub cursor-pointer hover:underline hover:text-white mt-0.5"
+            />
+          </div>
+
+          <div className="flex items-center flex-shrink-0">
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              className={`hover:bg-transparent transition-all duration-200 ${
+                isLiked
+                  ? "!text-[#fa2d48] hover:!text-[#ff4b63] scale-105"
+                  : "text-spotify-sub hover:text-white"
+              }`}
+              tooltip={isLiked ? "Xóa khỏi Thư viện" : "Lưu vào Thư viện"}
+              tooltipPosition="top"
+              onClick={() => toggleFavoriteSong(currentSong)}
+            >
+              <Heart
+                size={18}
+                className={isLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
+              />
+            </Button>
+
+            {/* Nút thêm vào Playlist */}
+            <AddToPlaylistMenu
+              song={currentSong}
+              align="top-right"
+              className="ml-0.5"
+            />
+          </div>
         </div>
 
-        {/* 2. Điều khiển trung tâm (Player Controls) */}
-        <div className="flex-1 max-w-2xl flex flex-col items-center justify-center gap-2">
+        {/* 2. Điều khiển trung tâm (Player Controls) - Căn chính xác tuyệt đối giữa màn hình */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[420px] sm:max-w-lg md:max-w-xl lg:max-w-2xl px-4 flex flex-col items-center justify-center gap-1.5 pointer-events-none [&>*]:pointer-events-auto">
           {/* Nút bấm */}
           <div className="flex items-center gap-6">
             {/* Nút Trộn bài (Smart Shuffle) */}
@@ -426,7 +442,7 @@ export const BottomPlayer = () => {
         </div>
 
         {/* 3. Điều khiển Hàng đợi, Lời bài hát & Âm lượng (Bên phải) */}
-        <div className="w-[30%] flex items-center justify-end gap-3 text-spotify-sub">
+        <div className="w-[30%] min-w-[200px] max-w-[320px] flex items-center justify-end gap-3 text-spotify-sub z-10">
           {/* Nút Lời bài hát (Lyrics Modal) */}
           <Button
             variant="ghost"

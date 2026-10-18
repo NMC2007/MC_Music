@@ -10,7 +10,7 @@ import {
   getUserFavoriteAlbumsApi,
   addFavoriteAlbumApi,
   removeFavoriteAlbumApi,
-} from "../api/favorites";
+} from "../api/users/favorites";
 import { getPublicAlbums } from "../api/catalog/public";
 
 export const FAVORITES_QUERY_KEY = ["userFavorites", "songs"];

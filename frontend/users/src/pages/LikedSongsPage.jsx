@@ -23,6 +23,7 @@ import { useAuthStore } from "../store/useAuthStore";
 import { getSongById } from "../api/catalog/public";
 import { CoverImage } from "../components/ui/CoverImage";
 import { Button } from "../components/ui/Button";
+import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
 
 // Danh sách các bộ lọc chip đã được loại bỏ trùng lặp và đa dạng hóa
 const FILTER_CHIPS = Array.from(
@@ -493,47 +494,27 @@ export const LikedSongsPage = () => {
                       {formatDuration(song.durationSeconds)}
                     </span>
 
-                    {/* Nút ... More Menu */}
-                    <div className="relative more-menu-container">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuSongId(
-                            openMenuSongId === song.songId ? null : song.songId
-                          );
-                        }}
-                        className={`p-1.5 rounded-full hover:bg-white/10 hover:text-white transition-all cursor-pointer ${
-                          openMenuSongId === song.songId
-                            ? "opacity-100 text-white bg-white/10"
-                            : "opacity-0 group-hover:opacity-100"
-                        }`}
-                        title="Tùy chọn khác"
-                      >
-                        <MoreHorizontal size={18} />
-                      </button>
-
-                      {/* Dropdown Menu khi bấm nút ... */}
-                      {openMenuSongId === song.songId && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-1.5 w-56 bg-[#242424] border border-neutral-700/80 rounded-xl shadow-[0_12px_32px_rgba(0,0,0,0.85)] z-50 p-1.5 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-150 select-none"
-                        >
+                    {/* Nút ... More Menu (Thêm vào playlist / Bỏ khỏi yêu thích) */}
+                    <div className="relative">
+                      <AddToPlaylistMenu
+                        song={song}
+                        extraActions={
                           <button
+                            type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               toggleFavoriteSong(song);
-                              setOpenMenuSongId(null);
                             }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs sm:text-sm text-neutral-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer group/item text-left"
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs sm:text-sm text-neutral-300 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer text-left"
                           >
                             <HeartOff
-                              size={16}
-                              className="text-[#fa2d48] group-hover/item:scale-110 transition-transform"
+                              size={15}
+                              className="text-[#fa2d48] flex-shrink-0"
                             />
-                            <span>Xóa khỏi Bài hát đã thích</span>
+                            <span className="truncate">Xóa khỏi Bài hát đã thích</span>
                           </button>
-                        </div>
-                      )}
+                        }
+                      />
                     </div>
                   </div>
                 </div>
