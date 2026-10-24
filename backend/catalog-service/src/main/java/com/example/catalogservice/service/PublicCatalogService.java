@@ -37,13 +37,15 @@ public class PublicCatalogService {
 
     @Transactional(readOnly = true)
     public Page<SongResponse> searchPublicSongs(String keyword, UUID genreId, Pageable pageable) {
-        return songRepository.findPublicSongs(keyword, genreId, pageable)
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        return songRepository.findPublicSongs(cleanKeyword, genreId, pageable)
                 .map(song -> modelMapper.map(song, SongResponse.class));
     }
 
     @Transactional(readOnly = true)
-    public Page<AlbumResponse> getPublicAlbums(Pageable pageable) {
-        return albumRepository.findByStatus("APPROVED", pageable)
+    public Page<AlbumResponse> getPublicAlbums(String keyword, Pageable pageable) {
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        return albumRepository.findPublicAlbums(cleanKeyword, pageable)
                 .map(album -> modelMapper.map(album, AlbumResponse.class));
     }
 

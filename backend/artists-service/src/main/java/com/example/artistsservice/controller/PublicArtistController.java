@@ -53,13 +53,15 @@ public class PublicArtistController {
 
     @GetMapping("/artists")
     public ResponseEntity<ApiResponse<Page<ArtistPublicResponse>>> getActiveArtists(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Sort resolvedSort = buildSafeSort(sort);
         Pageable pageable = PageRequest.of(page, size, resolvedSort);
-        Page<Artist> activeArtists = artistRepository.findByIsActiveTrue(pageable);
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        Page<Artist> activeArtists = artistRepository.findActiveArtistsWithKeyword(cleanKeyword, pageable);
 
         Page<ArtistPublicResponse> responseData = activeArtists
             .map(artist -> modelMapper.map(artist, ArtistPublicResponse.class));

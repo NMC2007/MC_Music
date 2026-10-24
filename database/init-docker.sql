@@ -1,3 +1,6 @@
+-- Enable Extensions
+CREATE EXTENSION IF NOT EXISTS unaccent;
+
 -- Create Schemas
 CREATE SCHEMA IF NOT EXISTS mc_music_users_schema;
 CREATE SCHEMA IF NOT EXISTS mc_music_artists_schema;

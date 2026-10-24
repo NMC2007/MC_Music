@@ -79,6 +79,7 @@ Nhóm API này dùng để quản lý tài khoản của Nghệ sĩ (Artist) - n
 - **Endpoint:** `http://localhost:8686/api/artist/public/artists`
 - **Mô tả:** Lấy danh sách toàn bộ các nghệ sĩ đang hoạt động (is_active = true) để hiển thị trên giao diện người dùng. Không yêu cầu đăng nhập.
 - **Query Parameters:**
+  - `keyword` (String, Optional): Từ khóa tìm kiếm theo nghệ danh (`stageName`). Không phân biệt hoa/thường. Ví dụ: `keyword=Sơn Tùng`.
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
   - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.

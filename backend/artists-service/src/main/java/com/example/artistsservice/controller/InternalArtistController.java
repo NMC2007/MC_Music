@@ -39,7 +39,27 @@ public class InternalArtistController {
                 .id(artist.getId())
                 .stageName(artist.getStageName())
                 .avatarUrl(artist.getAvatarUrl())
+                .followerCount(artist.getFollowerCount())
                 .build();
+                
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<java.util.List<ArtistInternalResponse>> searchArtists(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "5") int limit) {
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        int safeLimit = Math.max(1, Math.min(limit, 50));
+        Pageable pageable = PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "followerCount"));
+        Page<Artist> artists = artistRepository.findActiveArtistsWithKeyword(cleanKeyword, pageable);
+        
+        java.util.List<ArtistInternalResponse> response = artists.map(artist -> ArtistInternalResponse.builder()
+                .id(artist.getId())
+                .stageName(artist.getStageName())
+                .avatarUrl(artist.getAvatarUrl())
+                .followerCount(artist.getFollowerCount())
+                .build()).getContent();
                 
         return ResponseEntity.ok(response);
     }

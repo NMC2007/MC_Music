@@ -14,6 +14,10 @@ public interface ArtistRepository extends JpaRepository<Artist, UUID> {
     org.springframework.data.domain.Page<Artist> findByIsActiveTrue(org.springframework.data.domain.Pageable pageable);
     Optional<Artist> findByIdAndIsActiveTrue(UUID id);
 
+    @org.springframework.data.jpa.repository.Query("SELECT a FROM Artist a WHERE a.isActive = true " +
+           "AND (:keyword IS NULL OR :keyword = '' OR LOWER(a.stageName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
+    org.springframework.data.domain.Page<Artist> findActiveArtistsWithKeyword(@org.springframework.data.repository.query.Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     @org.springframework.data.jpa.repository.Modifying
     @org.springframework.data.jpa.repository.Query("UPDATE Artist a SET a.followerCount = a.followerCount + 1 WHERE a.id = :id")
     void incrementFollowerCount(@org.springframework.data.repository.query.Param("id") UUID id);

@@ -187,7 +187,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Endpoint:** `http://localhost:8686/api/catalog/public/songs`
 - **Mô tả:** Lấy danh sách bài hát đã được Admin duyệt (`APPROVED`).
 - **Query Parameters:**
-  - `keyword` (String, Optional): Tìm kiếm theo tên bài hát (sử dụng toán tử LIKE).
+  - `keyword` (String, Optional): Tìm kiếm theo Tiêu đề bài hát (`title`), Tên nghệ sĩ chính (`ownerName`), hoặc Tên nghệ sĩ góp giọng/feat (`artistName`). Không phân biệt hoa/thường.
   - `genreId` (UUID, Optional): Lọc bài hát theo Thể loại.
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
@@ -228,6 +228,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 - **Endpoint:** `http://localhost:8686/api/catalog/public/albums`
 - **Mô tả:** Lấy danh sách các Album đã được Admin duyệt (`APPROVED`).
 - **Query Parameters:**
+  - `keyword` (String, Optional): Tìm kiếm theo Tên Album (`title`) hoặc Tên nghệ sĩ (`ownerName`). Không phân biệt hoa/thường.
   - `page` (Int, Optional): Số trang (Mặc định: 0).
   - `size` (Int, Optional): Số lượng hiển thị mỗi trang (Mặc định: 10).
   - `sort` (String, Optional): Sắp xếp kết quả. Định dạng: `field,direction`. Mặc định: `createdAt,desc`.
@@ -312,6 +313,98 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
     "language": "vi"
   }
   ```
+
+### 3.10. Tìm kiếm Thống nhất (Unified Search) ⭐ _Mới_
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/catalog/public/search`
+- **Mô tả:** API tìm kiếm tổng hợp — trả về **kết quả hàng đầu nổi bật nhất** (topResult) cùng danh sách bài hát, album, và nghệ sĩ liên quan đến từ khóa. Được thiết kế cho thanh tìm kiếm chính của ứng dụng (tương tự Spotify/Apple Music).
+  
+  **Cơ chế hoạt động:**
+  1. Đồng thời tìm bài hát và album trong Catalog DB.
+  2. Gọi nội bộ sang Artists Service để lấy danh sách nghệ sĩ khớp từ khóa.
+  3. Áp dụng **Relevance Scoring** để sắp xếp từng danh sách và bầu chọn `topResult` tốt nhất:
+     - Khớp 100% tên chính: 100 điểm | Prefix: 75 | Substring: 50 | Trường phụ: 30
+     - Hệ số nhân: Artist ×1.3 | Song ×1.1 | Album ×1.0
+     - Điểm thưởng phổ biến: dựa trên log10 của lượt nghe/theo dõi (tối đa +20)
+  4. Nếu Artists Service gặp sự cố, API vẫn trả về kết quả songs + albums bình thường (fail-soft).
+
+- **Yêu cầu xác thực:** Không (Public API).
+- **Query Parameters:**
+  - `keyword` (String, **Bắt buộc**): Từ khóa tìm kiếm. Hệ thống tự động trim khoảng trắng.
+  - `limit` (Int, Optional): Số lượng kết quả tối đa mỗi danh mục (songs/albums/artists). Mặc định: `5`. Giới hạn: `[1, 20]`.
+
+- **Ví dụ Request:**
+  ```
+  GET http://localhost:8686/api/catalog/public/search?keyword=Sơn Tùng&limit=5
+  ```
+
+- **Response `data` (UnifiedSearchResponse):**
+  ```json
+  {
+    "topResult": {
+      "type": "ARTIST",
+      "item": {
+        "id": "uuid-son-tung",
+        "stageName": "Sơn Tùng M-TP",
+        "avatarUrl": "https://res.cloudinary.com/.../avatar.jpg",
+        "followerCount": 5000000
+      },
+      "score": 163.49
+    },
+    "songs": [
+      {
+        "id": "uuid-song",
+        "ownerId": "uuid-son-tung",
+        "ownerName": "Sơn Tùng M-TP",
+        "title": "Lạc Trôi",
+        "durationSeconds": 245,
+        "audioUrl": "https://...",
+        "coverImage": "https://...",
+        "explicit": false,
+        "playCount": 8000000,
+        "likeCount": 300000,
+        "status": "APPROVED",
+        "createdAt": "2026-01-01T00:00:00",
+        "artists": [{ "artistId": "uuid", "artistName": "Sơn Tùng M-TP", "role": "MAIN" }],
+        "genres": [{ "id": "uuid", "name": "V-Pop" }]
+      }
+    ],
+    "albums": [
+      {
+        "id": "uuid-album",
+        "ownerId": "uuid-son-tung",
+        "ownerName": "Sơn Tùng M-TP",
+        "title": "m-tp M-TP",
+        "albumType": "ALBUM",
+        "totalTracks": 10,
+        "description": "...",
+        "coverImage": "https://...",
+        "releaseDate": "2026-06-01",
+        "status": "APPROVED",
+        "likeCount": 120000,
+        "createdAt": "2026-06-01T00:00:00"
+      }
+    ],
+    "artists": [
+      {
+        "id": "uuid-son-tung",
+        "stageName": "Sơn Tùng M-TP",
+        "avatarUrl": "https://...",
+        "followerCount": 5000000
+      }
+    ]
+  }
+  ```
+
+- **Các Test Case gợi ý:**
+  | Keyword | Kết quả `topResult.type` kỳ vọng | Giải thích |
+  |---|---|---|
+  | `"Sơn Tùng"` | `ARTIST` | Artist khớp prefix, hệ số ×1.3 + follower bonus cao |
+  | `"Lạc Trôi"` | `SONG` | Song khớp 100% exact match |
+  | `"Đom Đóm"` | `SONG` hoặc `ALBUM` | Tuỳ dữ liệu và playCount/likeCount |
+  | `"tlinh"` | `ARTIST` | Artist prefix match + follower bonus |
+  | `""` (rỗng) | 400 Bad Request | Từ khóa trống không được chấp nhận |
 
 ---
 
