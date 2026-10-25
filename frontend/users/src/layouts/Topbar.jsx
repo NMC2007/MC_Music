@@ -36,6 +36,7 @@ export const Topbar = () => {
   const [isFocused, setIsFocused] = useState(false);
   const debouncedKeyword = useDebounce(inputValue.trim(), 350);
   const inputRef = useRef(null);
+  const searchContainerRef = useRef(null);
   const suggestBoxRef = useRef(null);
 
   // Đồng bộ inputValue khi URL thay đổi (ví dụ khi người dùng back/forward)
@@ -82,18 +83,19 @@ export const Topbar = () => {
     return true;
   });
 
-  // ── Đóng suggest box khi click ra ngoài ─────────────────────────────────
+  // ── Ẩn viền và đóng suggest box khi click hoặc chuyển focus ra ngoài ────
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (
-        suggestBoxRef.current && !suggestBoxRef.current.contains(e.target) &&
-        inputRef.current && !inputRef.current.contains(e.target)
-      ) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
         setIsFocused(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('focusin', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('focusin', handleClickOutside);
+    };
   }, []);
 
   // ── Xử lý nhấn Enter → điều hướng tới /search?q=... ────────────────────
@@ -217,10 +219,11 @@ export const Topbar = () => {
         </Button>
 
         {/* ── Thanh Tìm kiếm tích hợp Nút Duyệt tìm chuẩn Spotify ────────── */}
-        <div className="relative max-w-[480px] w-full hidden md:flex">
+        <div ref={searchContainerRef} className="relative max-w-[480px] w-full hidden md:flex">
           {/* Vỏ bao bọc thanh tìm kiếm dạng viên thuốc (Pill Search Bar) */}
           <div
-            className={`flex items-center w-full h-12 bg-spotify-card hover:bg-spotify-card-hover rounded-full transition-all border-2 pl-3 pr-2.5 ${
+            onClick={() => inputRef.current?.focus()}
+            className={`flex items-center w-full h-12 bg-spotify-card hover:bg-spotify-card-hover rounded-full transition-all border-2 pl-3 pr-2.5 cursor-text ${
               isFocused ? 'border-white bg-[#2a2a2a]' : 'border-transparent'
             }`}
           >
@@ -279,6 +282,8 @@ export const Topbar = () => {
                 iconOnly
                 onClick={(e) => {
                   e.stopPropagation();
+                  setIsFocused(false);
+                  inputRef.current?.blur();
                   navigate('/search');
                 }}
                 className={`!w-8 !h-8 !p-0 hover:!bg-transparent cursor-pointer flex-shrink-0 ${
