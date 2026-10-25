@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, ChevronLeft, ChevronRight, User, LogOut, ChevronDown, X } from 'lucide-react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +8,6 @@ import { useAuthStore } from '../store/useAuthStore';
 import { logoutApi, getCurrentUserApi } from '../api/auth/auth';
 import { searchCatalogApi } from '../api/catalog/public';
 import { CoverImage } from '../components/ui/CoverImage';
-import { usePlayerStore } from '../store/usePlayerStore';
 
 // ─── Debounce hook ────────────────────────────────────────────────────────────
 const useDebounce = (value, delay) => {
@@ -28,7 +27,6 @@ export const Topbar = () => {
   const isSearchPage = location.pathname === '/search';
 
   const { user, isAuthenticated, logout, setUser, refreshToken } = useAuthStore();
-  const { playSongWithContext } = usePlayerStore();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -218,29 +216,26 @@ export const Topbar = () => {
           )}
         </Button>
 
-        {/* ── Thanh Tìm kiếm + Nút Duyệt tìm ──────────────────────────────── */}
-        <div className="flex items-center gap-2 max-w-[480px] w-full hidden md:flex">
-          {/* Input wrapper */}
-          <div className={`relative flex items-center bg-spotify-card hover:bg-spotify-card-hover rounded-full transition-all border flex-1 ${
-            isFocused ? 'border-white bg-[#2a2a2a]' : 'border-transparent'
-          }`}>
+        {/* ── Thanh Tìm kiếm tích hợp Nút Duyệt tìm chuẩn Spotify ────────── */}
+        <div className="relative max-w-[480px] w-full hidden md:flex">
+          {/* Vỏ bao bọc thanh tìm kiếm dạng viên thuốc (Pill Search Bar) */}
+          <div
+            className={`flex items-center w-full h-12 bg-spotify-card hover:bg-spotify-card-hover rounded-full transition-all border-2 pl-3 pr-2.5 ${
+              isFocused ? 'border-white bg-[#2a2a2a]' : 'border-transparent'
+            }`}
+          >
             {/* Icon Search - click để vào /search */}
             <button
               type="button"
               onClick={handleSearchIconClick}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-spotify-sub hover:text-white transition-colors cursor-pointer"
+              className="text-spotify-sub hover:text-white transition-colors cursor-pointer flex items-center justify-center mr-2 flex-shrink-0"
               title="Tìm kiếm"
+              tabIndex={-1}
             >
-              {/* Dùng icon filled khi đang ở trang search, outlined khi không */}
-              {isSearchPage ? (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M11 2a9 9 0 1 1 0 18A9 9 0 0 1 11 2zm0 2a7 7 0 1 0 4.93 11.95l3.56 3.56 1.42-1.42-3.56-3.56A7 7 0 0 0 11 4z"/>
-                </svg>
-              ) : (
-                <Search size={20} />
-              )}
+              <Search size={20} />
             </button>
 
+            {/* Ô nhập từ khóa */}
             <input
               ref={inputRef}
               type="text"
@@ -250,32 +245,97 @@ export const Topbar = () => {
               onFocus={() => setIsFocused(true)}
               onKeyDown={handleKeyDown}
               placeholder="Bạn muốn nghe gì?"
-              className="w-full bg-transparent text-spotify-text placeholder-spotify-sub rounded-full pl-10 pr-10 py-3 outline-none border-none"
+              className="flex-1 bg-transparent text-spotify-text placeholder-spotify-sub text-sm font-medium outline-none border-none py-2 min-w-0"
               autoComplete="off"
             />
 
-            {/* Nút xóa X */}
-            {inputValue && (
-              <button
+            {/* Cụm hành động bên phải: Xóa (X), Vách ngăn dọc (|), Nút Duyệt tìm */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Nút xóa X (chỉ hiện khi có nhập text) */}
+              {inputValue && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setInputValue('');
+                    inputRef.current?.focus();
+                    if (isSearchPage) navigate('/search');
+                  }}
+                  className="p-1 text-spotify-sub hover:text-white transition-colors cursor-pointer rounded-full"
+                  title="Xóa tìm kiếm"
+                >
+                  <X size={18} />
+                </button>
+              )}
+
+              {/* Vách ngăn dọc tinh tế giữa ô nhập và nút Duyệt tìm */}
+              <div className="w-[1px] h-6 bg-neutral-600/60 mx-1 flex-shrink-0" />
+
+              {/* Nút Duyệt tìm (Browse) tích hợp trực tiếp bên trong thanh tìm kiếm */}
+              <Button
                 type="button"
-                onClick={() => {
-                  setInputValue('');
-                  inputRef.current?.focus();
-                  if (isSearchPage) navigate('/search');
+                variant="ghost"
+                size="sm"
+                iconOnly
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate('/search');
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-spotify-sub hover:text-white transition-colors cursor-pointer"
-                title="Xóa"
+                className={`!w-8 !h-8 !p-0 hover:!bg-transparent cursor-pointer flex-shrink-0 ${
+                  isSearchPage
+                    ? 'text-white'
+                    : 'text-spotify-sub hover:text-white'
+                }`}
+                tooltip="Duyệt tìm"
+                tooltipPosition="bottom"
+                aria-label="Duyệt tìm"
               >
-                <X size={18} />
-              </button>
-            )}
+                {/* Icon ngăn kéo Duyệt tìm: dạng viền mặc định, dạng tô đậm màu trắng khi ở trang /search giống cơ chế nút Home */}
+                {isSearchPage ? (
+                  /* Dạng tô đậm màu trắng (Filled / Active) */
+                  <svg
+                    role="img"
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    className="flex-shrink-0 transition-transform group-hover/btn:scale-105"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M3 10a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V10zm9 2.4a1.6 1.6 0 1 0 0 3.2a1.6 1.6 0 0 0 0-3.2z M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2H6zm4-2.8h4a0.8 0.8 0 0 1 0.8 0.8a0.8 0.8 0 0 1-0.8 0.8h-4a0.8 0.8 0 0 1-0.8-0.8a0.8 0.8 0 0 1 0.8-0.8z"
+                    />
+                  </svg>
+                ) : (
+                  /* Dạng viền (Outline / Inactive) mặc định */
+                  <svg
+                    role="img"
+                    width="22"
+                    height="22"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="flex-shrink-0 transition-transform group-hover/btn:scale-105"
+                  >
+                    <path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="6" x2="14" y2="6" />
+                    <rect x="3" y="8" width="18" height="12" rx="2" />
+                    <circle cx="12" cy="14" r="1.5" />
+                  </svg>
+                )}
+              </Button>
+            </div>
           </div>
 
-          {/* ── Suggest Dropdown ─────────────────────────────────────────── */}
+          {/* ── Suggest Dropdown (khớp 100% với chiều rộng và lề trái thanh tìm kiếm) ── */}
           {showSuggestBox && (
             <div
               ref={suggestBoxRef}
-              className="absolute top-full mt-2 left-0 w-[360px] bg-[#282828] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-neutral-700/60 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
+              className="absolute top-full mt-2 left-0 w-full bg-[#282828] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-neutral-700/60 py-2 z-50 animate-in fade-in zoom-in-95 duration-150 overflow-hidden"
             >
               {isLoadingSuggest ? (
                 <div className="px-2 py-1">
@@ -354,42 +414,6 @@ export const Topbar = () => {
               )}
             </div>
           )}
-        </div>
-
-        {/* ── Nút Duyệt tìm (Browse) chuẩn Spotify ──────────────────────── */}
-        <div className="group/browse relative flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => navigate('/search')}
-            className={`w-12 h-12 rounded-full bg-[#1f1f1f] hover:bg-[#282828] flex items-center justify-center transition-all cursor-pointer ${
-              isSearchPage && !inputValue.trim()
-                ? 'text-white'
-                : 'text-[#b3b3b3] hover:text-white'
-            }`}
-            aria-label="Duyệt tìm"
-          >
-            {/* Icon Duyệt tìm chuẩn Spotify — Filled khi đang ở /search (không có query), Outlined khi không */}
-            {isSearchPage && !inputValue.trim() ? (
-              /* Filled / Active */
-              <svg role="img" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
-                <path d="M3 3h8v8H3zm0 10h8v8H3zm10-10h8v8h-8zm0 10h8v8h-8z"/>
-              </svg>
-            ) : (
-              /* Outlined / Inactive */
-              <svg role="img" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <rect x="3" y="3" width="8" height="8" rx="1"/>
-                <rect x="13" y="3" width="8" height="8" rx="1"/>
-                <rect x="3" y="13" width="8" height="8" rx="1"/>
-                <rect x="13" y="13" width="8" height="8" rx="1"/>
-              </svg>
-            )}
-          </button>
-
-          {/* Tooltip "Duyệt tìm" */}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2.5 py-1 bg-[#1d1d1d] border border-neutral-700/60 text-white text-xs font-semibold rounded whitespace-nowrap shadow-lg opacity-0 group-hover/browse:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-            Duyệt tìm
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#1d1d1d] border-l border-t border-neutral-700/60 rotate-45" />
-          </div>
         </div>
       </div>
 
