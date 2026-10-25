@@ -6,6 +6,8 @@ import { showLoginToast } from "../utils/toastUtils";
 import {
   getUserPlaylistsApi,
   createPlaylistApi,
+  updatePlaylistApi,
+  deletePlaylistApi,
   addSongToPlaylistApi,
   removeSongFromPlaylistApi,
 } from "../api/users/playlists";
@@ -93,6 +95,43 @@ export const usePlaylists = () => {
     },
   });
 
+  // 5. Mutation cập nhật Playlist
+  const updatePlaylistMutation = useMutation({
+    mutationFn: async ({ playlistId, data }) => {
+      return await updatePlaylistApi(playlistId, data);
+    },
+    onSuccess: (res, variables) => {
+      queryClient.invalidateQueries({ queryKey: USER_PLAYLISTS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["playlistDetail", variables.playlistId] });
+      toast.success("Đã cập nhật thông tin playlist thành công");
+    },
+    onError: (err) => {
+      const errorMsg =
+        err?.response?.data?.message || "Không thể cập nhật playlist. Vui lòng thử lại!";
+      toast.error(errorMsg);
+      console.error("Lỗi khi cập nhật playlist:", err);
+    },
+  });
+
+  // 6. Mutation xóa Playlist
+  const deletePlaylistMutation = useMutation({
+    mutationFn: async (playlistId) => {
+      return await deletePlaylistApi(playlistId);
+    },
+    onSuccess: (_, playlistId) => {
+      queryClient.invalidateQueries({ queryKey: USER_PLAYLISTS_QUERY_KEY });
+      queryClient.removeQueries({ queryKey: ["playlistDetail", playlistId] });
+      queryClient.removeQueries({ queryKey: ["playlistSongs", playlistId] });
+      toast.success("Đã xóa danh sách phát thành công");
+    },
+    onError: (err) => {
+      const errorMsg =
+        err?.response?.data?.message || "Không thể xóa playlist. Vui lòng thử lại!";
+      toast.error(errorMsg);
+      console.error("Lỗi khi xóa playlist:", err);
+    },
+  });
+
   // Hàm kích hoạt tạo Playlist an toàn (kiểm tra auth)
   const createPlaylist = useCallback(
     async (payload) => {
@@ -110,6 +149,10 @@ export const usePlaylists = () => {
     isLoadingPlaylists: playlistsQuery.isLoading,
     createPlaylist,
     isCreating: createPlaylistMutation.isPending,
+    updatePlaylist: updatePlaylistMutation.mutateAsync,
+    isUpdating: updatePlaylistMutation.isPending,
+    deletePlaylist: deletePlaylistMutation.mutateAsync,
+    isDeleting: deletePlaylistMutation.isPending,
     addSongToPlaylist: addSongMutation.mutateAsync,
     isAddingSong: addSongMutation.isPending,
     removeSongFromPlaylist: removeSongMutation.mutateAsync,

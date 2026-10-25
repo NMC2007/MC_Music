@@ -28,15 +28,38 @@ public class CloudinaryService {
     }
 
     /**
+     * Validates and uploads image to Cloudinary in a specific folder.
+     * Only accepts jpg, jpeg, and png files.
+     */
+    public Map uploadImage(MultipartFile file, String folder) throws IOException {
+        validateImageFile(file);
+        return cloudinary.uploader().upload(
+                file.getBytes(),
+                ObjectUtils.asMap("resource_type", "image", "folder", folder)
+        );
+    }
+
+    /**
      * Validates and uploads image (avatar) to Cloudinary.
      * Only accepts jpg, jpeg, and png files.
      */
     public Map uploadAvatar(MultipartFile file) throws IOException {
-        validateImageFile(file);
-        return cloudinary.uploader().upload(
-                file.getBytes(),
-                ObjectUtils.asMap("resource_type", "image", "folder", "mcmusic/avatars")
-        );
+        return uploadImage(file, "mcmusic/avatars");
+    }
+
+    /**
+     * Validates and uploads playlist cover image to Cloudinary.
+     * Only accepts jpg, jpeg, and png files.
+     */
+    public Map uploadPlaylistCover(MultipartFile file) throws IOException {
+        return uploadImage(file, "mcmusic/playlists");
+    }
+
+    /**
+     * Deletes a file on Cloudinary by publicId.
+     */
+    public Map deleteFile(String publicId, String resourceType) throws IOException {
+        return cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", resourceType));
     }
 
     private void validateImageFile(MultipartFile file) {

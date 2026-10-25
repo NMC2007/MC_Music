@@ -25,6 +25,18 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
+        // Tự động bỏ Content-Type mặc định ("application/json") nếu request gửi FormData
+        // để Axios và trình duyệt tự động thiết lập "multipart/form-data; boundary=..." chuẩn xác
+        if (config.data instanceof FormData && config.headers) {
+            if (typeof config.headers.delete === "function") {
+                config.headers.delete("Content-Type");
+                config.headers.delete("content-type");
+            } else {
+                delete config.headers["Content-Type"];
+                delete config.headers["content-type"];
+            }
+        }
+
         return config;
     },
     (error) => {

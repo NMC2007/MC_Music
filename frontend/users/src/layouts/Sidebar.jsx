@@ -9,7 +9,6 @@ import {
   Play,
   ChevronLeft,
   ChevronRight,
-  ListMusic,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "../components/ui/Button";

@@ -119,41 +119,159 @@ Nhóm API này dùng để lấy và cập nhật thông tin cá nhân của ng�
 
 ---
 
-## 3. Playlists
+## 3. Playlists (Danh sách phát)
 
 Nhóm API này dùng để quản lý danh sách phát cá nhân của người dùng.
 **Yêu cầu:** Tất cả API trong nhóm này đều yêu cầu header `Authorization: Bearer <accessToken>`.
 
-### 2.1. Tạo Playlist mới
+### 3.1. Tạo Playlist mới
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/user/playlists`
-- **Mô tả:** Tạo một danh sách phát mới.
-- **Body (JSON):**
+- **Mô tả:** Tạo một danh sách phát mới cho người dùng. Hỗ trợ upload ảnh bìa trực tiếp dạng file lên Cloudinary qua `multipart/form-data`, hoặc tạo bằng `application/json`.
+- **Headers:**
+  - `Authorization: Bearer <accessToken>`
+- **Cách 1 - Form Data (`multipart/form-data`):**
+  - `name`: String (Bắt buộc, tên playlist, không được để trống)
+  - `description`: String (Tùy chọn, mô tả playlist)
+  - `coverImage` (hoặc `coverFile`): File (Tùy chọn, file ảnh `.jpg`, `.jpeg`, `.png`, tối đa 5MB)
+  - `isPublic`: Boolean (Tùy chọn, mặc định: `false` - riêng tư)
+- **Cách 2 - JSON (`application/json`):**
   ```json
   {
-    "name": "Nhạc Buồn",
-    "description": "Tuyển tập những bài hát buồn",
-    "coverImage": "https://example.com/image.jpg",
-    "isPublic": true
+    "name": "Nhạc Chill Đêm",
+    "description": "Tuyển tập những bài hát thư giãn đêm muộn",
+    "isPublic": false
   }
   ```
 - **Response thành công (201 Created):**
-  Trả về thông tin chi tiết của Playlist vừa tạo.
+  ```json
+  {
+    "success": true,
+    "statusCode": 201,
+    "message": "Tạo playlist thành công",
+    "data": {
+      "id": "c1f2e3d4-5678-90ab-cdef-1234567890ab",
+      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Nhạc Chill Đêm",
+      "description": "Tuyển tập những bài hát thư giãn đêm muộn",
+      "coverImage": "https://res.cloudinary.com/.../mcmusic/playlists/xyz.jpg",
+      "isPublic": false,
+      "createdAt": "2026-10-24T17:10:00"
+    },
+    "timestamp": "2026-10-24T17:10:00"
+  }
+  ```
 
-### 2.2. Lấy danh sách Playlist của tôi
+### 3.2. Lấy danh sách Playlist của tôi
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/user/playlists`
-- **Mô tả:** Lấy toàn bộ danh sách phát do người dùng hiện tại tạo.
+- **Mô tả:** Lấy toàn bộ danh sách phát do người dùng hiện tại tạo (có phân trang, sắp xếp theo thời gian tạo mới nhất).
+- **Query Parameters:**
+  - `page` (Int, Tùy chọn, mặc định: 0): Số trang.
+  - `size` (Int, Tùy chọn, mặc định: 10): Số lượng bản ghi mỗi trang.
 - **Response thành công (200 OK):**
-  Trả về mảng chứa các object Playlist.
+  Trả về `data.content` chứa mảng các object Playlist.
 
-### 2.3. Thêm bài hát vào Playlist
+### 3.3. Lấy chi tiết một Playlist
+
+- **Method:** `GET`
+- **Endpoint:** `http://localhost:8686/api/user/playlists/{playlistId}`
+- **Mô tả:** Lấy thông tin chi tiết của một playlist theo ID. Nếu playlist ở chế độ riêng tư (`isPublic = false`), chỉ chủ sở hữu mới có quyền truy cập.
+- **Response thành công (200 OK):**
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Lấy thông tin playlist thành công",
+    "data": {
+      "id": "c1f2e3d4-5678-90ab-cdef-1234567890ab",
+      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Nhạc Chill Đêm",
+      "description": "Mô tả playlist",
+      "coverImage": "https://...",
+      "isPublic": false,
+      "createdAt": "2026-10-24T17:10:00"
+    }
+  }
+  ```
+- **Lỗi có thể gặp:**
+  - `403 Forbidden`: Người dùng không phải chủ sở hữu của playlist riêng tư này.
+  - `404 Not Found`: Không tìm thấy playlist với ID chỉ định.
+
+### 3.4. Chỉnh sửa Playlist (Update Playlist) ⭐ _Mới_
+
+- **Method:** `PUT`
+- **Endpoint:** `http://localhost:8686/api/user/playlists/{playlistId}`
+- **Content-Type:** `multipart/form-data`
+- **Mô tả:** Cập nhật thông tin danh sách phát (tên, ảnh bìa, mô tả, trạng thái công khai).
+  - Thống nhất một định dạng duy nhất là **`multipart/form-data`** qua phương thức **`PUT`**.
+  - **Hỗ trợ cập nhật một phần (Partial Update):** Tất cả các trường đều là tùy chọn. Người dùng gửi lên trường nào thì hệ thống chỉ cập nhật trường đó, các trường còn lại sẽ giữ nguyên giá trị hiện tại. Nếu gửi Form-data rỗng, hệ thống sẽ giữ nguyên toàn bộ và trả về dữ liệu playlist hiện tại.
+  - **Bảo mật:** Chỉ người tạo playlist mới có quyền chỉnh sửa.
+- **Headers:**
+  - `Authorization: Bearer <accessToken>`
+  - `Content-Type: multipart/form-data`
+- **Body (Form-Data):**
+  | Key | Type | Required | Mô tả |
+  |---|---|---|---|
+  | `name` | Text | ❌ Không bắt buộc | Tên playlist mới. Nếu không truyền sẽ giữ nguyên. Nếu truyền thì không được để trống hoặc chỉ chứa khoảng trắng. |
+  | `description` | Text | ❌ Không bắt buộc | Mô tả playlist mới. Nếu không truyền sẽ giữ nguyên. |
+  | `coverImage` (hoặc `coverFile`) | File | ❌ Không bắt buộc | File ảnh bìa mới (chấp nhận `.jpg`, `.jpeg`, `.png`, tối đa 5MB). Khi gửi file mới, hệ thống tự động upload lên Cloudinary và cập nhật URL mới. Nếu không truyền sẽ giữ nguyên ảnh cũ. |
+  | `isPublic` | Boolean | ❌ Không bắt buộc | Trạng thái công khai (`true`/`false`). Nếu không truyền sẽ giữ nguyên. |
+
+- **Response thành công (200 OK):**
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Cập nhật playlist thành công",
+    "data": {
+      "id": "c1f2e3d4-5678-90ab-cdef-1234567890ab",
+      "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Tên Playlist Mới",
+      "description": "Mô tả mới cho playlist",
+      "coverImage": "https://res.cloudinary.com/.../new_cover.jpg",
+      "isPublic": true,
+      "createdAt": "2026-10-24T17:10:00"
+    },
+    "timestamp": "2026-10-25T12:00:00"
+  }
+  ```
+- **Lỗi có thể gặp:**
+  - `400 Bad Request`: Không gửi bất kỳ thông tin nào cần cập nhật (`"Vui lòng cung cấp ít nhất một thông tin cần cập nhật (tên, mô tả, ảnh bìa hoặc trạng thái công khai)"`).
+  - `400 Bad Request`: Tên playlist truyền lên rỗng hoặc toàn khoảng trắng (`"Tên playlist không được để trống"`).
+  - `400 Bad Request`: File ảnh sai định dạng (không phải jpg, jpeg, png) hoặc vượt quá 5MB.
+  - `415 Unsupported Media Type` / `400 Bad Request`: Thiếu Content-Type hoặc gửi sai định dạng (ví dụ gửi JSON thay vì `multipart/form-data`). Hệ thống trả về thông báo lỗi chuẩn thay vì lỗi 500.
+  - `403 Forbidden`: Người dùng không phải chủ sở hữu của playlist này (`"Bạn không có quyền chỉnh sửa playlist này"`).
+  - `404 Not Found`: Không tìm thấy playlist theo `playlistId`.
+
+### 3.5. Xóa Playlist (Delete Playlist) ⭐ _Mới_
+
+- **Method:** `DELETE`
+- **Endpoint:** `http://localhost:8686/api/user/playlists/{playlistId}`
+- **Mô tả:** Xóa vĩnh viễn một danh sách phát. Hệ thống sẽ tự động dọn dẹp các bài hát liên kết bên trong bảng `playlist_songs` trước khi xóa playlist. **Bảo mật:** Chỉ người tạo playlist mới có quyền xóa.
+- **Headers:**
+  - `Authorization: Bearer <accessToken>`
+- **Response thành công (200 OK):**
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Xóa playlist thành công",
+    "data": null,
+    "timestamp": "2026-10-25T12:00:00"
+  }
+  ```
+- **Lỗi có thể gặp:**
+  - `403 Forbidden`: Người dùng không phải chủ sở hữu của playlist này (`"Bạn không có quyền xóa playlist này"`).
+  - `404 Not Found`: Không tìm thấy playlist theo `playlistId`.
+
+### 3.6. Thêm bài hát vào Playlist
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/user/playlists/{playlistId}/songs`
-- **Mô tả:** Thêm một bài hát từ hệ thống vào Playlist. API sẽ tự động gọi sang Catalog Service để kiểm tra bài hát và lấy thông tin (denormalized data).
+- **Mô tả:** Thêm một bài hát từ hệ thống vào Playlist. API sẽ tự động gọi sang Catalog Service để kiểm tra bài hát và lấy thông tin (denormalized data). Chỉ chủ playlist mới có quyền thêm.
 - **Body (JSON):**
   ```json
   {
@@ -163,30 +281,40 @@ Nhóm API này dùng để quản lý danh sách phát cá nhân của người 
 - **Response thành công (201 Created):**
   Trả về thông tin liên kết giữa bài hát và playlist.
 
-### 2.4. Xóa bài hát khỏi Playlist
+### 3.7. Xóa bài hát khỏi Playlist
 
 - **Method:** `DELETE`
 - **Endpoint:** `http://localhost:8686/api/user/playlists/{playlistId}/songs/{songId}`
-- **Mô tả:** Gỡ bỏ một bài hát khỏi playlist.
+- **Mô tả:** Gỡ bỏ một bài hát khỏi playlist. Chỉ chủ playlist mới có quyền xóa bài hát.
 - **Response thành công (200 OK):**
-  Bài hát đã được xóa thành công.
+  ```json
+  {
+    "success": true,
+    "statusCode": 200,
+    "message": "Xóa bài hát khỏi playlist thành công",
+    "data": null
+  }
+  ```
 
-### 2.5. Xem danh sách bài hát trong Playlist
+### 3.8. Xem danh sách bài hát trong Playlist
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/user/playlists/{playlistId}/songs`
 - **Mô tả:** Lấy danh sách các bài hát bên trong một Playlist, xếp theo thứ tự thêm vào mới nhất.
+- **Query Parameters:**
+  - `page` (Int, Tùy chọn, mặc định: 0)
+  - `size` (Int, Tùy chọn, mặc định: 10)
 - **Response thành công (200 OK):**
-  Trả về mảng chi tiết bài hát.
+  Trả về danh sách bài hát có phân trang.
 
 ---
 
-## 3. Lịch sử và Yêu thích (Favorites & History)
+## 4. Lịch sử và Yêu thích (Favorites & History)
 
 Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nhạc của người dùng.
 **Yêu cầu:** Tất cả API trong nhóm này đều yêu cầu header `Authorization: Bearer <accessToken>`.
 
-### 3.1. Yêu thích bài hát
+### 4.1. Yêu thích bài hát
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/user/favorites/{songId}`
@@ -194,7 +322,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (201 Created):**
   Trả về thông báo thành công.
 
-### 3.2. Bỏ yêu thích bài hát
+### 4.2. Bỏ yêu thích bài hát
 
 - **Method:** `DELETE`
 - **Endpoint:** `http://localhost:8686/api/user/favorites/{songId}`
@@ -202,7 +330,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (200 OK):**
   Trả về thông báo thành công.
 
-### 3.3. Lấy danh sách bài hát yêu thích
+### 4.3. Lấy danh sách bài hát yêu thích
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/user/favorites`
@@ -210,7 +338,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (200 OK):**
   Trả về mảng chi tiết bài hát yêu thích, sắp xếp mới nhất lên đầu.
 
-### 3.4. Yêu thích Album
+### 4.4. Yêu thích Album
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/user/favorites/albums/{albumId}`
@@ -218,7 +346,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (201 Created):**
   Trả về thông báo thành công.
 
-### 3.5. Bỏ yêu thích Album
+### 4.5. Bỏ yêu thích Album
 
 - **Method:** `DELETE`
 - **Endpoint:** `http://localhost:8686/api/user/favorites/albums/{albumId}`
@@ -226,7 +354,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (200 OK):**
   Trả về thông báo thành công.
 
-### 3.6. Lấy danh sách Album yêu thích
+### 4.6. Lấy danh sách Album yêu thích
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/user/favorites/albums`
@@ -234,7 +362,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (200 OK):**
   Trả về mảng chi tiết album yêu thích, sắp xếp mới nhất lên đầu.
 
-### 3.7. Theo dõi Nghệ sĩ
+### 4.7. Theo dõi Nghệ sĩ
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/user/follows/artists/{artistId}`
@@ -242,7 +370,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (201 Created):**
   Trả về thông báo thành công.
 
-### 3.8. Hủy theo dõi Nghệ sĩ
+### 4.8. Hủy theo dõi Nghệ sĩ
 
 - **Method:** `DELETE`
 - **Endpoint:** `http://localhost:8686/api/user/follows/artists/{artistId}`
@@ -250,15 +378,15 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (200 OK):**
   Trả về thông báo thành công.
 
-### 3.9. Lấy danh sách Nghệ sĩ đang theo dõi
+### 4.9. Lấy danh sách Nghệ sĩ đang theo dõi
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/user/follows/artists`
 - **Mô tả:** Lấy danh sách toàn bộ nghệ sĩ mà người dùng hiện tại đang theo dõi.
 - **Response thành công (200 OK):**
-  Trả về mảng chi tiết album yêu thích, sắp xếp mới nhất lên đầu.
+  Trả về mảng chi tiết nghệ sĩ, sắp xếp mới nhất lên đầu.
 
-### 3.10. Ghi nhận lịch sử nghe nhạc
+### 4.10. Ghi nhận lịch sử nghe nhạc
 
 - **Method:** `POST`
 - **Endpoint:** `http://localhost:8686/api/user/history`
@@ -273,7 +401,7 @@ Nhóm API này dùng để quản lý lượt thả tim và lịch sử nghe nh�
 - **Response thành công (201 Created):**
   Trả về thông báo ghi nhận thành công.
 
-### 3.11. Lấy lịch sử nghe nhạc
+### 4.11. Lấy lịch sử nghe nhạc
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/user/history`

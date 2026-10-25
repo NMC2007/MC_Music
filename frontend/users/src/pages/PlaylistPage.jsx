@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -14,9 +14,11 @@ import {
   Music2,
   Calendar,
   Loader2,
+  MoreHorizontal,
+  Pencil,
 } from "lucide-react";
 
-import { getPlaylistSongsApi } from "../api/users/playlists";
+import { getPlaylistSongsApi, getPlaylistByIdApi } from "../api/users/playlists";
 import { getSongById } from "../api/catalog/public";
 import { usePlaylists } from "../hooks/usePlaylists";
 import { usePlayerStore } from "../store/usePlayerStore";
@@ -26,13 +28,15 @@ import { Button } from "../components/ui/Button";
 import { CoverImage } from "../components/ui/CoverImage";
 import { SkeletonRow } from "../components/ui/Skeleton";
 import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
+import { EditPlaylistModal } from "../components/playlist/EditPlaylistModal";
+import { DeletePlaylistConfirmModal } from "../components/playlist/DeletePlaylistConfirmModal";
 
 export const PlaylistPage = () => {
   const { id: playlistId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { playlists, removeSongFromPlaylist } = usePlaylists();
+  const { playlists, removeSongFromPlaylist, deletePlaylist, isDeleting } = usePlaylists();
   const { user } = useAuthStore();
   const { currentSong, isPlaying, setIsPlaying, playSongWithContext } =
     usePlayerStore();
@@ -40,21 +44,63 @@ export const PlaylistPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [loadingSongId, setLoadingSongId] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const menuRef = useRef(null);
 
-  // 1. Tìm thông tin Playlist: Ưu tiên state từ router -> sau đó tìm trong danh sách cache
+  // 1. Fetch thông tin chi tiết Playlist
   const statePlaylist = location.state?.playlist;
+  const { data: playlistDetailData } = useQuery({
+    queryKey: ["playlistDetail", playlistId],
+    queryFn: () => getPlaylistByIdApi(playlistId),
+    enabled: !!playlistId,
+    initialData: statePlaylist ? { data: statePlaylist } : undefined,
+  });
+
   const playlist = useMemo(() => {
-    if (statePlaylist && statePlaylist.id === playlistId) {
-      return statePlaylist;
+    return (
+      playlistDetailData?.data ||
+      playlists.find((p) => p.id === playlistId) ||
+      statePlaylist ||
+      null
+    );
+  }, [playlistDetailData, playlists, playlistId, statePlaylist]);
+
+  // Kiểm tra quyền sở hữu Playlist
+  const isOwner = useMemo(() => {
+    if (!user?.id || !playlist?.userId) return true;
+    return playlist.userId === user.id;
+  }, [user, playlist]);
+
+  // Đóng dropdown menu khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
     }
-    return playlists.find((p) => p.id === playlistId) || statePlaylist || null;
-  }, [statePlaylist, playlists, playlistId]);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
+
+  // Đóng dropdown menu khi bấm Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMenuOpen]);
 
   // 2. Fetch danh sách bài hát trong Playlist
   const {
     data: songsData,
     isLoading: isLoadingSongs,
-    isError,
   } = useQuery({
     queryKey: ["playlistSongs", playlistId],
     queryFn: () => getPlaylistSongsApi(playlistId, { size: 100 }),
@@ -194,7 +240,13 @@ export const PlaylistPage = () => {
       {/* ── HEADER BANNER ─────────────────────────────────────────────────── */}
       <div className="relative flex flex-col sm:flex-row items-center sm:items-end gap-6 px-6 pt-16 pb-8 bg-gradient-to-b from-[#1e3a5f] via-[#101b2b] to-spotify-black">
         {/* Ảnh bìa Playlist lớn */}
-        <div className="flex-shrink-0 w-44 h-44 sm:w-52 sm:h-52 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center border border-white/5">
+        <div
+          onClick={() => isOwner && setIsEditModalOpen(true)}
+          className={`flex-shrink-0 w-44 h-44 sm:w-52 sm:h-52 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden bg-gradient-to-br from-neutral-800 to-neutral-900 flex items-center justify-center border border-white/5 relative group ${
+            isOwner ? "cursor-pointer" : ""
+          }`}
+          title={isOwner ? "Chỉnh sửa thông tin chi tiết" : playlist?.name}
+        >
           {playlist?.coverImage ? (
             <CoverImage
               src={playlist.coverImage}
@@ -204,6 +256,13 @@ export const PlaylistPage = () => {
           ) : (
             <div className="flex flex-col items-center justify-center text-neutral-400 gap-2">
               <ListMusic size={64} className="text-[#fa2d48] opacity-80" />
+            </div>
+          )}
+
+          {isOwner && (
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1.5 transition-opacity text-white text-xs font-semibold">
+              <Pencil size={24} />
+              <span>Sửa chi tiết</span>
             </div>
           )}
         </div>
@@ -230,7 +289,13 @@ export const PlaylistPage = () => {
             </div>
           </div>
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight line-clamp-2">
+          <h1
+            onClick={() => isOwner && setIsEditModalOpen(true)}
+            className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white leading-tight tracking-tight line-clamp-2 ${
+              isOwner ? "cursor-pointer hover:underline decoration-white/40" : ""
+            }`}
+            title={isOwner ? "Chỉnh sửa tên danh sách phát" : playlist?.name}
+          >
             {playlist?.name || "Danh sách phát"}
           </h1>
 
@@ -279,6 +344,59 @@ export const PlaylistPage = () => {
           >
             <Shuffle size={22} />
           </Button>
+
+          {/* Nút ... Tùy chọn Playlist cá nhân */}
+          {isOwner && (
+            <div className="relative" ref={menuRef}>
+              <Button
+                variant="ghost"
+                size="md"
+                iconOnly
+                tooltip="Tùy chọn khác"
+                tooltipPosition="top"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="hover:bg-white/10 text-neutral-300 hover:text-white"
+              >
+                <MoreHorizontal size={22} />
+              </Button>
+
+              {/* Menu Dropdown Popup */}
+              {isMenuOpen && (
+                <div className="absolute left-0 mt-2 w-56 rounded-lg bg-[#282828] shadow-2xl border border-neutral-700/80 py-1.5 z-30 animate-in fade-in-50 zoom-in-95 duration-150">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsEditModalOpen(true);
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-neutral-200 hover:text-white hover:bg-neutral-700 transition-colors text-left cursor-pointer"
+                  >
+                    <Pencil size={16} className="text-neutral-400" />
+                    <span>Sửa thông tin chi tiết</span>
+                  </button>
+
+                  <div className="my-1 border-t border-neutral-700/80" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      // Quy tắc: Nếu có >= 1 bài hát thì hiện modal xác nhận; nếu không có bài nào thì xóa thẳng không cần hỏi
+                      if (rawSongs.length > 0) {
+                        setIsDeleteConfirmOpen(true);
+                      } else {
+                        deletePlaylist(playlistId).then(() => navigate("/"));
+                      }
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-neutral-700 transition-colors text-left cursor-pointer"
+                  >
+                    <Trash2 size={16} />
+                    <span>Xóa danh sách phát</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Ô tìm kiếm trong Playlist */}
@@ -500,6 +618,30 @@ export const PlaylistPage = () => {
           </div>
         )}
       </div>
+
+      {/* Modal Chỉnh sửa thông tin Playlist */}
+      <EditPlaylistModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        playlist={playlist}
+      />
+
+      {/* Modal Xác nhận Xóa Playlist (chỉ hiện khi có ít nhất 1 bài hát) */}
+      <DeletePlaylistConfirmModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        playlistName={playlist?.name}
+        isDeleting={isDeleting}
+        onConfirm={async () => {
+          try {
+            await deletePlaylist(playlistId);
+            setIsDeleteConfirmOpen(false);
+            navigate("/");
+          } catch (err) {
+            console.error("Lỗi khi xóa playlist:", err);
+          }
+        }}
+      />
     </div>
   );
 };

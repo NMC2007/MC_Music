@@ -6,7 +6,6 @@ import {
   Pause,
   Shuffle,
   Heart,
-  MoreHorizontal,
   Clock,
 } from "lucide-react";
 
@@ -179,11 +178,6 @@ export const AlbumPage = () => {
             size={22}
             className={isAlbumLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
           />
-        </Button>
-
-        {/* Nút thêm */}
-        <Button variant="ghost" size="md" iconOnly tooltip="Thêm tùy chọn" tooltipPosition="top">
-          <MoreHorizontal size={22} />
         </Button>
       </div>
 

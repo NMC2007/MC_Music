@@ -12,6 +12,7 @@ import { AlbumPage } from './pages/AlbumPage';
 import { ArtistPage } from './pages/ArtistPage';
 import { LikedSongsPage } from './pages/LikedSongsPage';
 import { PlaylistPage } from './pages/PlaylistPage';
+import { SearchPage } from './pages/SearchPage';
 
 // Khởi tạo React Query Client
 const queryClient = new QueryClient({
@@ -40,7 +41,7 @@ function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/collection/tracks" element={<LikedSongsPage />} />
             <Route path="/liked" element={<LikedSongsPage />} />
-            {/* Các trang sau này như /search, /library sẽ thêm vào đây */}
+            <Route path="/search" element={<SearchPage />} />
           </Route>
           
           {/* Group 2: Các trang độc lập, toàn màn hình */}

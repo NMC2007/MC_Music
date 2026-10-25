@@ -5,7 +5,6 @@ import {
   Play,
   Pause,
   Shuffle,
-  MoreHorizontal,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -216,11 +215,6 @@ export const ArtistPage = () => {
         >
           {isFollowed ? "Đang theo dõi" : "Theo dõi"}
         </button>
-
-        {/* Nút thêm */}
-        <Button variant="ghost" size="md" iconOnly>
-          <MoreHorizontal size={22} />
-        </Button>
       </div>
 
       {/* ── NỘI DUNG ────────────────────────────────────────────────────────── */}
