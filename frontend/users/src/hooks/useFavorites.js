@@ -27,21 +27,32 @@ export const FAVORITE_ALBUMS_QUERY_KEY = ["userFavorites", "albums"];
 export const useFavorites = () => {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.userId || user?.id || null;
+
+  const currentSongsQueryKey = useMemo(
+    () => (userId ? ["userFavorites", "songs", userId] : ["userFavorites", "songs", "guest"]),
+    [userId]
+  );
+  const currentAlbumsQueryKey = useMemo(
+    () => (userId ? ["userFavorites", "albums", userId] : ["userFavorites", "albums", "guest"]),
+    [userId]
+  );
 
   // 1. Query danh sách bài hát yêu thích
   const songsQuery = useQuery({
-    queryKey: FAVORITES_QUERY_KEY,
+    queryKey: currentSongsQueryKey,
     queryFn: () => getUserFavoritesApi({ page: 0, size: 100 }),
-    enabled: !!isAuthenticated,
-    staleTime: 1000 * 60 * 5, // 5 phút cache
+    enabled: !!isAuthenticated && !!userId,
+    staleTime: 1000 * 60 * 3, // 3 phút cache
   });
 
   // 2. Query danh sách album yêu thích
   const albumsQuery = useQuery({
-    queryKey: FAVORITE_ALBUMS_QUERY_KEY,
+    queryKey: currentAlbumsQueryKey,
     queryFn: () => getUserFavoriteAlbumsApi({ page: 0, size: 100 }),
-    enabled: !!isAuthenticated,
-    staleTime: 1000 * 60 * 5,
+    enabled: !!isAuthenticated && !!userId,
+    staleTime: 1000 * 60 * 3,
   });
 
   // 3. Query danh sách album công khai từ Catalog để enrich metadata (albumType: 'EP' vs 'ALBUM')
@@ -206,6 +217,7 @@ export const useFavorites = () => {
       toast.error("Không thể cập nhật danh sách yêu thích. Vui lòng thử lại!");
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: currentSongsQueryKey });
       queryClient.invalidateQueries({ queryKey: FAVORITES_QUERY_KEY });
     },
   });
@@ -327,6 +339,7 @@ export const useFavorites = () => {
       toast.error("Không thể cập nhật album yêu thích. Vui lòng thử lại!");
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: currentAlbumsQueryKey });
       queryClient.invalidateQueries({ queryKey: FAVORITE_ALBUMS_QUERY_KEY });
     },
   });

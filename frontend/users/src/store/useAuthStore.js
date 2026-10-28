@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { queryClient } from '../lib/queryClient';
 
 export const useAuthStore = create(
   persist(
@@ -15,6 +16,11 @@ export const useAuthStore = create(
        * 2. login(authResponseData) -> { userId, email, fullName, accessToken, refreshToken }
        */
       login: (userOrData, accessToken, refreshToken) => {
+        try {
+          queryClient.clear(); // Xóa sạch cache người dùng cũ
+        } catch (e) {
+          console.error(e);
+        }
         if (typeof userOrData === 'object' && userOrData !== null && 'accessToken' in userOrData) {
           const { accessToken: at, refreshToken: rt, user: u, ...rest } = userOrData;
           const userObj = u || {
@@ -61,6 +67,7 @@ export const useAuthStore = create(
       logout: () => {
         try {
           localStorage.removeItem('mc-music-player');
+          queryClient.clear(); // Xóa sạch toàn bộ cache dữ liệu người dùng
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('mc-music-logout'));
           }

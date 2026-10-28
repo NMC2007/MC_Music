@@ -22,13 +22,20 @@ export const USER_PLAYLISTS_QUERY_KEY = ["userPlaylists"];
  */
 export const usePlaylists = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.userId || user?.id || null;
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
+  const currentPlaylistsKey = useMemo(
+    () => (userId ? ["userPlaylists", userId] : ["userPlaylists", "guest"]),
+    [userId]
+  );
 
   // 1. Query lấy danh sách playlist của người dùng
   const playlistsQuery = useQuery({
-    queryKey: USER_PLAYLISTS_QUERY_KEY,
+    queryKey: currentPlaylistsKey,
     queryFn: () => getUserPlaylistsApi({ page: 0, size: 100 }),
-    enabled: !!isAuthenticated,
+    enabled: !!isAuthenticated && !!userId,
     staleTime: 1000 * 60 * 3, // 3 phút
   });
 

@@ -51,7 +51,7 @@ public class FollowArtistService {
                 .userId(userId)
                 .artistId(artistId)
                 .artistName(artistInfo.getStageName())
-                .avatar(artistInfo.getAvatarUrl())
+                .avatarUrl(artistInfo.getAvatarUrl())
                 .createdAt(LocalDateTime.now())
                 .build();
 

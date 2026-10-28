@@ -8,5 +8,13 @@ import java.util.UUID;
 public class FollowArtistResponse {
     private UUID artistId;
     private String artistName;
-    private String avatar;
+    private String avatarUrl;
+
+    public String getAvatar() {
+        return avatarUrl;
+    }
+
+    public void setAvatar(String avatar) {
+        this.avatarUrl = avatar;
+    }
 }

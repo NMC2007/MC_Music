@@ -39,6 +39,8 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
     history: storeHistory,
   } = usePlayerStore();
 
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.userId || user?.id || null;
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   const [viewMode, setViewMode] = useState("queue"); // "queue" | "history"
@@ -50,9 +52,9 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
 
   // Lấy lịch sử nghe nhạc từ backend nếu user đã đăng nhập
   const { data: backendHistoryData } = useQuery({
-    queryKey: ["userPlayHistory", 5],
+    queryKey: ["userPlayHistory", userId, 5],
     queryFn: () => getUserPlayHistoryApi({ page: 0, size: 5 }),
-    enabled: !!isAuthenticated && isOpen,
+    enabled: !!isAuthenticated && !!userId && isOpen,
   });
 
   // Hợp nhất lịch sử từ store (ngay tức thì trong phiên) và backend, lấy 5 bài gần nhất

@@ -17,17 +17,25 @@ export const FOLLOWED_ARTISTS_QUERY_KEY = ["userFollowedArtists"];
  * - Hỗ trợ Optimistic Update: Chuyển đổi trạng thái nút lập tức (0ms).
  * - Tự động rollback nếu API gặp sự cố.
  * - Tự động hiển thị Toast thông báo đăng nhập nếu là Guest.
+ * - Đảm bảo phân tách cache theo từng userId.
  */
 export const useFollowArtists = () => {
   const queryClient = useQueryClient();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.userId || user?.id || null;
+
+  const currentQueryKey = useMemo(
+    () => (userId ? ["userFollowedArtists", userId] : ["userFollowedArtists", "guest"]),
+    [userId]
+  );
 
   // 1. Query danh sách nghệ sĩ đang theo dõi
   const followedQuery = useQuery({
-    queryKey: FOLLOWED_ARTISTS_QUERY_KEY,
+    queryKey: currentQueryKey,
     queryFn: () => getUserFollowedArtistsApi({ page: 0, size: 100 }),
-    enabled: !!isAuthenticated,
-    staleTime: 1000 * 60 * 5, // 5 phút cache
+    enabled: !!isAuthenticated && !!userId,
+    staleTime: 1000 * 60 * 3, // 3 phút cache
   });
 
   const followedArtists = useMemo(() => {
@@ -61,14 +69,14 @@ export const useFollowArtists = () => {
       }
     },
     onMutate: async ({ artist, isFollowed }) => {
-      await queryClient.cancelQueries({ queryKey: FOLLOWED_ARTISTS_QUERY_KEY });
-      const previousData = queryClient.getQueryData(FOLLOWED_ARTISTS_QUERY_KEY);
+      await queryClient.cancelQueries({ queryKey: currentQueryKey });
+      const previousData = queryClient.getQueryData(currentQueryKey);
 
       const artistId = artist.artistId || artist.id;
       const artistName = artist.artistName || artist.stageName || "nghệ sĩ";
 
       // Optimistic update
-      queryClient.setQueryData(FOLLOWED_ARTISTS_QUERY_KEY, (old) => {
+      queryClient.setQueryData(currentQueryKey, (old) => {
         if (!old) return old;
         const currentList = old?.data?.content || [];
         let updatedList;
@@ -109,13 +117,14 @@ export const useFollowArtists = () => {
     },
     onError: (err, { artist, isFollowed }, context) => {
       if (context?.previousData) {
-        queryClient.setQueryData(FOLLOWED_ARTISTS_QUERY_KEY, context.previousData);
+        queryClient.setQueryData(currentQueryKey, context.previousData);
       }
       const artistName = artist.artistName || artist.stageName || "nghệ sĩ";
       toast.error(`Không thể ${isFollowed ? "hủy theo dõi" : "theo dõi"} ${artistName}. Vui lòng thử lại!`);
       console.error("Lỗi toggle follow artist:", err);
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: currentQueryKey });
       queryClient.invalidateQueries({ queryKey: FOLLOWED_ARTISTS_QUERY_KEY });
     },
   });

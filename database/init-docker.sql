@@ -184,11 +184,12 @@ CREATE TABLE IF NOT EXISTS songs (
 );
 
 CREATE TABLE IF NOT EXISTS song_artists (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
     artist_id UUID NOT NULL,
     artist_name VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL,
-    PRIMARY KEY (song_id, artist_id)
+    UNIQUE (song_id, artist_id)
 );
 
 CREATE TABLE IF NOT EXISTS song_genres (
@@ -198,7 +199,8 @@ CREATE TABLE IF NOT EXISTS song_genres (
 );
 
 CREATE TABLE IF NOT EXISTS lyrics (
-    song_id UUID PRIMARY KEY REFERENCES songs(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    song_id UUID NOT NULL UNIQUE REFERENCES songs(id) ON DELETE CASCADE,
     content TEXT,
     synced_content TEXT,
     language VARCHAR(10)
@@ -214,11 +216,12 @@ CREATE TABLE IF NOT EXISTS system_playlists (
 );
 
 CREATE TABLE IF NOT EXISTS system_playlist_songs (
+    id BIGSERIAL PRIMARY KEY,
     playlist_id UUID NOT NULL REFERENCES system_playlists(id) ON DELETE CASCADE,
     song_id UUID NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
     position_order INT NOT NULL,
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (playlist_id, song_id)
+    UNIQUE (playlist_id, song_id)
 );
 
 -- ==========================================

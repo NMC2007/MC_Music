@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 import { Toaster } from 'sonner';
 
 import { MainLayout } from './layouts/MainLayout';
@@ -13,16 +14,6 @@ import { ArtistPage } from './pages/ArtistPage';
 import { LikedSongsPage } from './pages/LikedSongsPage';
 import { PlaylistPage } from './pages/PlaylistPage';
 import { SearchPage } from './pages/SearchPage';
-
-// Khởi tạo React Query Client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false, // Tùy chọn để tránh refetch liên tục khi chuyển tab
-      retry: 1, // Chỉ retry 1 lần nếu API lỗi
-    },
-  },
-});
 
 function App() {
   return (

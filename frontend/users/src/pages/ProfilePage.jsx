@@ -11,8 +11,9 @@ export const ProfilePage = () => {
   const navigate = useNavigate();
   const { user: storeUser, logout, refreshToken } = useAuthStore();
 
+  const userKey = storeUser?.userId || storeUser?.id || "guest";
   const { data: profileResponse, isLoading } = useQuery({
-    queryKey: ["userProfile"],
+    queryKey: ["userProfile", userKey],
     queryFn: () => getCurrentUserApi(),
     staleTime: 60000,
   });

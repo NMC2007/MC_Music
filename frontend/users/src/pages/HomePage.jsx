@@ -19,6 +19,8 @@ import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
 
 export const HomePage = () => {
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.userId || user?.id || null;
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { playSongWithContext } = usePlayerStore();
   const { favoriteSongs, isLoadingSongs: isLoadingFavorites } = useFavorites();
@@ -105,9 +107,9 @@ export const HomePage = () => {
 
   // Fetch Lịch sử nghe gần đây (chỉ khi đã đăng nhập, lấy size 30 để sau khi lọc trùng vẫn đủ bài hiển thị)
   const { data: historyData, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ["userPlayHistory", "home", 30],
+    queryKey: ["userPlayHistory", userId, "home", 30],
     queryFn: () => getUserPlayHistoryApi({ page: 0, size: 30 }),
-    enabled: !!isAuthenticated,
+    enabled: !!isAuthenticated && !!userId,
   });
 
   // Trích xuất dữ liệu từ response (chuẩn hóa API backend trả về format: data.data.content)
