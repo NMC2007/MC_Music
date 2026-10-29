@@ -156,7 +156,11 @@ export const SearchPage = () => {
             {genres.map((genre, i) => (
               <div
                 key={genre.id}
-                onClick={() => navigate(`/search?genreId=${genre.id}&genreName=${encodeURIComponent(genre.name)}`)}
+                onClick={() =>
+                  navigate(`/genre/${genre.id}`, {
+                    state: { genreId: genre.id, title: genre.name },
+                  })
+                }
                 className={`relative rounded-lg overflow-hidden cursor-pointer group transition-all hover:scale-[1.03] active:scale-[0.97] shadow-md bg-gradient-to-br ${GENRE_GRADIENTS[i % GENRE_GRADIENTS.length]}`}
                 style={{ height: '160px' }}
               >

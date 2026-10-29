@@ -14,6 +14,7 @@ import { ArtistPage } from './pages/ArtistPage';
 import { LikedSongsPage } from './pages/LikedSongsPage';
 import { PlaylistPage } from './pages/PlaylistPage';
 import { SearchPage } from './pages/SearchPage';
+import { SectionPage } from './pages/SectionPage';
 
 function App() {
   return (
@@ -33,6 +34,8 @@ function App() {
             <Route path="/collection/tracks" element={<LikedSongsPage />} />
             <Route path="/liked" element={<LikedSongsPage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/section/:id" element={<SectionPage />} />
+            <Route path="/genre/:id" element={<SectionPage />} />
           </Route>
           
           {/* Group 2: Các trang độc lập, toàn màn hình */}

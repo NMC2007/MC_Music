@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./Button";
 
-export const SectionCarousel = ({ title, children }) => {
+export const SectionCarousel = ({ title, onSeeAll, children }) => {
   const scrollRef = useRef(null);
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(true);
@@ -59,12 +59,23 @@ export const SectionCarousel = ({ title, children }) => {
     <section className="relative group/carousel">
       {title && (
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white hover:underline cursor-pointer">
+          <h2
+            onClick={onSeeAll}
+            className={`text-2xl font-bold text-white ${
+              onSeeAll ? "hover:underline cursor-pointer" : ""
+            }`}
+          >
             {title}
           </h2>
-          <span className="text-sm font-bold text-spotify-sub hover:text-white cursor-pointer">
-            Hiện tất cả
-          </span>
+          {onSeeAll && (
+            <button
+              type="button"
+              onClick={onSeeAll}
+              className="text-sm font-bold text-spotify-sub hover:underline hover:text-white cursor-pointer transition-colors"
+            >
+              Hiện tất cả
+            </button>
+          )}
         </div>
       )}
 

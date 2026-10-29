@@ -151,7 +151,14 @@ export const HomePage = () => {
       {/* 1. KHỐI PRIVATE (Chỉ hiện khi đăng nhập) */}
       {isAuthenticated && (
         <>
-          <SectionCarousel title="Nghe gần đây">
+          <SectionCarousel
+            title="Nghe gần đây"
+            onSeeAll={() =>
+              navigate("/section/recent-history", {
+                state: { title: "Nghe gần đây" },
+              })
+            }
+          >
             {isLoadingHistory ? (
               renderSkeletons()
             ) : recentSongs.length > 0 ? (
@@ -177,7 +184,14 @@ export const HomePage = () => {
               </div>
             )}
           </SectionCarousel>
-          <SectionCarousel title="Bài hát yêu thích">
+          <SectionCarousel
+            title="Bài hát yêu thích"
+            onSeeAll={() =>
+              navigate("/section/favorite-songs", {
+                state: { title: "Bài hát yêu thích" },
+              })
+            }
+          >
             {isLoadingFavorites ? (
               renderSkeletons()
             ) : favoriteSongs.length > 0 ? (
@@ -203,7 +217,14 @@ export const HomePage = () => {
               </div>
             )}
           </SectionCarousel>
-          <SectionCarousel title="Nghệ sĩ bạn theo dõi">
+          <SectionCarousel
+            title="Nghệ sĩ bạn theo dõi"
+            onSeeAll={() =>
+              navigate("/section/followed-artists", {
+                state: { title: "Nghệ sĩ bạn theo dõi" },
+              })
+            }
+          >
             {isLoadingFollowed ? (
               renderSkeletons(5, true)
             ) : followedArtists.length > 0 ? (
@@ -239,7 +260,14 @@ export const HomePage = () => {
       {/* 2. KHỐI PUBLIC */}
 
       {/* Khối Bài Hát */}
-      <SectionCarousel title="Những bài hát thịnh hành">
+      <SectionCarousel
+        title="Những bài hát thịnh hành"
+        onSeeAll={() =>
+          navigate("/section/trending-songs", {
+            state: { title: "Những bài hát thịnh hành" },
+          })
+        }
+      >
         {isLoadingSongs ? (
           renderSkeletons()
         ) : songs.length > 0 ? (
@@ -269,7 +297,14 @@ export const HomePage = () => {
       </SectionCarousel>
 
       {/* Khối Nghệ sĩ */}
-      <SectionCarousel title="Nghệ sĩ phổ biến">
+      <SectionCarousel
+        title="Nghệ sĩ phổ biến"
+        onSeeAll={() =>
+          navigate("/section/popular-artists", {
+            state: { title: "Nghệ sĩ phổ biến" },
+          })
+        }
+      >
         {isLoadingArtists ? (
           renderSkeletons(5, true)
         ) : artists.length > 0 ? (
@@ -297,7 +332,14 @@ export const HomePage = () => {
       </SectionCarousel>
 
       {/* Khối Album */}
-      <SectionCarousel title="Album và đĩa đơn nổi tiếng">
+      <SectionCarousel
+        title="Album và đĩa đơn nổi tiếng"
+        onSeeAll={() =>
+          navigate("/section/popular-albums", {
+            state: { title: "Album và đĩa đơn nổi tiếng" },
+          })
+        }
+      >
         {isLoadingAlbums ? (
           renderSkeletons()
         ) : albums.length > 0 ? (
