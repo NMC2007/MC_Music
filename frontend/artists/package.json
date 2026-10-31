@@ -10,10 +10,19 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@hookform/resolvers": "^6.0.2",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.105.0",
+    "axios": "^1.21.0",
+    "lucide-react": "^1.66.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "tailwindcss": "^4.3.3"
+    "react-hook-form": "^7.91.0",
+    "react-router": "^8.5.1",
+    "sonner": "^2.0.8",
+    "tailwindcss": "^4.3.3",
+    "zod": "^4.6.7",
+    "zustand": "^5.0.16"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

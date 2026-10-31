@@ -17,11 +17,22 @@ public class CorsConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         
-        // Allow all origins for now (can be restricted to specific frontend domains later)
-        config.setAllowedOriginPatterns(Collections.singletonList("*"));
+        // Explicitly allow 3 frontend origins (Admin: 5171, Artists: 5172, Users: 5173) and pattern matching
+        config.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:5171",
+            "http://localhost:5172",
+            "http://localhost:5173",
+            "http://127.0.0.1:5171",
+            "http://127.0.0.1:5172",
+            "http://127.0.0.1:5173",
+            "*"
+        ));
         
         // Allow all headers
-        config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization"));
+        config.setAllowedHeaders(Arrays.asList("Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"));
+        
+        // Allow exposed headers
+        config.setExposedHeaders(Arrays.asList("Authorization", "Content-Disposition"));
         
         // Allow all standard HTTP methods
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
