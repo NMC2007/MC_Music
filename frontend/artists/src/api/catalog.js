@@ -33,7 +33,7 @@ export const uploadSongApi = async (formData, onUploadProgress) => {
 /**
  * Cập nhật lời bài hát cho một bài hát cụ thể
  * @param {string} songId - UUID bài hát
- * @param {Object} data - { content, syncedContent, language }
+ * @param {Object} data - { content, language }
  * @returns {Promise<Object>} ApiResponse<Void>
  */
 export const updateLyricsApi = async (songId, data) => {
@@ -83,7 +83,7 @@ export const createAlbumApi = async (formData) => {
 /**
  * Thêm một bài hát vào album
  * @param {string} albumId - UUID album
- * @param {Object} data - { songId, positionOrder }
+ * @param {Object} data - { songId, trackNumber }
  * @returns {Promise<Object>} ApiResponse<Void>
  */
 export const addSongToAlbumApi = async (albumId, data) => {
@@ -94,7 +94,7 @@ export const addSongToAlbumApi = async (albumId, data) => {
 /**
  * Cập nhật lại thứ tự các bài hát trong album
  * @param {string} albumId - UUID album
- * @param {Object} data - { songOrders: [{ songId, positionOrder }] }
+ * @param {Object} data - { songOrders: [{ songId, trackNumber }] }
  * @returns {Promise<Object>} ApiResponse<Void>
  */
 export const reorderSongsInAlbumApi = async (albumId, data) => {
@@ -103,7 +103,7 @@ export const reorderSongsInAlbumApi = async (albumId, data) => {
 };
 
 /**
- * ─── THỂ LOẠI & DỮ LIỆU CÔNG KHAI (GENRES) ──────────────────────────────────
+ * ─── THỂ LOẠI & DỮ LIỆU CÔNG KHAI (GENRES & PUBLIC CATALOG) ──────────────────
  */
 
 /**
@@ -112,6 +112,27 @@ export const reorderSongsInAlbumApi = async (albumId, data) => {
  */
 export const getPublicGenresApi = async () => {
   const response = await api.get('/catalog/public/genres');
+  return response.data;
+};
+
+/**
+ * Lấy danh sách bài hát thuộc một Album
+ * @param {string} albumId - UUID album
+ * @param {Object} params - { page, size, sort }
+ * @returns {Promise<Object>} ApiResponse chứa Page<SongResponse>
+ */
+export const getSongsByAlbumApi = async (albumId, params = { page: 0, size: 50 }) => {
+  const response = await api.get(`/catalog/public/albums/${albumId}/songs`, { params });
+  return response.data;
+};
+
+/**
+ * Lấy chi tiết lời bài hát theo songId
+ * @param {string} songId - UUID bài hát
+ * @returns {Promise<Object>} ApiResponse chứa LyricsResponse (id, songId, content, language)
+ */
+export const getSongLyricsApi = async (songId) => {
+  const response = await api.get(`/catalog/public/songs/${songId}/lyrics`);
   return response.data;
 };
 
@@ -125,4 +146,6 @@ export {
   addSongToAlbumApi as addSongToAlbum,
   reorderSongsInAlbumApi as reorderAlbumSongs,
   getPublicGenresApi as getGenres,
+  getSongsByAlbumApi as getAlbumSongs,
+  getSongLyricsApi as getLyrics,
 };

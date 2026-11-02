@@ -6,3 +6,4 @@ export * from "./Modal";
 export * from "./SimpleAudioPlayer";
 export * from "./FormField";
 export * from "./Input";
+export * from "./MarqueeText";
