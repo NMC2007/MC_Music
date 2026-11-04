@@ -63,7 +63,7 @@ public class PublicCatalogService {
     public AlbumResponse getAlbumById(UUID id) {
         com.example.catalogservice.model.entity.Album album = albumRepository.findById(id)
                 .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Album không tồn tại"));
-        if (!"APPROVED".equals(album.getStatus())) {
+        if (!"APPROVED".equals(album.getStatus()) || Boolean.TRUE.equals(album.getIsDeleted())) {
             throw new com.example.catalogservice.exception.ResourceNotFoundException("Album không tồn tại hoặc chưa được duyệt");
         }
         return modelMapper.map(album, AlbumResponse.class);
@@ -71,6 +71,11 @@ public class PublicCatalogService {
 
     @Transactional(readOnly = true)
     public com.example.catalogservice.model.dto.response.LyricsResponse getLyricsBySongId(UUID songId) {
+        com.example.catalogservice.model.entity.Song song = songRepository.findById(songId)
+                .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Bài hát không tồn tại"));
+        if (!"APPROVED".equals(song.getStatus()) || Boolean.TRUE.equals(song.getIsDeleted())) {
+            throw new com.example.catalogservice.exception.ResourceNotFoundException("Bài hát không khả dụng hoặc đã bị xóa");
+        }
         com.example.catalogservice.model.entity.Lyrics lyrics = lyricsRepository.findBySongId(songId)
                 .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Không tìm thấy lời bài hát"));
         return modelMapper.map(lyrics, com.example.catalogservice.model.dto.response.LyricsResponse.class);
@@ -84,7 +89,7 @@ public class PublicCatalogService {
 
     @Transactional(readOnly = true)
     public Page<AlbumResponse> getAlbumsByArtist(UUID artistId, Pageable pageable) {
-        return albumRepository.findByOwnerIdAndStatus(artistId, "APPROVED", pageable)
+        return albumRepository.findByOwnerIdAndStatusAndIsDeletedFalse(artistId, "APPROVED", pageable)
                 .map(album -> modelMapper.map(album, AlbumResponse.class));
     }
 
@@ -93,7 +98,7 @@ public class PublicCatalogService {
         com.example.catalogservice.model.entity.Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Album không tồn tại"));
                 
-        if (!"APPROVED".equals(album.getStatus())) {
+        if (!"APPROVED".equals(album.getStatus()) || Boolean.TRUE.equals(album.getIsDeleted())) {
             throw new com.example.catalogservice.exception.ResourceNotFoundException("Album chưa được duyệt hoặc không khả dụng");
         }
         

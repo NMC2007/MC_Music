@@ -51,7 +51,15 @@ public class Album {
     @Column(name = "like_count")
     private Integer likeCount = 0;
 
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
+    private Boolean isDeleted = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    public Boolean getIsDeleted() {
+        return Boolean.TRUE.equals(this.isDeleted);
+    }
 }

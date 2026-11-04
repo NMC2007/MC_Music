@@ -14,7 +14,10 @@ import java.util.UUID;
 @Repository
 public interface SongRepository extends JpaRepository<Song, UUID> {
     Page<Song> findByOwnerId(UUID ownerId, Pageable pageable);
+    Page<Song> findByOwnerIdAndIsDeleted(UUID ownerId, Boolean isDeleted, Pageable pageable);
+    Page<Song> findByOwnerIdAndIsDeletedFalse(UUID ownerId, Pageable pageable);
     Page<Song> findByOwnerIdAndStatusAndIsDeletedFalse(UUID ownerId, String status, Pageable pageable);
+    Page<Song> findByOwnerIdAndStatusAndIsDeleted(UUID ownerId, String status, Boolean isDeleted, Pageable pageable);
     Page<Song> findByAlbumIdAndStatusAndIsDeletedFalse(UUID albumId, String status, Pageable pageable);
     List<Song> findByStatusAndIsDeletedFalse(String status);
     List<Song> findByStatus(String status);
@@ -22,6 +25,13 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     int countByAlbumId(UUID albumId);
     List<Song> findByAlbumId(UUID albumId);
     long countByAlbumIdAndStatus(UUID albumId, String status);
+    List<Song> findByAlbumIdAndIsDeletedFalse(UUID albumId);
+    long countByAlbumIdAndIsDeletedFalse(UUID albumId);
+    Page<Song> findByStatusAndIsDeletedFalse(String status, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Song s SET s.isDeleted = :isDeleted WHERE s.album.id = :albumId")
+    void updateIsDeletedByAlbumId(@Param("albumId") UUID albumId, @Param("isDeleted") Boolean isDeleted);
 
     @Query(value = "SELECT DISTINCT s FROM Song s LEFT JOIN s.genres g LEFT JOIN s.artists a " +
            "WHERE s.status = 'APPROVED' AND s.isDeleted = false " +

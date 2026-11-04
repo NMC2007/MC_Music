@@ -7203,5 +7203,7 @@ INSERT INTO song_artists (id, song_id, artist_id, artist_name, role) VALUES
   ('95c01691-a3f0-5d44-8a5d-f799a754a374', '9b0e6c46-3b22-5187-b68f-28f857689e6e', '11c2ae72-efbf-5ead-aa19-e7dfbcdbd19b', 'Lady Gaga', 'MAIN')
 ON CONFLICT DO NOTHING;
 
--- Reset search path to public
+-- End of mock seed
+UPDATE mc_music_catalog_schema.albums SET is_deleted = FALSE WHERE is_deleted IS NULL;
+UPDATE mc_music_catalog_schema.songs SET is_deleted = FALSE WHERE is_deleted IS NULL;
 SET search_path TO public;

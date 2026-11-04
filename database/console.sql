@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS albums (
     description TEXT,
     cover_image VARCHAR(500),
     release_date DATE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'TAKEDOWN')),
     like_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -179,7 +180,7 @@ CREATE TABLE IF NOT EXISTS songs (
     play_count INT DEFAULT 0,
     like_count INT DEFAULT 0,
     status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'TAKEDOWN')),
-    is_deleted BOOLEAN DEFAULT FALSE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -255,6 +256,20 @@ SET search_path TO mc_music_admin_schema;
 INSERT INTO admins (email, password_hash, full_name, role) 
 VALUES ('admin@mcmusic.com', '<THAY_THE_BANG_CHUOI_BCRYPT_SINH_RA_TU_GenerateHashTest>', 'System Admin', 'SUPER_ADMIN')
 ON CONFLICT DO NOTHING;
+
+-- Reset search_path to default
+SET search_path TO public;
+
+-- ==========================================
+-- 7. Migration: Backfill & Enforce NOT NULL for is_deleted
+-- ==========================================
+UPDATE mc_music_catalog_schema.albums SET is_deleted = FALSE WHERE is_deleted IS NULL;
+ALTER TABLE mc_music_catalog_schema.albums ALTER COLUMN is_deleted SET DEFAULT FALSE;
+ALTER TABLE mc_music_catalog_schema.albums ALTER COLUMN is_deleted SET NOT NULL;
+
+UPDATE mc_music_catalog_schema.songs SET is_deleted = FALSE WHERE is_deleted IS NULL;
+ALTER TABLE mc_music_catalog_schema.songs ALTER COLUMN is_deleted SET DEFAULT FALSE;
+ALTER TABLE mc_music_catalog_schema.songs ALTER COLUMN is_deleted SET NOT NULL;
 
 -- Reset search_path to default
 SET search_path TO public;

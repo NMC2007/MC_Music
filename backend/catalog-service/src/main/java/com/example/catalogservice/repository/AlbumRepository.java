@@ -13,6 +13,11 @@ import java.util.UUID;
 @Repository
 public interface AlbumRepository extends JpaRepository<Album, UUID> {
     Page<Album> findByOwnerId(UUID ownerId, Pageable pageable);
+    Page<Album> findByOwnerIdAndIsDeleted(UUID ownerId, Boolean isDeleted, Pageable pageable);
+    Page<Album> findByOwnerIdAndIsDeletedFalse(UUID ownerId, Pageable pageable);
+    Page<Album> findByOwnerIdAndStatusAndIsDeletedFalse(UUID ownerId, String status, Pageable pageable);
+    Page<Album> findByStatusAndIsDeletedFalse(String status, Pageable pageable);
+    List<Album> findByStatusAndIsDeletedFalse(String status);
 
     Page<Album> findByOwnerIdAndStatus(UUID ownerId, String status, Pageable pageable);
 
@@ -21,12 +26,12 @@ public interface AlbumRepository extends JpaRepository<Album, UUID> {
     List<Album> findByStatus(String status);
 
     @org.springframework.data.jpa.repository.Query(value = "SELECT a FROM Album a " +
-           "WHERE a.status = 'APPROVED' " +
+           "WHERE a.status = 'APPROVED' AND a.isDeleted = false " +
            "AND (:keyword IS NULL OR :keyword = '' OR " +
            "    LOWER(a.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR " +
            "    LOWER(a.ownerName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))",
            countQuery = "SELECT COUNT(a) FROM Album a " +
-           "WHERE a.status = 'APPROVED' " +
+           "WHERE a.status = 'APPROVED' AND a.isDeleted = false " +
            "AND (:keyword IS NULL OR :keyword = '' OR " +
            "    LOWER(a.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')) OR " +
            "    LOWER(a.ownerName) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")

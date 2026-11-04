@@ -64,7 +64,8 @@ public class Song {
 
     private String status = "PENDING";
 
-    @Column(name = "is_deleted")
+    @Builder.Default
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
     private Boolean isDeleted = false;
 
     @CreationTimestamp
@@ -81,4 +82,8 @@ public class Song {
 
     @OneToMany(mappedBy = "song", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SongArtist> artists = new ArrayList<>();
+
+    public Boolean getIsDeleted() {
+        return Boolean.TRUE.equals(this.isDeleted);
+    }
 }

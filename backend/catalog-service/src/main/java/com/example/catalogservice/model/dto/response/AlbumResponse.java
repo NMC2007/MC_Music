@@ -19,5 +19,6 @@ public class AlbumResponse {
     private LocalDate releaseDate;
     private String status;
     private Integer likeCount;
+    private Boolean isDeleted;
     private LocalDateTime createdAt;
 }
