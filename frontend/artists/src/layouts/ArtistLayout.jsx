@@ -10,8 +10,14 @@ import { getArtistProfileApi } from "#/api/artist";
 export const ArtistLayout = () => {
   const location = useLocation();
   const mainRef = useRef(null);
-  const { hasCompletedOnboarding, setArtist } = useAuthStore();
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(!hasCompletedOnboarding);
+  const {
+    artist,
+    pendingNewAccountOnboarding,
+    dismissedOnboardingArtistIds,
+    setOnboardingDismissed,
+    setArtist,
+  } = useAuthStore();
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Gọi API lấy profile nghệ sĩ khi đã đăng nhập và đồng bộ vào store
   const { data: profileRes } = useQuery({
@@ -29,6 +35,17 @@ export const ArtistLayout = () => {
     }
   }, [profileRes, setArtist]);
 
+  // Chỉ tự động hiển thị Onboarding 1 lần duy nhất cho tài khoản MỚI TẠO (từ RegisterPage)
+  useEffect(() => {
+    const artistId = artist?.id || artist?.artistId;
+    const isDismissed = artistId && dismissedOnboardingArtistIds?.includes(artistId);
+    const alreadyHasMedia = Boolean(artist?.avatarUrl && artist?.coverUrl);
+
+    if (pendingNewAccountOnboarding && !isDismissed && !alreadyHasMedia) {
+      setIsOnboardingOpen(true);
+    }
+  }, [pendingNewAccountOnboarding, artist, dismissedOnboardingArtistIds]);
+
   // Tự động cuộn lên đầu trang mỗi khi chuyển route
   useEffect(() => {
     if (mainRef.current) {
@@ -36,12 +53,17 @@ export const ArtistLayout = () => {
     }
   }, [location.pathname]);
 
-  // Lắng nghe sự kiện mở Onboarding từ Topbar hoặc các trang khác
+  // Lắng nghe sự kiện mở Onboarding thủ công từ Topbar
   useEffect(() => {
     const handleOpen = () => setIsOnboardingOpen(true);
     window.addEventListener("open-artist-onboarding", handleOpen);
     return () => window.removeEventListener("open-artist-onboarding", handleOpen);
   }, []);
+
+  const handleCloseOnboarding = () => {
+    setIsOnboardingOpen(false);
+    setOnboardingDismissed(artist?.id || artist?.artistId);
+  };
 
   return (
     <div className="h-screen w-full bg-spotify-black flex overflow-hidden text-spotify-text p-2 sm:p-2.5 gap-2 sm:gap-2.5 select-none">
@@ -65,7 +87,7 @@ export const ArtistLayout = () => {
       {/* ── MODAL ONBOARDING THIẾT LẬP PROFILE ── */}
       <OnboardingProfileModal
         isOpen={isOnboardingOpen}
-        onClose={() => setIsOnboardingOpen(false)}
+        onClose={handleCloseOnboarding}
       />
     </div>
   );

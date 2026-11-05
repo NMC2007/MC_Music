@@ -43,7 +43,7 @@ export const OnboardingProfileModal = ({ isOpen, onClose }) => {
   };
 
   const handleSkip = () => {
-    setOnboardingDismissed();
+    setOnboardingDismissed(artist?.id || artist?.artistId);
     onClose?.();
     toast.info("Bạn có thể cập nhật ảnh hồ sơ bất cứ lúc nào trong trang Hồ sơ cá nhân.");
   };
@@ -75,7 +75,7 @@ export const OnboardingProfileModal = ({ isOpen, onClose }) => {
         setArtist(res.data);
       }
 
-      setOnboardingDismissed();
+      setOnboardingDismissed(artist?.id || artist?.artistId);
       toast.success("Cập nhật ảnh hồ sơ nghệ sĩ thành công!");
       onClose?.();
     } catch (err) {

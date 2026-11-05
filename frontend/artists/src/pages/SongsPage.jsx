@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router";
 import {
   Music,
@@ -11,15 +11,21 @@ import {
   Play,
   Pause,
   X,
+  Trash2,
+  RotateCcw,
+  AlertTriangle,
 } from "lucide-react";
-import { getMySongsApi } from "#/api/catalog";
+import { toast } from "sonner";
+import { getMySongsApi, deleteSongApi, restoreSongApi } from "#/api/catalog";
 import { Button } from "#/components/ui/Button";
+import { Modal } from "#/components/ui/Modal";
 import { CoverImage } from "#/components/ui/CoverImage";
 import { StatusBadge } from "#/components/ui/StatusBadge";
 import { SimpleAudioPlayer } from "#/components/ui/SimpleAudioPlayer";
 import { MarqueeText } from "#/components/ui/MarqueeText";
 import { SkeletonRow } from "#/components/ui/Skeleton";
 import { UploadSongModal } from "#/components/songs/UploadSongModal";
+import { EditSongModal } from "#/components/songs/EditSongModal";
 import { LyricsModal } from "#/components/songs/LyricsModal";
 import { SongArtistModal } from "#/components/songs/SongArtistModal";
 import { SongActionMenu } from "#/components/songs/SongActionMenu";
@@ -36,7 +42,7 @@ const STATUS_FILTERS = [
   { value: "TAKEDOWN", label: "Đã gỡ" },
 ];
 
-// ─── SUB-COMPONENT: FILTER PILLS ──────────────────────────────────────────────
+// ─── SUB-COMPONENT: STATUS FILTER PILLS ───────────────────────────────────────
 const StatusFilterPills = ({ activeStatus, onChange }) => (
   <div className="flex items-center gap-2 flex-wrap">
     {STATUS_FILTERS.map((f) => (
@@ -106,22 +112,28 @@ const Pagination = ({ page, totalPages, onPageChange }) => {
 };
 
 // ─── SUB-COMPONENT: EMPTY STATE ───────────────────────────────────────────────
-const EmptyState = ({ hasFilter, onUpload }) => (
+const EmptyState = ({ isTrash, hasFilter, onUpload }) => (
   <div className="py-16 flex flex-col items-center justify-center gap-4 text-center">
     <div className="w-16 h-16 rounded-2xl bg-[#fa2d48]/10 text-[#fa2d48] flex items-center justify-center">
-      <Music size={30} />
+      {isTrash ? <Trash2 size={30} /> : <Music size={30} />}
     </div>
     <div className="space-y-1">
       <h3 className="text-sm font-bold text-white">
-        {hasFilter ? "Không tìm thấy bài hát nào" : "Chưa có bài hát nào được đăng tải"}
+        {isTrash
+          ? "Thùng rác trống"
+          : hasFilter
+          ? "Không tìm thấy bài hát nào"
+          : "Chưa có bài hát nào được đăng tải"}
       </h3>
       <p className="text-xs text-neutral-400 max-w-xs">
-        {hasFilter
-          ? "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm."
+        {isTrash
+          ? "Không có bài hát nào đã bị xóa trong danh sách này."
+          : hasFilter
+          ? "Thử thay đổi bộ lọc trạng thái hoặc từ khóa tìm kiếm."
           : "Tải lên bản thu đầu tiên để gửi vào hàng đợi kiểm duyệt."}
       </p>
     </div>
-    {!hasFilter && (
+    {!isTrash && !hasFilter && (
       <Button variant="primary" size="sm" onClick={onUpload} className="mt-1">
         <Plus size={14} /> Tải bài hát đầu tiên
       </Button>
@@ -133,23 +145,29 @@ const EmptyState = ({ hasFilter, onUpload }) => (
 export const SongsPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  // ── STATE ──────────────────────────────────────────────────────────────────
+  // ── STATE ──
+  const [activeTab, setActiveTab] = useState("active"); // "active" | "trash"
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [searchKeyword, setSearchKeyword] = useState("");
 
-  // Modal state
+  // Modal states
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [lyricsTarget, setLyricsTarget] = useState(null);    // song object
-  const [artistTarget, setArtistTarget] = useState(null);    // song object
+  const [editTarget, setEditTarget] = useState(null);      // song object
+  const [lyricsTarget, setLyricsTarget] = useState(null);  // song object
+  const [artistTarget, setArtistTarget] = useState(null);  // song object
+  const [deleteTarget, setDeleteTarget] = useState(null);  // song object to confirm delete
 
   // Audio preview state
   const [previewSong, setPreviewSong] = useState(null);
 
-  // Action menu state — lưu { id, song, anchorEl }
+  // Action menu state — lưu { id, song, anchorRect }
   const [activeMenu, setActiveMenu] = useState(null);
+
+  const isTrashTab = activeTab === "trash";
 
   // ── TỰ ĐỘNG MỞ MODAL UPLOAD từ query param ?action=upload ────────────────
   useEffect(() => {
@@ -160,7 +178,13 @@ export const SongsPage = () => {
     }
   }, [location.search, navigate]);
 
-  // ── RESET TRANG KHI FILTER THAY ĐỔI ────────────────────────────────────
+  // ── RESET TRANG KHI CHUYỂN TAB ───────────────────────────────────────────
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setPage(0);
+  };
+
+  // ── RESET TRANG KHI STATUS FILTER THAY ĐỔI ─────────────────────────────
   const handleStatusChange = (val) => {
     setStatusFilter(val);
     setPage(0);
@@ -177,12 +201,13 @@ export const SongsPage = () => {
 
   // ── API: LẤY DANH SÁCH BÀI HÁT ─────────────────────────────────────────
   const { data: songsRes, isLoading, isFetching } = useQuery({
-    queryKey: ["mySongs", page, statusFilter, searchKeyword],
+    queryKey: ["mySongs", page, activeTab, statusFilter, searchKeyword],
     queryFn: () =>
       getMySongsApi({
         page,
         size: PAGE_SIZE,
-        ...(statusFilter && { status: statusFilter }),
+        isDeleted: isTrashTab,
+        ...(!isTrashTab && statusFilter && { status: statusFilter }),
         ...(searchKeyword && { keyword: searchKeyword }),
       }),
     staleTime: 1000 * 60,
@@ -194,6 +219,45 @@ export const SongsPage = () => {
   const totalPages = songsRes?.data?.totalPages || 0;
 
   const hasFilter = !!(statusFilter || searchKeyword);
+
+  // ── MUTATION: XÓA MỀM BÀI HÁT ──────────────────────────────────────────
+  const deleteMutation = useMutation({
+    mutationFn: (songId) => deleteSongApi(songId),
+    onSuccess: () => {
+      toast.success("Đã chuyển bài hát vào thùng rác!", {
+        description: "Bạn có thể khôi phục lại bất kỳ lúc nào từ tab Thùng rác.",
+      });
+      setDeleteTarget(null);
+      queryClient.invalidateQueries({ queryKey: ["mySongs"] });
+      queryClient.invalidateQueries({ queryKey: ["artistRecentSongs"] });
+      queryClient.invalidateQueries({ queryKey: ["artistDashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["myAlbums"] });
+    },
+    onError: (err) => {
+      toast.error("Xóa bài hát thất bại", {
+        description: err.response?.data?.message || "Vui lòng thử lại sau.",
+      });
+    },
+  });
+
+  // ── MUTATION: KHÔI PHỤC BÀI HÁT ────────────────────────────────────────
+  const restoreMutation = useMutation({
+    mutationFn: (songId) => restoreSongApi(songId),
+    onSuccess: () => {
+      toast.success("Đã khôi phục bài hát thành công!", {
+        description: "Tác phẩm đã quay trở lại danh sách phát hành.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["mySongs"] });
+      queryClient.invalidateQueries({ queryKey: ["artistRecentSongs"] });
+      queryClient.invalidateQueries({ queryKey: ["artistDashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["myAlbums"] });
+    },
+    onError: (err) => {
+      toast.error("Khôi phục thất bại", {
+        description: err.response?.data?.message || "Vui lòng thử lại sau.",
+      });
+    },
+  });
 
   // ── HANDLERS ────────────────────────────────────────────────────────────
   const togglePreview = useCallback((song) => {
@@ -226,7 +290,7 @@ export const SongsPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl pb-8">
+    <div className="space-y-6 w-full pb-8">
       {/* ── HEADER ── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -235,7 +299,7 @@ export const SongsPage = () => {
             Quản lý Tác phẩm
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            {isLoading ? "Đang tải..." : `${totalElements.toLocaleString()} bài hát đã tải lên`}
+            {isLoading ? "Đang tải dữ liệu..." : `${totalElements.toLocaleString()} bài hát trong danh mục này`}
           </p>
         </div>
 
@@ -248,6 +312,35 @@ export const SongsPage = () => {
           <Plus size={16} strokeWidth={2.5} />
           Tải bài hát mới
         </Button>
+      </div>
+
+      {/* ── TAB CHUYỂN ĐỔI: TÁC PHẨM PHÁT HÀNH vs THÙNG RÁC ── */}
+      <div className="flex items-center gap-3 border-b border-white/[0.06] pb-3">
+        <button
+          type="button"
+          onClick={() => handleTabChange("active")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            !isTrashTab
+              ? "bg-[#fa2d48] text-white shadow-[0_2px_12px_rgba(250,45,72,0.35)]"
+              : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
+          }`}
+        >
+          <Music size={15} />
+          Tác phẩm phát hành
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange("trash")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            isTrashTab
+              ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+              : "text-neutral-400 hover:text-white hover:bg-white/[0.04]"
+          }`}
+        >
+          <Trash2 size={15} />
+          Thùng rác
+        </button>
       </div>
 
       {/* ── THANH CÔNG CỤ: Tìm kiếm & Bộ lọc ── */}
@@ -273,8 +366,10 @@ export const SongsPage = () => {
           )}
         </div>
 
-        {/* Bộ lọc trạng thái */}
-        <StatusFilterPills activeStatus={statusFilter} onChange={handleStatusChange} />
+        {/* Bộ lọc trạng thái (chỉ hiện ở tab Tác phẩm phát hành) */}
+        {!isTrashTab && (
+          <StatusFilterPills activeStatus={statusFilter} onChange={handleStatusChange} />
+        )}
       </div>
 
       {/* ── AUDIO PREVIEW (sticky khi phát nhạc) ── */}
@@ -296,21 +391,27 @@ export const SongsPage = () => {
             {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
           </div>
         ) : songs.length === 0 ? (
-          <EmptyState hasFilter={hasFilter} onUpload={() => setIsUploadOpen(true)} />
+          <EmptyState
+            isTrash={isTrashTab}
+            hasFilter={hasFilter}
+            onUpload={() => setIsUploadOpen(true)}
+          />
         ) : (
           <div className="overflow-x-auto scrollbar-thin min-h-[320px]">
             <table className="w-full text-left text-sm select-none">
               <thead>
                 <tr className="text-[11px] text-neutral-500 uppercase tracking-wider border-b border-white/[0.04]">
                   <th className="py-3.5 pl-5 pr-3 w-10 text-center">#</th>
-                  <th className="py-3.5 px-4 w-[240px] sm:w-[280px] max-w-[280px]">Bài hát</th>
+                  <th className="py-3.5 px-4 min-w-[200px]">Bài hát</th>
                   <th className="py-3.5 px-4 hidden md:table-cell min-w-[140px]">Thể loại</th>
                   <th className="py-3.5 px-4 hidden lg:table-cell">Thời lượng</th>
-                  <th className="py-3.5 px-4">Trạng thái</th>
+                  <th className="py-3.5 px-4">
+                    {isTrashTab ? "Vị trí" : "Trạng thái"}
+                  </th>
                   <th className="py-3.5 px-4 hidden sm:table-cell text-right">Nghe</th>
                   <th className="py-3.5 px-4 hidden sm:table-cell text-right">Thích</th>
                   <th className="py-3.5 px-4 hidden lg:table-cell text-right">Ngày đăng</th>
-                  <th className="py-3.5 pr-4 pl-2 w-12 text-center">···</th>
+                  <th className="py-3.5 pr-4 pl-2 text-center min-w-[80px]">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.03]">
@@ -341,7 +442,7 @@ export const SongsPage = () => {
                       </td>
 
                       {/* Tên bài hát & Cover */}
-                      <td className="py-3 px-4 w-[240px] sm:w-[280px] max-w-[280px]">
+                      <td className="py-3 px-4 min-w-[200px]">
                         <div className="flex items-center gap-3 w-full min-w-0">
                           <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-neutral-800">
                             <CoverImage
@@ -354,7 +455,9 @@ export const SongsPage = () => {
                             <MarqueeText
                               text={song.title}
                               as="p"
-                              className={`text-sm font-bold text-white transition-colors group-hover:text-[#fa2d48] ${isPlaying ? "text-[#fa2d48]" : ""}`}
+                              className={`text-sm font-bold text-white transition-colors group-hover:text-[#fa2d48] ${
+                                isPlaying ? "text-[#fa2d48]" : ""
+                              }`}
                             />
                             <p className="text-[11px] text-neutral-400 truncate mt-0.5">
                               {song.ownerName}
@@ -372,7 +475,10 @@ export const SongsPage = () => {
                       <td className="py-3 px-4 hidden md:table-cell">
                         <div className="flex flex-wrap gap-1 max-w-[130px]">
                           {genres.slice(0, 2).map((g) => (
-                            <span key={g.id} className="px-2 py-0.5 rounded-full text-[10px] bg-neutral-800 text-neutral-400 font-medium truncate max-w-[60px]">
+                            <span
+                              key={g.id}
+                              className="px-2 py-0.5 rounded-full text-[10px] bg-neutral-800 text-neutral-400 font-medium truncate max-w-[60px]"
+                            >
                               {g.name}
                             </span>
                           ))}
@@ -389,9 +495,15 @@ export const SongsPage = () => {
                         {formatDuration(song.durationSeconds)}
                       </td>
 
-                      {/* Trạng thái */}
+                      {/* Trạng thái / Vị trí */}
                       <td className="py-3 px-4">
-                        <StatusBadge status={song.status} size="sm" />
+                        {isTrashTab ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/15 border border-rose-500/25 text-rose-300 text-[10px] font-bold">
+                            <Trash2 size={11} /> Đã xóa
+                          </span>
+                        ) : (
+                          <StatusBadge status={song.status} size="sm" />
+                        )}
                       </td>
 
                       {/* Lượt nghe */}
@@ -411,18 +523,33 @@ export const SongsPage = () => {
 
                       {/* Menu thao tác */}
                       <td className="py-3 pr-4 pl-2 text-center">
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleMenu(e, song)}
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer mx-auto ${
-                            isMenuOpen
-                              ? "bg-[#fa2d48]/20 text-[#fa2d48]"
-                              : "text-neutral-500 hover:text-white hover:bg-white/10"
-                          }`}
-                          title="Thao tác"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          {isTrashTab ? (
+                            <button
+                              type="button"
+                              onClick={() => restoreMutation.mutate(song.id)}
+                              disabled={restoreMutation.isPending}
+                              className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 flex items-center gap-1 transition-all cursor-pointer"
+                              title="Khôi phục bài hát về danh sách hoạt động"
+                            >
+                              <RotateCcw size={12} />
+                              <span>Khôi phục</span>
+                            </button>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleMenu(e, song)}
+                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+                              isMenuOpen
+                                ? "bg-[#fa2d48]/20 text-[#fa2d48]"
+                                : "text-neutral-500 hover:text-white hover:bg-white/10"
+                            }`}
+                            title="Thao tác"
+                          >
+                            <MoreHorizontal size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -443,32 +570,92 @@ export const SongsPage = () => {
         <SongActionMenu
           key={activeMenu.id}
           anchorRect={activeMenu.anchorRect}
+          isTrash={isTrashTab}
           isPreviewPlaying={previewSong?.id === activeMenu.song.id}
           onTogglePreview={() => togglePreview(activeMenu.song)}
           onEditLyrics={() => setLyricsTarget(activeMenu.song)}
           onAddArtist={() => setArtistTarget(activeMenu.song)}
+          onEditSong={() => setEditTarget(activeMenu.song)}
+          onDeleteSong={() => setDeleteTarget(activeMenu.song)}
+          onRestoreSong={() => restoreMutation.mutate(activeMenu.song.id)}
           onClose={() => setActiveMenu(null)}
         />
       )}
 
-      {/* ── CÁC MODAL ── */}
+      {/* ── MODAL: TẢI BÀI HÁT MỚI ── */}
       <UploadSongModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onSuccess={() => setIsUploadOpen(false)}
       />
 
-      <LyricsModal
-        isOpen={!!lyricsTarget}
-        onClose={() => setLyricsTarget(null)}
-        song={lyricsTarget}
+      {/* ── MODAL: CHỈNH SỬA BÀI HÁT ── */}
+      <EditSongModal
+        isOpen={!!editTarget}
+        song={editTarget}
+        onClose={() => setEditTarget(null)}
+        onSuccess={() => setEditTarget(null)}
       />
 
+      {/* ── MODAL: CẬP NHẬT LỜI BÀI HÁT ── */}
+      <LyricsModal
+        isOpen={!!lyricsTarget}
+        song={lyricsTarget}
+        onClose={() => setLyricsTarget(null)}
+      />
+
+      {/* ── MODAL: QUẢN LÝ NGHỆ SĨ HỢP TÁC ── */}
       <SongArtistModal
         isOpen={!!artistTarget}
-        onClose={() => setArtistTarget(null)}
         song={artistTarget}
+        onClose={() => setArtistTarget(null)}
       />
+
+      {/* ── MODAL XÁC NHẬN: XÓA MỀM BÀI HÁT ── */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Chuyển bài hát vào Thùng rác?"
+        description="Xác nhận đưa tác phẩm vào thùng rác."
+        maxWidth="max-w-md"
+      >
+        <div className="space-y-4 pt-1">
+          <div className="flex items-start gap-3 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs leading-relaxed">
+            <AlertTriangle size={18} className="flex-shrink-0 text-rose-400 mt-0.5" />
+            <div>
+              <p className="font-bold text-white mb-1">
+                "{deleteTarget?.title}" sẽ bị ẩn khỏi Catalog công khai
+              </p>
+              <p className="text-neutral-400">
+                Tác phẩm sẽ chuyển vào Thùng rác. Lượt nghe và lượt yêu thích sẽ được bảo toàn, và bạn có thể khôi phục lại bất cứ lúc nào.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/[0.05]">
+            <Button
+              type="button"
+              variant="ghost"
+              size="md"
+              onClick={() => setDeleteTarget(null)}
+              disabled={deleteMutation.isPending}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="md"
+              isLoading={deleteMutation.isPending}
+              onClick={() => deleteMutation.mutate(deleteTarget.id)}
+              className="bg-rose-600 hover:bg-rose-700 shadow-[0_4px_16px_rgba(225,29,72,0.4)] px-6"
+            >
+              <Trash2 size={15} />
+              Xác nhận xóa
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

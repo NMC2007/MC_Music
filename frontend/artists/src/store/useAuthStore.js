@@ -9,25 +9,30 @@ export const useAuthStore = create(
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
-      hasCompletedOnboarding: false, // Cờ kiểm tra đã hoàn thành hoặc bỏ qua cửa sổ Onboarding avatar/cover
+      hasCompletedOnboarding: true, // Mặc định true để không tự động bật cho tài khoản đã có
+      pendingNewAccountOnboarding: false, // Chỉ bật khi vừa đăng ký tài khoản mới thành công
+      dismissedOnboardingArtistIds: [], // Danh sách artistId đã hoàn tất hoặc bỏ qua onboarding
 
       /**
        * Đăng nhập tài khoản Nghệ sĩ: hỗ trợ cả 2 cách truyền tham số:
-       * 1. login(artist, accessToken, refreshToken)
-       * 2. login(authResponseData) -> { artistId, email, stageName, accessToken, refreshToken }
+       * 1. login(artist, accessToken, refreshToken, options)
+       * 2. login(authResponseData, null, null, options) -> { artistId, email, stageName, accessToken, refreshToken }
        */
-      login: (artistOrData, accessToken, refreshToken) => {
+      login: (artistOrData, accessToken, refreshToken, options = {}) => {
         try {
           queryClient.clear(); // Xóa sạch cache truy vấn của phiên trước
         } catch (e) {
           console.error("Lỗi khi xóa queryClient cache:", e);
         }
 
+        const isNewAccount = Boolean(options?.isNewAccount);
+
         if (typeof artistOrData === 'object' && artistOrData !== null && 'accessToken' in artistOrData) {
           const { accessToken: at, refreshToken: rt, artist: a, ...rest } = artistOrData;
+          const artistId = rest.artistId || rest.id || a?.id || a?.artistId;
           const artistObj = a || {
-            id: rest.artistId || rest.id,
-            artistId: rest.artistId || rest.id,
+            id: artistId,
+            artistId: artistId,
             email: rest.email,
             stageName: rest.stageName,
             avatarUrl: rest.avatarUrl || null,
@@ -40,6 +45,8 @@ export const useAuthStore = create(
             accessToken: at,
             refreshToken: rt || null,
             isAuthenticated: true,
+            pendingNewAccountOnboarding: isNewAccount,
+            hasCompletedOnboarding: !isNewAccount,
           });
         } else {
           set({
@@ -47,6 +54,8 @@ export const useAuthStore = create(
             accessToken: accessToken,
             refreshToken: refreshToken || null,
             isAuthenticated: true,
+            pendingNewAccountOnboarding: isNewAccount,
+            hasCompletedOnboarding: !isNewAccount,
           });
         }
 
@@ -76,7 +85,17 @@ export const useAuthStore = create(
       /**
        * Đánh dấu đã xem hoặc bỏ qua Onboarding thiết lập ảnh đại diện / ảnh bìa
        */
-      setOnboardingDismissed: () => set({ hasCompletedOnboarding: true }),
+      setOnboardingDismissed: (artistId) =>
+        set((state) => {
+          const id = artistId || state.artist?.id || state.artist?.artistId;
+          const currentList = state.dismissedOnboardingArtistIds || [];
+          const updated = id && !currentList.includes(id) ? [...currentList, id] : currentList;
+          return {
+            pendingNewAccountOnboarding: false,
+            dismissedOnboardingArtistIds: updated,
+            hasCompletedOnboarding: true,
+          };
+        }),
 
       /**
        * Đăng xuất tài khoản Nghệ sĩ: xóa sạch thông tin xác thực và cache dữ liệu
@@ -91,17 +110,28 @@ export const useAuthStore = create(
           console.error("Lỗi khi đăng xuất:", e);
         }
 
-        set({
+        set((state) => ({
           artist: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
-          hasCompletedOnboarding: false,
-        });
+          pendingNewAccountOnboarding: false,
+          dismissedOnboardingArtistIds: state.dismissedOnboardingArtistIds || [],
+          hasCompletedOnboarding: true,
+        }));
       },
     }),
     {
       name: 'mc-artist-auth', // Phân tách key lưu trong localStorage của domain Artist
+      partialize: (state) => ({
+        artist: state.artist,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+        pendingNewAccountOnboarding: state.pendingNewAccountOnboarding,
+        dismissedOnboardingArtistIds: state.dismissedOnboardingArtistIds,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
+      }),
     }
   )
 );

@@ -1,13 +1,20 @@
 import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Pause, FileText, Users, Pencil, Trash2, Headphones } from "lucide-react";
-import { notifyFeatureInDevelopment } from "#/utils/toastUtils";
+import {
+  Pause,
+  FileText,
+  Users,
+  Pencil,
+  Trash2,
+  Headphones,
+  RotateCcw,
+} from "lucide-react";
 
 /**
  * SongActionMenu: Menu thao tác nổi (React Portal) gắn trực tiếp vào document.body
  * - Sử dụng tọa độ `anchorRect` nhận từ nút bấm để tính toán vị trí hiển thị.
- * - Tự động lật lên trên (dropup) nếu phía dưới không đủ 215px.
- * - Sử dụng backdrop trong suốt giúp đóng menu khi click ra ngoài mà không xung đột sự kiện.
+ * - Tự động lật lên trên (dropup) nếu phía dưới không đủ chiều cao.
+ * - Hỗ trợ phân biệt chế độ thông thường và chế độ Thùng rác (`isTrash`).
  * - Tự động đóng khi cuộn trang hoặc nhấn ESC.
  */
 export const SongActionMenu = ({
@@ -16,6 +23,10 @@ export const SongActionMenu = ({
   onTogglePreview,
   onEditLyrics,
   onAddArtist,
+  onEditSong,
+  onDeleteSong,
+  isTrash = false,
+  onRestoreSong,
   onClose,
 }) => {
   // Đóng menu khi nhấn Escape hoặc khi người dùng cuộn trang/resize
@@ -43,9 +54,9 @@ export const SongActionMenu = ({
 
   if (!anchorRect) return null;
 
-  // Tính toán vị trí fixed
-  const MENU_WIDTH = 208; // w-52 = 13rem = 208px
-  const MENU_HEIGHT = 215; // chiều cao menu
+  // Chiều cao menu ước tính: thùng rác ít mục hơn (khoảng 100px), bình thường khoảng 220px
+  const MENU_WIDTH = 214;
+  const MENU_HEIGHT = isTrash ? 110 : 220;
   const GAP = 4;
 
   const spaceBelow = window.innerHeight - anchorRect.bottom;
@@ -61,55 +72,78 @@ export const SongActionMenu = ({
     left = window.innerWidth - MENU_WIDTH - 10;
   }
 
-  const menuItems = [
-    {
-      label: isPreviewPlaying ? "Dừng nghe thử" : "Nghe thử bài hát",
-      icon: isPreviewPlaying ? Pause : Headphones,
-      action: () => {
-        onTogglePreview();
-        onClose();
-      },
-      className: "text-white",
-    },
-    null, // Divider
-    {
-      label: "Cập nhật lời bài hát",
-      icon: FileText,
-      action: () => {
-        onEditLyrics();
-        onClose();
-      },
-      className: "text-white",
-    },
-    {
-      label: "Thêm nghệ sĩ hợp tác",
-      icon: Users,
-      action: () => {
-        onAddArtist();
-        onClose();
-      },
-      className: "text-white",
-    },
-    null, // Divider
-    {
-      label: "Chỉnh sửa thông tin",
-      icon: Pencil,
-      action: () => {
-        notifyFeatureInDevelopment("Chỉnh sửa bài hát");
-        onClose();
-      },
-      className: "text-white",
-    },
-    {
-      label: "Xóa bài hát",
-      icon: Trash2,
-      action: () => {
-        notifyFeatureInDevelopment("Xóa bài hát");
-        onClose();
-      },
-      className: "text-rose-400 hover:text-rose-300 hover:bg-rose-500/10",
-    },
-  ];
+  // Danh mục menu tùy biến theo trạng thái hoạt động / thùng rác
+  const menuItems = isTrash
+    ? [
+        {
+          label: "Khôi phục bài hát",
+          icon: RotateCcw,
+          action: () => {
+            onRestoreSong?.();
+            onClose();
+          },
+          className: "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 font-bold",
+        },
+        null,
+        {
+          label: isPreviewPlaying ? "Dừng nghe thử" : "Nghe thử bài hát",
+          icon: isPreviewPlaying ? Pause : Headphones,
+          action: () => {
+            onTogglePreview?.();
+            onClose();
+          },
+          className: "text-white",
+        },
+      ]
+    : [
+        {
+          label: isPreviewPlaying ? "Dừng nghe thử" : "Nghe thử bài hát",
+          icon: isPreviewPlaying ? Pause : Headphones,
+          action: () => {
+            onTogglePreview?.();
+            onClose();
+          },
+          className: "text-white",
+        },
+        null, // Divider
+        {
+          label: "Cập nhật lời bài hát",
+          icon: FileText,
+          action: () => {
+            onEditLyrics?.();
+            onClose();
+          },
+          className: "text-white",
+        },
+        {
+          label: "Quản lý nghệ sĩ hợp tác",
+          icon: Users,
+          action: () => {
+            onAddArtist?.();
+            onClose();
+          },
+          className: "text-white",
+        },
+        null, // Divider
+        {
+          label: "Chỉnh sửa bài hát",
+          icon: Pencil,
+          action: () => {
+            onEditSong?.();
+            onClose();
+          },
+          className: "text-white hover:text-[#fa2d48]",
+        },
+        {
+          label: "Xóa bài hát",
+          icon: Trash2,
+          action: () => {
+            onDeleteSong?.();
+            onClose();
+          },
+          className: "text-rose-400 hover:text-rose-300 hover:bg-rose-500/10",
+        },
+      ];
 
   return createPortal(
     <>
@@ -134,7 +168,7 @@ export const SongActionMenu = ({
           left: `${left}px`,
           zIndex: 99999,
         }}
-        className={`w-52 rounded-2xl bg-[#1f1f1f] border border-white/[0.08] shadow-[0_20px_45px_rgba(0,0,0,0.95)] py-1.5 animate-in fade-in zoom-in-95 duration-150 ${
+        className={`w-54 rounded-2xl bg-[#1f1f1f] border border-white/[0.08] shadow-[0_20px_45px_rgba(0,0,0,0.95)] py-1.5 animate-in fade-in zoom-in-95 duration-150 ${
           openUpward ? "origin-bottom-right" : "origin-top-right"
         }`}
       >
@@ -152,7 +186,7 @@ export const SongActionMenu = ({
                 item.className || "text-white"
               }`}
             >
-              <Icon size={14} className="flex-shrink-0 opacity-75" />
+              <Icon size={14} className="flex-shrink-0 opacity-80" />
               {item.label}
             </button>
           );

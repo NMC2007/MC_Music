@@ -66,7 +66,8 @@ export const RegisterPage = () => {
 
       if (response?.data) {
         // Backend tự động trả về JWT token ngay khi đăng ký thành công
-        login(response.data);
+        // Đánh dấu isNewAccount: true để hiển thị popup thiết lập ảnh lần đầu duy nhất
+        login(response.data, null, null, { isNewAccount: true });
         toast.success("Tạo tài khoản nghệ sĩ thành công!", {
           description: `Chào mừng ${data.stageName} gia nhập MC Music Studio!`,
         });

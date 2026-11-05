@@ -1,14 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import {
-  Plus,
   ChevronDown,
   User,
   Image as ImageIcon,
   LogOut,
 } from "lucide-react";
 import { useAuthStore } from "#/store/useAuthStore";
-import { Button } from "#/components/ui/Button";
 import { CoverImage } from "#/components/ui/CoverImage";
 
 export const Topbar = () => {
@@ -53,12 +51,8 @@ export const Topbar = () => {
     window.dispatchEvent(new CustomEvent("open-artist-onboarding"));
   };
 
-  const handleQuickUpload = () => {
-    navigate("/songs?action=upload");
-  };
-
   return (
-    <header className="sticky top-0 z-30 h-18 bg-spotify-base/90 backdrop-blur-xl px-6 flex items-center justify-between transition-all select-none">
+    <header className="sticky top-0 z-30 h-18 bg-spotify-base/90 backdrop-blur-xl px-5 sm:px-8 flex items-center justify-between transition-all select-none">
       {/* ── BÊN TRÁI: TIÊU ĐỀ TRANG DYNAMIC ── */}
       <div>
         <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight flex items-center gap-2">
@@ -69,19 +63,8 @@ export const Topbar = () => {
         </p>
       </div>
 
-      {/* ── BÊN PHẢI: HÀNH ĐỘNG NHANH & PROFILE DROPDOWN ── */}
+      {/* ── BÊN PHẢI: PROFILE DROPDOWN ── */}
       <div className="flex items-center gap-4">
-        {/* Nút "+ Tải nhạc mới" */}
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleQuickUpload}
-          className="shadow-[0_4px_16px_rgba(250,45,72,0.3)] hidden sm:flex"
-        >
-          <Plus size={16} strokeWidth={2.5} />
-          <span>Tải nhạc mới</span>
-        </Button>
-
         {/* Dropdown Hồ sơ Nghệ sĩ */}
         <div ref={dropdownRef} className="relative">
           <button

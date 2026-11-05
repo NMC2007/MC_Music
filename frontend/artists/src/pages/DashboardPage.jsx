@@ -82,7 +82,7 @@ export const DashboardPage = () => {
   const currentArtist = profileRes?.data || artist;
 
   return (
-    <div className="space-y-8 max-w-6xl pb-12">
+    <div className="space-y-8 w-full pb-12">
       {/* ── HERO BANNER: THÔNG TIN NGHỆ SĨ & LỐI TẮT HÀNH ĐỘNG ── */}
       <div className="relative overflow-hidden rounded-3xl bg-[#181818] shadow-2xl">
         {/* Background Cover nếu có */}
