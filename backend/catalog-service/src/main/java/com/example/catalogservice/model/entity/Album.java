@@ -48,6 +48,9 @@ public class Album {
 
     private String status = "PENDING"; // PENDING, APPROVED, REJECTED, TAKEDOWN
 
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @Column(name = "like_count")
     private Integer likeCount = 0;
 

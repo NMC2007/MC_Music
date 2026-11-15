@@ -1,4 +1,4 @@
--- Enable Extensions
+﻿-- Enable Extensions
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
 -- Create Schemas
@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS albums (
     release_date DATE,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'TAKEDOWN')),
+    rejection_reason TEXT,
     like_count INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -180,6 +181,7 @@ CREATE TABLE IF NOT EXISTS songs (
     play_count INT DEFAULT 0,
     like_count INT DEFAULT 0,
     status VARCHAR(50) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'TAKEDOWN')),
+    rejection_reason TEXT,
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -270,6 +272,15 @@ ALTER TABLE mc_music_catalog_schema.albums ALTER COLUMN is_deleted SET NOT NULL;
 UPDATE mc_music_catalog_schema.songs SET is_deleted = FALSE WHERE is_deleted IS NULL;
 ALTER TABLE mc_music_catalog_schema.songs ALTER COLUMN is_deleted SET DEFAULT FALSE;
 ALTER TABLE mc_music_catalog_schema.songs ALTER COLUMN is_deleted SET NOT NULL;
+
+-- Reset search_path to default
+SET search_path TO public;
+
+-- ==========================================
+-- 8. Migration: Add rejection_reason to albums and songs
+-- ==========================================
+ALTER TABLE mc_music_catalog_schema.albums ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE mc_music_catalog_schema.songs ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 
 -- Reset search_path to default
 SET search_path TO public;

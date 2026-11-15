@@ -14,6 +14,7 @@ import {
   Trash2,
   RotateCcw,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getMySongsApi, deleteSongApi, restoreSongApi } from "#/api/catalog";
@@ -29,6 +30,7 @@ import { EditSongModal } from "#/components/songs/EditSongModal";
 import { LyricsModal } from "#/components/songs/LyricsModal";
 import { SongArtistModal } from "#/components/songs/SongArtistModal";
 import { SongActionMenu } from "#/components/songs/SongActionMenu";
+import { RejectionReasonModal } from "#/components/common/RejectionReasonModal";
 import { formatNumber, formatDuration, formatDate } from "#/utils/formatters";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -160,6 +162,7 @@ export const SongsPage = () => {
   const [lyricsTarget, setLyricsTarget] = useState(null);  // song object
   const [artistTarget, setArtistTarget] = useState(null);  // song object
   const [deleteTarget, setDeleteTarget] = useState(null);  // song object to confirm delete
+  const [rejectionTarget, setRejectionTarget] = useState(null); // song object to view rejection reason
 
   // Audio preview state
   const [previewSong, setPreviewSong] = useState(null);
@@ -502,7 +505,20 @@ export const SongsPage = () => {
                             <Trash2 size={11} /> Đã xóa
                           </span>
                         ) : (
-                          <StatusBadge status={song.status} size="sm" />
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <StatusBadge status={song.status} size="sm" />
+                            {(song.status === "REJECTED" || song.status === "TAKEDOWN") && song.rejectionReason && (
+                              <button
+                                type="button"
+                                onClick={() => setRejectionTarget(song)}
+                                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-[10px] font-semibold transition-colors cursor-pointer"
+                                title="Bấm để xem chi tiết lý do từ Ban quản trị"
+                              >
+                                <Info size={11} />
+                                <span>Lý do</span>
+                              </button>
+                            )}
+                          </div>
                         )}
                       </td>
 
@@ -656,6 +672,18 @@ export const SongsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* MODAL XEM LÝ DO TỪ CHỐI DUYỆT BÀI HÁT */}
+      <RejectionReasonModal
+        isOpen={!!rejectionTarget}
+        onClose={() => setRejectionTarget(null)}
+        item={rejectionTarget ? {
+          title: rejectionTarget.title,
+          type: "song",
+          status: rejectionTarget.status,
+          reason: rejectionTarget.rejectionReason,
+        } : null}
+      />
     </div>
   );
 };

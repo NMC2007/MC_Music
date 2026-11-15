@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, MoreHorizontal, RotateCcw, ListMusic } from "lucide-react";
+import { Calendar, MoreHorizontal, RotateCcw, ListMusic, Info } from "lucide-react";
 import { CoverImage } from "#/components/ui/CoverImage";
 import { StatusBadge } from "#/components/ui/StatusBadge";
 import { MarqueeText } from "#/components/ui/MarqueeText";
@@ -11,6 +11,7 @@ export const AlbumCard = ({
   onOpenDetail,
   onOpenMenu,
   onRestore,
+  onViewReason,
 }) => {
   return (
     <div
@@ -69,7 +70,23 @@ export const AlbumCard = ({
             Đã xóa
           </span>
         ) : (
-          <StatusBadge status={album.status} size="sm" />
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <StatusBadge status={album.status} size="sm" />
+            {(album.status === "REJECTED" || album.status === "TAKEDOWN") && album.rejectionReason && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewReason?.(album);
+                }}
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 text-[10px] font-semibold transition-colors cursor-pointer"
+                title="Bấm để xem chi tiết lý do từ chối từ Ban quản trị"
+              >
+                <Info size={11} />
+                <span>Lý do</span>
+              </button>
+            )}
+          </div>
         )}
 
         <div className="flex items-center gap-1">
@@ -106,4 +123,3 @@ export const AlbumCard = ({
 };
 
 export default AlbumCard;
-

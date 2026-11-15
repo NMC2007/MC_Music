@@ -9,8 +9,8 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  // Timeout 15 giây (tăng thêm thời gian cho upload file media)
-  timeout: 15000,
+  // Timeout mặc định 30 giây cho các request thông thường
+  timeout: 30000,
 });
 
 // Interceptor cho Request: Tự động đính kèm JWT Bearer Token của Artist

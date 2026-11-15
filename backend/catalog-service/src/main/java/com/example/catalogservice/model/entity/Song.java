@@ -64,6 +64,9 @@ public class Song {
 
     private String status = "PENDING";
 
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
     @Builder.Default
     @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
     private Boolean isDeleted = false;

@@ -22,6 +22,7 @@ import { EditAlbumModal } from "#/components/albums/EditAlbumModal";
 import { AlbumDetailModal } from "#/components/albums/AlbumDetailModal";
 import { AlbumActionMenu } from "#/components/albums/AlbumActionMenu";
 import { AlbumCard } from "#/components/albums/AlbumCard";
+import { RejectionReasonModal } from "#/components/common/RejectionReasonModal";
 
 const PAGE_SIZE = 12;
 
@@ -91,6 +92,7 @@ export const AlbumsPage = () => {
   const [editTarget, setEditTarget] = useState(null);      // album object
   const [deleteTarget, setDeleteTarget] = useState(null);  // album object to confirm delete
   const [detailTarget, setDetailTarget] = useState(null);  // album object for tracklist modal
+  const [rejectionTarget, setRejectionTarget] = useState(null); // album object to view rejection reason
 
   // Action menu state
   const [activeMenu, setActiveMenu] = useState(null);
@@ -359,6 +361,7 @@ export const AlbumsPage = () => {
                 isTrash={isTrashTab}
                 onOpenDetail={() => handleOpenDetail(album)}
                 onOpenMenu={handleOpenMenu}
+                onViewReason={setRejectionTarget}
                 onRestore={() => restoreMutation.mutate(album.id)}
               />
             ))}
@@ -459,6 +462,18 @@ export const AlbumsPage = () => {
           </div>
         </div>
       </Modal>
+
+      {/* MODAL XEM LÝ DO TỪ CHỐI DUYỆT ALBUM */}
+      <RejectionReasonModal
+        isOpen={!!rejectionTarget}
+        onClose={() => setRejectionTarget(null)}
+        item={rejectionTarget ? {
+          title: rejectionTarget.title,
+          type: "album",
+          status: rejectionTarget.status,
+          reason: rejectionTarget.rejectionReason,
+        } : null}
+      />
     </div>
   );
 };

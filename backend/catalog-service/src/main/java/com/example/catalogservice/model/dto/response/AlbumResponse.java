@@ -18,6 +18,7 @@ public class AlbumResponse {
     private String coverImage;
     private LocalDate releaseDate;
     private String status;
+    private String rejectionReason;
     private Integer likeCount;
     private Boolean isDeleted;
     private LocalDateTime createdAt;

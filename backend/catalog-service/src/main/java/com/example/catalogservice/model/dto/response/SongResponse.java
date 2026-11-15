@@ -19,6 +19,7 @@ public class SongResponse {
     private Integer playCount;
     private Integer likeCount;
     private String status;
+    private String rejectionReason;
     private Boolean isDeleted;
     private LocalDateTime createdAt;
     private List<SongArtistResponse> artists;

@@ -14,6 +14,8 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.validation.BindException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -74,6 +76,16 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .orElse("Dữ liệu đầu vào không hợp lệ");
         return buildErrorResponse(HttpStatus.BAD_REQUEST, errorMessage);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "Đường dẫn không tồn tại: " + ex.getResourcePath());
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException ex) {
+        return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, "Phương thức " + ex.getMethod() + " không được hỗ trợ cho đường dẫn này");
     }
 
     @ExceptionHandler(Exception.class)

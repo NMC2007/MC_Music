@@ -25,6 +25,8 @@ export const uploadSongApi = async (formData, onUploadProgress) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    // Cho phép tối đa 120 giây (2 phút) để upload audio & ảnh bìa và xử lý trên Cloudinary
+    timeout: 120000,
     onUploadProgress,
   });
   return response.data;
@@ -42,6 +44,7 @@ export const updateSongApi = async (songId, formData) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 60000,
   });
   return response.data;
 };
@@ -126,6 +129,7 @@ export const createAlbumApi = async (formData) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 60000,
   });
   return response.data;
 };
@@ -142,6 +146,7 @@ export const updateAlbumApi = async (albumId, formData) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 60000,
   });
   return response.data;
 };

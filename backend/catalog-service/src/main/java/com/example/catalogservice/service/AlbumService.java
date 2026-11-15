@@ -16,7 +16,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,38 +34,52 @@ public class AlbumService {
     private final ArtistServiceClient artistServiceClient;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
+    private final TransactionTemplate transactionTemplate;
 
-    public AlbumService(AlbumRepository albumRepository, SongRepository songRepository, ArtistServiceClient artistServiceClient, CloudinaryService cloudinaryService, ModelMapper modelMapper) {
+    public AlbumService(AlbumRepository albumRepository, SongRepository songRepository, 
+                        ArtistServiceClient artistServiceClient, CloudinaryService cloudinaryService, 
+                        ModelMapper modelMapper, PlatformTransactionManager transactionManager) {
         this.albumRepository = albumRepository;
         this.songRepository = songRepository;
         this.artistServiceClient = artistServiceClient;
         this.cloudinaryService = cloudinaryService;
         this.modelMapper = modelMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public AlbumResponse createAlbum(AlbumCreateRequest request, UUID ownerId) throws IOException {
-        Album album = modelMapper.map(request, Album.class);
-        album.setOwnerId(ownerId);
-        
+        String ownerName = "Unknown Artist";
         try {
             ArtistInternalResponse artistInfo = artistServiceClient.getArtistById(ownerId);
-            album.setOwnerName(artistInfo.getStageName());
+            if (artistInfo != null && artistInfo.getStageName() != null && !artistInfo.getStageName().isBlank()) {
+                ownerName = artistInfo.getStageName();
+            }
         } catch (Exception e) {
-            album.setOwnerName("Unknown Artist");
+            // Fallback an toàn nếu artists-service không phản hồi
         }
-        
-        album.setStatus("PENDING"); 
-        album.setTotalTracks(0);
-        album.setIsDeleted(false);
 
+        String coverImageUrl = null;
         if (request.getCoverImage() != null && !request.getCoverImage().isEmpty()) {
             Map uploadResult = cloudinaryService.uploadImage(request.getCoverImage());
-            album.setCoverImage((String) uploadResult.get("secure_url"));
+            coverImageUrl = (String) uploadResult.get("secure_url");
         }
 
-        Album savedAlbum = albumRepository.save(album);
-        return modelMapper.map(savedAlbum, AlbumResponse.class);
+        final String finalOwnerName = ownerName;
+        final String finalCoverImageUrl = coverImageUrl;
+        return transactionTemplate.execute(status -> {
+            Album album = modelMapper.map(request, Album.class);
+            album.setOwnerId(ownerId);
+            album.setOwnerName(finalOwnerName);
+            album.setStatus("PENDING");
+            album.setTotalTracks(0);
+            album.setIsDeleted(false);
+            if (finalCoverImageUrl != null) {
+                album.setCoverImage(finalCoverImageUrl);
+            }
+
+            Album savedAlbum = albumRepository.save(album);
+            return modelMapper.map(savedAlbum, AlbumResponse.class);
+        });
     }
 
     @Transactional
@@ -218,9 +234,25 @@ public class AlbumService {
 
     @Transactional
     public void updateAlbumStatus(UUID albumId, String status) {
+        updateAlbumStatus(albumId, status, null);
+    }
+
+    @Transactional
+    public void updateAlbumStatus(UUID albumId, String status, String rejectionReason) {
+        if (status == null || (!status.equals("APPROVED") && !status.equals("REJECTED") && !status.equals("TAKEDOWN"))) {
+            throw new BadRequestException("Trạng thái không hợp lệ. Các giá trị hợp lệ: APPROVED, REJECTED, TAKEDOWN");
+        }
+        if (("REJECTED".equals(status) || "TAKEDOWN".equals(status)) && (rejectionReason == null || rejectionReason.trim().isEmpty())) {
+            throw new BadRequestException("Lý do vi phạm không được để trống khi từ chối hoặc gỡ album");
+        }
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new ResourceNotFoundException("Album không tồn tại với id: " + albumId));
         album.setStatus(status);
+        if ("APPROVED".equals(status)) {
+            album.setRejectionReason(null);
+        } else if ("REJECTED".equals(status) || "TAKEDOWN".equals(status)) {
+            album.setRejectionReason(rejectionReason.trim());
+        }
         albumRepository.save(album);
 
         // Quy tắc nghiệp vụ: Nếu Admin duyệt ALBUM, tự động duyệt toàn bộ bài hát trong album đó.
@@ -229,6 +261,11 @@ public class AlbumService {
             List<Song> songs = songRepository.findByAlbumId(albumId);
             for (Song song : songs) {
                 song.setStatus(status);
+                if ("APPROVED".equals(status)) {
+                    song.setRejectionReason(null);
+                } else {
+                    song.setRejectionReason(rejectionReason);
+                }
             }
             songRepository.saveAll(songs);
         }

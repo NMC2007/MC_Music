@@ -202,7 +202,9 @@ const UploadProgressBar = ({ progress }) => (
     <div className="flex items-center justify-between text-xs">
       <span className="text-neutral-400 flex items-center gap-1.5">
         <Loader2 size={13} className="animate-spin text-[#fa2d48]" />
-        Đang tải lên Cloudinary...
+        {progress === 100 
+          ? "Đang xử lý âm thanh & lưu trữ trên Cloudinary (vui lòng đợi trong giây lát)..." 
+          : "Đang tải dữ liệu lên máy chủ..."}
       </span>
       <span className="font-bold text-white">{progress}%</span>
     </div>
@@ -326,8 +328,12 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
       handleClose();
     } catch (err) {
       console.error("Lỗi upload:", err);
+      const isTimeout = err.code === "ECONNABORTED" || err.message?.includes("timeout");
+      const errorDesc = isTimeout
+        ? "Quá thời gian chờ phản hồi (Timeout). Vui lòng thử lại hoặc kiểm tra kết nối mạng."
+        : (err.response?.data?.message || "Vui lòng kiểm tra lại file và thử lại.");
       toast.error("Tải lên thất bại", {
-        description: err.response?.data?.message || "Vui lòng kiểm tra lại file và thử lại.",
+        description: errorDesc,
       });
     } finally {
       setIsUploading(false);

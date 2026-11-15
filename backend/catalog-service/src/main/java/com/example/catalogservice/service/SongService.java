@@ -9,6 +9,7 @@ import com.example.catalogservice.model.dto.request.LyricsUpdateRequest;
 import com.example.catalogservice.model.dto.request.SongArtistAddRequest;
 import com.example.catalogservice.model.dto.request.SongUploadRequest;
 import com.example.catalogservice.model.dto.request.SongUpdateRequest;
+import com.example.catalogservice.model.dto.response.LyricsResponse;
 import com.example.catalogservice.model.dto.response.SongResponse;
 import com.example.catalogservice.model.entity.Album;
 import com.example.catalogservice.model.entity.Genre;
@@ -27,7 +28,9 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -50,12 +53,14 @@ public class SongService {
     private final ArtistServiceClient artistServiceClient;
     private final CloudinaryService cloudinaryService;
     private final ModelMapper modelMapper;
+    private final TransactionTemplate transactionTemplate;
 
     public SongService(SongRepository songRepository, AlbumRepository albumRepository, 
                        LyricsRepository lyricsRepository, SongArtistRepository songArtistRepository,
                        GenreRepository genreRepository,
                        ArtistServiceClient artistServiceClient,
-                       CloudinaryService cloudinaryService, ModelMapper modelMapper) {
+                       CloudinaryService cloudinaryService, ModelMapper modelMapper,
+                       PlatformTransactionManager transactionManager) {
         this.songRepository = songRepository;
         this.albumRepository = albumRepository;
         this.lyricsRepository = lyricsRepository;
@@ -64,71 +69,93 @@ public class SongService {
         this.artistServiceClient = artistServiceClient;
         this.cloudinaryService = cloudinaryService;
         this.modelMapper = modelMapper;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
-    @Transactional
     public SongResponse uploadSong(SongUploadRequest request, UUID ownerId) throws IOException {
-        Song song = modelMapper.map(request, Song.class);
-        song.setOwnerId(ownerId);
-        
-        try {
-            ArtistInternalResponse artistInfo = artistServiceClient.getArtistById(ownerId);
-            song.setOwnerName(artistInfo.getStageName());
-        } catch (Exception e) {
-            song.setOwnerName("Unknown Artist");
-        }
-        
-        song.setStatus("PENDING"); 
-        song.setIsDeleted(false);
-        
-        if (request.getAlbumId() != null) {
-            Album album = albumRepository.findById(request.getAlbumId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Album không tồn tại"));
-            song.setAlbum(album);
-            
-            // Auto-assign trackNumber if not provided
-            if (request.getTrackNumber() == null) {
-                int currentTracks = songRepository.countByAlbumId(album.getId());
-                song.setTrackNumber(currentTracks + 1);
-            }
-            
-            // Increase totalTracks
-            album.setTotalTracks(album.getTotalTracks() + 1);
-            albumRepository.save(album);
-        }
-
-        // Process Genres
         if (request.getGenreIds() == null || request.getGenreIds().isEmpty()) {
             throw new BadRequestException("Phải chọn ít nhất một thể loại âm nhạc");
         }
-        List<Genre> genresList = genreRepository.findAllById(request.getGenreIds());
-        if (genresList.size() != request.getGenreIds().size()) {
-            throw new BadRequestException("Một hoặc nhiều thể loại âm nhạc không hợp lệ");
+        if (request.getAudioFile() == null || request.getAudioFile().isEmpty()) {
+            throw new BadRequestException("File âm thanh không được để trống");
         }
-        song.setGenres(new HashSet<>(genresList));
 
-        // Upload Audio
-        if (request.getAudioFile() != null && !request.getAudioFile().isEmpty()) {
-            Map audioUploadResult = cloudinaryService.uploadAudio(request.getAudioFile());
-            song.setAudioUrl((String) audioUploadResult.get("secure_url"));
-            song.setAudioPublicId((String) audioUploadResult.get("public_id"));
-            
-            Object duration = audioUploadResult.get("duration");
-            if (duration != null) {
-                song.setDurationSeconds(((Double) duration).intValue());
-            } else {
-                song.setDurationSeconds(0);
+        // 1. Lấy thông tin nghệ sĩ qua OpenFeign (thực hiện ngoài transaction)
+        String ownerName = "Unknown Artist";
+        try {
+            ArtistInternalResponse artistInfo = artistServiceClient.getArtistById(ownerId);
+            if (artistInfo != null && artistInfo.getStageName() != null && !artistInfo.getStageName().isBlank()) {
+                ownerName = artistInfo.getStageName();
             }
+        } catch (Exception e) {
+            // Fallback an toàn nếu artists-service tạm thời không phản hồi
         }
 
-        // Upload Cover if provided
+        // 2. Upload audio lên Cloudinary (thực hiện ngoài transaction để tránh chiếm giữ kết nối DB)
+        Map audioUploadResult = cloudinaryService.uploadAudio(request.getAudioFile());
+        String audioUrl = (String) audioUploadResult.get("secure_url");
+        String audioPublicId = (String) audioUploadResult.get("public_id");
+        int durationSeconds = 0;
+        Object duration = audioUploadResult.get("duration");
+        if (duration instanceof Number) {
+            durationSeconds = ((Number) duration).intValue();
+        }
+
+        // 3. Upload ảnh bìa lên Cloudinary nếu có (thực hiện ngoài transaction)
+        String coverUrl = null;
         if (request.getCoverImage() != null && !request.getCoverImage().isEmpty()) {
             Map coverUploadResult = cloudinaryService.uploadImage(request.getCoverImage());
-            song.setCoverImage((String) coverUploadResult.get("secure_url"));
+            coverUrl = (String) coverUploadResult.get("secure_url");
         }
 
-        Song savedSong = songRepository.save(song);
-        return modelMapper.map(savedSong, SongResponse.class);
+        final String finalOwnerName = ownerName;
+        final String finalAudioUrl = audioUrl;
+        final String finalAudioPublicId = audioPublicId;
+        final int finalDurationSeconds = durationSeconds;
+        final String finalCoverUrl = coverUrl;
+
+        // 4. Lưu dữ liệu vào Database bên trong Transaction ngắn hạn
+        return transactionTemplate.execute(status -> {
+            Song song = modelMapper.map(request, Song.class);
+            song.setOwnerId(ownerId);
+            song.setOwnerName(finalOwnerName);
+            song.setAudioUrl(finalAudioUrl);
+            song.setAudioPublicId(finalAudioPublicId);
+            song.setDurationSeconds(finalDurationSeconds);
+            if (finalCoverUrl != null) {
+                song.setCoverImage(finalCoverUrl);
+            }
+            song.setStatus("PENDING");
+            song.setIsDeleted(false);
+
+            if (request.getAlbumId() != null) {
+                Album album = albumRepository.findById(request.getAlbumId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Album không tồn tại"));
+                song.setAlbum(album);
+
+                // Tự động gán trackNumber nếu chưa có
+                if (request.getTrackNumber() == null) {
+                    int currentTracks = songRepository.countByAlbumId(album.getId());
+                    song.setTrackNumber(currentTracks + 1);
+                } else {
+                    song.setTrackNumber(request.getTrackNumber());
+                }
+
+                // Tăng tổng số bài hát trong album
+                album.setTotalTracks(album.getTotalTracks() + 1);
+                albumRepository.save(album);
+            }
+
+            // Gán thể loại
+            List<Genre> genresList = genreRepository.findAllById(request.getGenreIds());
+            if (genresList.size() != request.getGenreIds().size()) {
+                throw new BadRequestException("Một hoặc nhiều thể loại âm nhạc không hợp lệ");
+            }
+            song.setGenres(new HashSet<>(genresList));
+
+            Song savedSong = songRepository.save(song);
+            return modelMapper.map(savedSong, SongResponse.class);
+        });
     }
 
     @Transactional
@@ -317,9 +344,25 @@ public class SongService {
 
     @Transactional
     public void updateSongStatus(UUID songId, String status) {
+        updateSongStatus(songId, status, null);
+    }
+
+    @Transactional
+    public void updateSongStatus(UUID songId, String status, String rejectionReason) {
+        if (status == null || (!status.equals("APPROVED") && !status.equals("REJECTED") && !status.equals("TAKEDOWN"))) {
+            throw new BadRequestException("Trạng thái không hợp lệ. Các giá trị hợp lệ: APPROVED, REJECTED, TAKEDOWN");
+        }
+        if (("REJECTED".equals(status) || "TAKEDOWN".equals(status)) && (rejectionReason == null || rejectionReason.trim().isEmpty())) {
+            throw new BadRequestException("Lý do vi phạm không được để trống khi từ chối hoặc gỡ bài hát");
+        }
         Song song = songRepository.findById(songId)
                 .orElseThrow(() -> new ResourceNotFoundException("Song not found"));
         song.setStatus(status);
+        if ("APPROVED".equals(status)) {
+            song.setRejectionReason(null);
+        } else if ("REJECTED".equals(status) || "TAKEDOWN".equals(status)) {
+            song.setRejectionReason(rejectionReason.trim());
+        }
         songRepository.save(song);
 
         // Quy tắc nghiệp vụ: Nếu bài hát được APPROVED và thuộc về một album,
@@ -332,6 +375,7 @@ public class SongService {
                 long approvedSongsInAlbum = songRepository.countByAlbumIdAndStatus(album.getId(), "APPROVED");
                 if (totalSongsInAlbum > 0 && approvedSongsInAlbum == totalSongsInAlbum) {
                     album.setStatus("APPROVED");
+                    album.setRejectionReason(null);
                     albumRepository.save(album);
                 }
             }
@@ -479,5 +523,19 @@ public class SongService {
             song.setTrackNumber(order.getTrackNumber());
             songRepository.save(song);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public LyricsResponse getLyrics(UUID songId) {
+        return lyricsRepository.findBySongId(songId)
+                .map(lyrics -> modelMapper.map(lyrics, LyricsResponse.class))
+                .orElse(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SongResponse> getSongsByAlbumForAdmin(UUID albumId) {
+        return songRepository.findByAlbumIdAndIsDeletedFalse(albumId).stream()
+                .map(song -> modelMapper.map(song, SongResponse.class))
+                .collect(Collectors.toList());
     }
 }
