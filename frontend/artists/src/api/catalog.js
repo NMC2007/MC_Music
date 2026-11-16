@@ -20,7 +20,7 @@ export const getMySongsApi = async (params = { page: 0, size: 10 }) => {
  * @param {Function} [onUploadProgress] - Callback theo dõi tiến trình upload (0% - 100%)
  * @returns {Promise<Object>} ApiResponse chứa SongResponse (status: PENDING)
  */
-export const uploadSongApi = async (formData, onUploadProgress) => {
+export const uploadSongApi = async (formData, onUploadProgress, signal) => {
   const response = await api.post('/catalog/artist/songs', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
@@ -28,6 +28,7 @@ export const uploadSongApi = async (formData, onUploadProgress) => {
     // Cho phép tối đa 120 giây (2 phút) để upload audio & ảnh bìa và xử lý trên Cloudinary
     timeout: 120000,
     onUploadProgress,
+    signal,
   });
   return response.data;
 };

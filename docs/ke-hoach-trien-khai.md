@@ -40,19 +40,19 @@ Cách tiếp cận này đảm bảo:
 - Đã phát triển API Admin Service: Lấy danh sách User/Artist, thực hiện khóa/mở tài khoản (`is_active = false/true`).
 - Đã tích hợp Apache Kafka (`artist-events-topic`) để đồng bộ dữ liệu phi chuẩn hóa.
 
-### Giai đoạn 5: Triển khai Frontend & Nâng cấp Hệ thống Kiểm duyệt — [ĐANG TIẾN HÀNH]
+### Giai đoạn 5: Triển khai Frontend & Nâng cấp Hệ thống Kiểm duyệt — [HOÀN THÀNH 100%]
 *Mục tiêu: Hệ thống frontend end-to-end hoàn chỉnh và chuẩn hóa quy trình kiểm duyệt.*
-1. **User Web (Port 5173)**: Đã hoàn thiện ~95% (Nghe nhạc, Playlist, Thả tim, Tìm kiếm, Lời bài hát Karaoke).
-2. **Artist Web (Port 5172)**: Đã hoàn thiện ~95% (Dashboard thống kê, tải nhạc, tạo album, thêm lyrics/feat).
-3. **Nâng cấp Kiểm duyệt theo Bộ Quy Tắc (Đang triển khai)**:
+1. **User Web (Port 5173)**: Đã hoàn thiện 100% (Nghe nhạc, Playlist, Thả tim, Tìm kiếm đa năng, Lời bài hát Karaoke, Đồng bộ player).
+2. **Artist Web (Port 5172)**: Đã hoàn thiện 100% (Dashboard thống kê, tải nhạc an toàn với AbortController chống lỗi timeout không đồng bộ, tạo album, thêm lyrics/feat, xem lý do vi phạm).
+3. **Nâng cấp Kiểm duyệt theo Bộ Quy Tắc**:
    - Bổ sung `rejection_reason` vào bảng `songs` và `albums` trong database.
    - Nâng cấp API Catalog Service tiếp nhận và lưu trữ lý do từ chối từ Admin.
-   - Hiển thị chi tiết lý do từ chối trên Studio của Nghệ sĩ để nghệ sĩ nắm được vi phạm và chỉnh sửa.
-4. **Admin Web (Port 5171) (Đang triển khai)**:
-   - Xây dựng trọn vẹn từ đầu ứng dụng quản trị: Đăng nhập Admin, Dashboard tổng quan.
-   - Màn hình Kiểm duyệt Bài hát tích hợp Audio Preview Player & Modal Bộ quy tắc vi phạm.
+   - Hiển thị chi tiết lý do từ chối trên Studio của Nghệ sĩ để nghệ sĩ nắm được vi phạm và chỉnh sửa kịp thời.
+4. **Admin Web (Port 5171)**: Đã hoàn thiện 100%
+   - Xây dựng trọn vẹn ứng dụng quản trị: Đăng nhập Admin, Dashboard tổng quan.
+   - Màn hình Kiểm duyệt Bài hát tích hợp Audio Preview Player & Modal Bộ quy tắc vi phạm (Bản quyền, Ngôn từ kích động, Chất lượng âm thanh...).
    - Màn hình Kiểm duyệt Album.
-   - Màn hình Quản lý Người dùng & Nghệ sĩ (Khóa / Mở khóa tài khoản).
+   - Màn hình Quản lý Người dùng & Nghệ sĩ (Khóa / Mở khóa tài khoản đồng bộ real-time).
 
 ---
 
@@ -64,4 +64,4 @@ Cách tiếp cận này đảm bảo:
 | **2** | Catalog Core, Cloudinary, API Upload & Duyệt nhạc | (Chưa tiến hành) | **Xong 100%** |
 | **3** | User Service, Giao tiếp nội bộ (Internal API) | (Chưa tiến hành) | **Xong 100%** |
 | **4** | Artist Service, Admin Service, Kafka sync | (Chưa tiến hành) | **Xong 100%** |
-| **5** | Thêm `rejection_reason` & nâng cấp API kiểm duyệt | **Triển khai đồng loạt User (Xong), Artist (Xong), Admin Web (Đang làm)** | **Đang làm** |
+| **5** | Thêm `rejection_reason` & nâng cấp API kiểm duyệt | **User Web (Xong 100%), Artist Web (Xong 100%), Admin Web (Xong 100%)** | **Xong 100%** |

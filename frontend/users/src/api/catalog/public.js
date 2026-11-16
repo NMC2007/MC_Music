@@ -85,24 +85,6 @@ export const getAlbumById = async (id) => {
 };
 
 /**
- * Lấy danh sách nghệ sĩ công khai
- * @param {Object} params - { page, size }
- */
-export const getPublicArtists = async (params = {}) => {
-  const response = await api.get('/catalog/public/artists', { params });
-  return response.data;
-};
-
-/**
- * Lấy thông tin chi tiết một nghệ sĩ theo ID
- * @param {String} id 
- */
-export const getArtistById = async (id) => {
-  const response = await api.get(`/catalog/public/artists/${id}`);
-  return response.data;
-};
-
-/**
  * Tìm kiếm thống nhất (Unified Search) - Bài hát, Album, Nghệ sĩ
  * @param {String} keyword - Từ khóa tìm kiếm (bắt buộc)
  * @param {Number} limit - Số kết quả tối đa mỗi danh mục (1-20, mặc định: 5)

@@ -220,6 +220,7 @@ const UploadProgressBar = ({ progress }) => (
 // ─── MAIN MODAL COMPONENT ─────────────────────────────────────────────────────
 export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
   const queryClient = useQueryClient();
+  const abortControllerRef = useRef(null);
 
   // Form state
   const {
@@ -272,7 +273,13 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
   };
 
   const handleClose = () => {
-    if (isUploading) return;
+    if (isUploading && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsUploading(false);
+      setUploadProgress(0);
+      toast.info("Đã dừng quá trình tải bài hát.");
+    }
     reset();
     setAudioFile(null);
     setCoverFile(null);
@@ -306,14 +313,22 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
     // genreIds phải được gửi dạng nhiều value cùng key
     selectedGenreIds.forEach((id) => formData.append("genreIds", id));
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIsUploading(true);
     setUploadProgress(0);
 
     try {
-      await uploadSongApi(formData, (progressEvent) => {
-        const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-        setUploadProgress(pct);
-      });
+      await uploadSongApi(
+        formData,
+        (progressEvent) => {
+          if (progressEvent.total) {
+            const pct = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(pct);
+          }
+        },
+        controller.signal
+      );
 
       toast.success("Tải lên thành công!", {
         description: "Bài hát đang chờ Admin kiểm duyệt trước khi công khai.",
@@ -328,15 +343,34 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
       handleClose();
     } catch (err) {
       console.error("Lỗi upload:", err);
-      const isTimeout = err.code === "ECONNABORTED" || err.message?.includes("timeout");
-      const errorDesc = isTimeout
-        ? "Quá thời gian chờ phản hồi (Timeout). Vui lòng thử lại hoặc kiểm tra kết nối mạng."
-        : (err.response?.data?.message || "Vui lòng kiểm tra lại file và thử lại.");
-      toast.error("Tải lên thất bại", {
-        description: errorDesc,
-      });
+      const isCanceled = err.name === "CanceledError" || err.code === "ERR_CANCELED";
+      const isTimeout =
+        err.code === "ECONNABORTED" ||
+        err.message?.includes("timeout") ||
+        err.response?.status === 504;
+
+      if (isCanceled) {
+        toast.info("Đã hủy quá trình tải bài hát lên.");
+      } else if (isTimeout) {
+        toast.error("Tải lên thất bại do quá thời gian chờ (Timeout)", {
+          description:
+            "Hệ thống đã hủy tác vụ để tránh dữ liệu không đồng bộ. Vui lòng kiểm tra dung lượng file hoặc thử lại.",
+        });
+      } else {
+        toast.error("Tải lên thất bại", {
+          description: err.response?.data?.message || "Vui lòng kiểm tra lại file và thử lại.",
+        });
+      }
+
+      // ĐẢM BẢO ĐỒNG BỘ NGUYÊN TẮC SOURCE OF TRUTH:
+      // Tự động làm mới và đồng bộ lại danh sách bài hát từ Database, loại bỏ hoàn toàn mọi trạng thái ảo
+      queryClient.invalidateQueries({ queryKey: ["mySongs"] });
+      queryClient.invalidateQueries({ queryKey: ["artistRecentSongs"] });
+      queryClient.invalidateQueries({ queryKey: ["artistDashboard"] });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
+      abortControllerRef.current = null;
     }
   };
 
@@ -453,9 +487,8 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
             variant="ghost"
             size="md"
             onClick={handleClose}
-            disabled={isUploading}
           >
-            Hủy bỏ
+            {isUploading ? "Hủy tải lên" : "Hủy bỏ"}
           </Button>
           <Button
             type="submit"
