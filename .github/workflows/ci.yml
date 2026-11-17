@@ -1,0 +1,122 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. KIỂM THỬ VÀ BIÊN DỊCH TOÀN BỘ BACKEND MICROSERVICES (MA TRẬN SONG SONG)
+  # ────────────────────────────────────────────────────────────────────────────
+  backend-ci:
+    name: Backend CI - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - shared-auth-lib
+          - users-service
+          - catalog-service
+          - artists-service
+          - admin-service
+          - api-gateway
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Build & Publish shared-auth-lib to Maven Local
+        run: |
+          cd backend/shared-auth-lib
+          chmod +x gradlew
+          ./gradlew publishToMavenLocal --no-daemon
+
+      - name: Run Unit Tests for ${{ matrix.service }}
+        run: |
+          cd backend/${{ matrix.service }}
+          chmod +x gradlew
+          ./gradlew test --no-daemon
+
+      - name: Build Executable JAR for ${{ matrix.service }}
+        if: matrix.service != 'shared-auth-lib'
+        run: |
+          cd backend/${{ matrix.service }}
+          ./gradlew bootJar -x test --no-daemon
+
+      - name: Upload Test Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ matrix.service }}
+          path: backend/${{ matrix.service }}/build/reports/tests/test/
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. LINTING VÀ BUILD KIỂM TRA 3 ỨNG DỤNG FRONTEND (MA TRẬN SONG SONG)
+  # ────────────────────────────────────────────────────────────────────────────
+  frontend-ci:
+    name: Frontend CI - ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - admin
+          - artists
+          - users
+
+    defaults:
+      run:
+        working-directory: frontend/${{ matrix.app }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/${{ matrix.app }}/package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter (oxlint)
+        run: npm run lint
+
+      - name: Build Production Bundle (vite build)
+        run: npm run build
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. THẨM ĐỊNH CẤU HÌNH DOCKER COMPOSE TOÀN DIỆN
+  # ────────────────────────────────────────────────────────────────────────────
+  docker-validation:
+    name: Docker Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize Environment Variables
+        run: cp .env.example .env
+
+      - name: Validate Docker Compose Configuration
+        run: docker compose config
+

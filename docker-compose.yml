@@ -1,123 +1,37 @@
-version: '3.8'
+name: mc-music-platform
 
 services:
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. HẠ TẦNG CƠ SỞ DỮ LIỆU & MESSAGE BROKER
+  # ────────────────────────────────────────────────────────────────────────────
   postgres-db:
     image: postgres:15-alpine
     container_name: postgres-db
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Manhcuong281207@}
+      POSTGRES_DB: ${DB_NAME:-mc_music_db}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - ./database/init-docker.sql:/docker-entrypoint-initdb.d/init.sql
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-mc_music_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - mc_music_network
-
-  api-gateway:
-    build:
-      context: ./backend/api-gateway
-    container_name: api-gateway
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    ports:
-      - "8686:8686"
-    networks:
-      - mc_music_network
-    depends_on:
-      users-service:
-        condition: service_started
-      artists-service:
-        condition: service_started
-      admin-service:
-        condition: service_started
-      catalog-service:
-        condition: service_started
-
-  users-service:
-    build:
-      context: ./backend/users-service
-    container_name: users-service
-    environment:
-      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_users_schema
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - CATALOG_SERVICE_URL=http://catalog-service:8081
-      - ARTIST_SERVICE_URL=http://artists-service:8083
-      - KAFKA_SERVERS=kafka:29092
-    ports:
-      - "8082:8082"
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-    networks:
-      - mc_music_network
-
-  artists-service:
-    build:
-      context: ./backend/artists-service
-    container_name: artists-service
-    environment:
-      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_artists_schema
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - KAFKA_SERVERS=kafka:29092
-    ports:
-      - "8083:8083"
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-    networks:
-      - mc_music_network
-
-  admin-service:
-    build:
-      context: ./backend/admin-service
-    container_name: admin-service
-    environment:
-      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_admin_schema
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - USERS_SERVICE_URL=http://users-service:8082
-      - ARTISTS_SERVICE_URL=http://artists-service:8083
-    ports:
-      - "8084:8084"
-    depends_on:
-      postgres-db:
-        condition: service_healthy
-    networks:
-      - mc_music_network
-
-  catalog-service:
-    build:
-      context: ./backend/catalog-service
-    container_name: catalog-service
-    environment:
-      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME}?currentSchema=mc_music_catalog_schema
-      - DB_USERNAME=${DB_USERNAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - ARTISTS_SERVICE_URL=http://artists-service:8083
-      - KAFKA_SERVERS=kafka:29092
-    ports:
-      - "8081:8081"
-    depends_on:
-      postgres-db:
-        condition: service_healthy
+      start_period: 10s
     networks:
       - mc_music_network
 
   kafka:
     image: apache/kafka:3.7.0
     container_name: kafka
+    restart: unless-stopped
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT:-9092}:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -131,12 +45,198 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 15s
+    networks:
+      - mc_music_network
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. TẦNG XỬ LÝ NGHIỆP VỤ (BACKEND MICROSERVICES)
+  # ────────────────────────────────────────────────────────────────────────────
+  users-service:
+    build:
+      context: ./backend
+      dockerfile: users-service/Dockerfile
+    container_name: users-service
+    restart: unless-stopped
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME:-mc_music_db}?currentSchema=mc_music_users_schema
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-Manhcuong281207@}
+      - CATALOG_SERVICE_URL=http://catalog-service:8081
+      - ARTIST_SERVICE_URL=http://artists-service:8083
+      - KAFKA_SERVERS=kafka:29092
+      - JWT_SECRET=${JWT_SECRET_USER:-superSecretKeyForMcMusicAppThatIsAtLeast32CharactersLong2026!}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-nemhjypf}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-198795169447897}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-oiV5gNYyZg2XDOy6q066x6MQ9YI}
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  artists-service:
+    build:
+      context: ./backend
+      dockerfile: artists-service/Dockerfile
+    container_name: artists-service
+    restart: unless-stopped
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME:-mc_music_db}?currentSchema=mc_music_artists_schema
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-Manhcuong281207@}
+      - KAFKA_SERVERS=kafka:29092
+      - JWT_SECRET=${JWT_SECRET_ARTIST:-superSecretKeyForArtistsServiceThatIsAtLeast32CharsLong2026!}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-nemhjypf}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-198795169447897}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-oiV5gNYyZg2XDOy6q066x6MQ9YI}
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  admin-service:
+    build:
+      context: ./backend
+      dockerfile: admin-service/Dockerfile
+    container_name: admin-service
+    restart: unless-stopped
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME:-mc_music_db}?currentSchema=mc_music_admin_schema
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-Manhcuong281207@}
+      - USERS_SERVICE_URL=http://users-service:8082
+      - ARTISTS_SERVICE_URL=http://artists-service:8083
+      - JWT_SECRET=${JWT_SECRET_ADMIN:-superSecretKeyForAdminServiceThatIsAtLeast32CharsLong2026!}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  catalog-service:
+    build:
+      context: ./backend
+      dockerfile: catalog-service/Dockerfile
+    container_name: catalog-service
+    restart: unless-stopped
+    environment:
+      - DB_URL=jdbc:postgresql://postgres-db:5432/${DB_NAME:-mc_music_db}?currentSchema=mc_music_catalog_schema
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-Manhcuong281207@}
+      - ARTISTS_SERVICE_URL=http://artists-service:8083
+      - KAFKA_SERVERS=kafka:29092
+      - JWT_SECRET_USER=${JWT_SECRET_USER:-superSecretKeyForMcMusicAppThatIsAtLeast32CharactersLong2026!}
+      - JWT_SECRET_ARTIST=${JWT_SECRET_ARTIST:-superSecretKeyForArtistsServiceThatIsAtLeast32CharsLong2026!}
+      - JWT_SECRET_ADMIN=${JWT_SECRET_ADMIN:-superSecretKeyForAdminServiceThatIsAtLeast32CharsLong2026!}
+      - INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-SuperSecretKeyForInternalMicroserviceCommunication_McMusic2026}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME:-nemhjypf}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY:-198795169447897}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET:-oiV5gNYyZg2XDOy6q066x6MQ9YI}
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - mc_music_network
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. TẦNG ĐỊNH TUYẾN & GATEWAY
+  # ────────────────────────────────────────────────────────────────────────────
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: api-gateway
+    restart: unless-stopped
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "${GATEWAY_PORT:-8686}:8686"
+    networks:
+      - mc_music_network
+    depends_on:
+      users-service:
+        condition: service_started
+      artists-service:
+        condition: service_started
+      admin-service:
+        condition: service_started
+      catalog-service:
+        condition: service_started
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 4. TẦNG GIAO DIỆN NGƯỜI DÙNG (FRONTEND NGINX APPS)
+  # ────────────────────────────────────────────────────────────────────────────
+  admin-frontend:
+    build:
+      context: ./frontend/admin
+      dockerfile: Dockerfile
+    container_name: admin-frontend
+    restart: unless-stopped
+    ports:
+      - "${ADMIN_FRONTEND_PORT:-5171}:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - mc_music_network
+
+  artists-frontend:
+    build:
+      context: ./frontend/artists
+      dockerfile: Dockerfile
+    container_name: artists-frontend
+    restart: unless-stopped
+    ports:
+      - "${ARTISTS_FRONTEND_PORT:-5172}:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
+    networks:
+      - mc_music_network
+
+  users-frontend:
+    build:
+      context: ./frontend/users
+      dockerfile: Dockerfile
+    container_name: users-frontend
+    restart: unless-stopped
+    ports:
+      - "${USERS_FRONTEND_PORT:-5173}:80"
+    depends_on:
+      api-gateway:
+        condition: service_started
     networks:
       - mc_music_network
 
 networks:
   mc_music_network:
+    name: mc_music_network
     driver: bridge
 
 volumes:
   postgres_data:
+    name: mc_music_postgres_data

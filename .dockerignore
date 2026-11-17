@@ -1,0 +1,13 @@
+.git
+.gitignore
+.idea
+.vscode
+**/.gradle
+**/build
+**/bin
+**/node_modules
+**/dist
+**/*.log
+**/*.tmp
+docs/
+
