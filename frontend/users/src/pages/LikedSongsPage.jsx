@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Play,
   Pause,
@@ -9,7 +10,7 @@ import {
   Clock,
   Search,
   List,
-  ArrowDownCircle,
+  Check,
   Music2,
   Loader2,
   ChevronLeft,
@@ -19,32 +20,33 @@ import {
 import { useFavorites } from "../hooks/useFavorites";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useAuthStore } from "../store/useAuthStore";
-import { getSongById } from "../api/catalog/public";
+import { getSongById, getPublicGenres } from "../api/catalog/public";
 import { CoverImage } from "../components/ui/CoverImage";
 import { Button } from "../components/ui/Button";
 import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
 
-// Danh sách các bộ lọc chip đã được loại bỏ trùng lặp và đa dạng hóa
-const FILTER_CHIPS = Array.from(
-  new Set([
-    "Ủ rũ",
-    "Thư giãn",
-    "Rap",
-    "Buồn",
-    "Tình yêu",
-    "Ôn hòa",
-    "Yên lặng",
-    "Acoustic",
-    "Nhẹ nhàng",
-    "Indie",
-    "Soul",
-    "Pop",
-    "Lofi",
-    "R&B",
-    "Sôi động",
-    "Rock",
-  ])
-);
+// Danh sách các thể loại âm nhạc thịnh hành & nổi tiếng (Curated Popular Genres)
+const POPULAR_GENRES = [
+  { id: "rap", name: "Rap" },
+  { id: "hip-hop", name: "Hip-Hop" },
+  { id: "pop", name: "Pop" },
+  { id: "ballad", name: "Ballad" },
+  { id: "rb", name: "R&B" },
+  { id: "indie", name: "Indie" },
+  { id: "edm", name: "EDM" },
+  { id: "acoustic", name: "Acoustic" },
+  { id: "lofi", name: "Lofi" },
+  { id: "rock", name: "Rock" },
+];
+
+// Danh sách các tiêu chí sắp xếp
+const SORT_OPTIONS = [
+  { id: "recent", label: "Mới thêm gần đây" },
+  { id: "oldest", label: "Cũ nhất" },
+  { id: "title_asc", label: "Tên bài hát (A - Z)" },
+  { id: "artist_asc", label: "Nghệ sĩ (A - Z)" },
+  { id: "duration_desc", label: "Thời lượng giảm dần" },
+];
 
 export const LikedSongsPage = () => {
   const navigate = useNavigate();
@@ -68,8 +70,59 @@ export const LikedSongsPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [loadingSongId, setLoadingSongId] = useState(null);
-  const [activeChip, setActiveChip] = useState(null);
   const [openMenuSongId, setOpenMenuSongId] = useState(null);
+
+  // Fetch danh sách thể loại từ Catalog Service
+  const { data: genresData } = useQuery({
+    queryKey: ["publicGenres"],
+    queryFn: getPublicGenres,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  // Lọc chỉ giữ lại các thể loại nổi tiếng & phổ biến, liên kết id với DB nếu có
+  const genres = useMemo(() => {
+    const dbGenres = genresData?.data || [];
+
+    return POPULAR_GENRES.map((popular) => {
+      const matched = dbGenres.find((dbG) => {
+        const cleanDb = (dbG.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        const cleanPop = popular.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+        return cleanDb === cleanPop;
+      });
+
+      if (matched) {
+        return {
+          id: matched.id,
+          name: popular.name,
+        };
+      }
+      return {
+        id: popular.id,
+        name: popular.name,
+      };
+    });
+  }, [genresData]);
+
+  // State bộ lọc thể loại (null = Tất cả)
+  const [selectedGenre, setSelectedGenre] = useState(null);
+
+  // State sắp xếp
+  const [sortBy, setSortBy] = useState("recent");
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const sortDropdownRef = useRef(null);
+
+  // Đóng dropdown sắp xếp khi click ra ngoài
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(e.target)) {
+        setIsSortOpen(false);
+      }
+    };
+    if (isSortOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isSortOpen]);
 
   // --- Ray trượt ngang cho dải bộ lọc Chip Pills ---
   const chipsScrollRef = useRef(null);
@@ -103,7 +156,7 @@ export const LikedSongsPage = () => {
 
   const scrollChips = (direction) => {
     if (!chipsScrollRef.current) return;
-    const scrollAmount = direction === "left" ? -240 : 240;
+    const scrollAmount = direction === direction ? (direction === "left" ? -240 : 240) : 240;
     chipsScrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
   };
 
@@ -120,16 +173,67 @@ export const LikedSongsPage = () => {
     return () => document.removeEventListener("click", handleOutsideClick);
   }, [openMenuSongId]);
 
-  // Lọc bài hát theo từ khóa tìm kiếm nếu có
+  // Lọc bài hát theo từ khóa tìm kiếm, thể loại và sắp xếp theo tiêu chí
   const filteredSongs = useMemo(() => {
-    if (!searchQuery.trim()) return favoriteSongs;
-    const q = searchQuery.toLowerCase().trim();
-    return favoriteSongs.filter(
-      (s) =>
-        s.songTitle?.toLowerCase().includes(q) ||
-        s.artistName?.toLowerCase().includes(q)
-    );
-  }, [favoriteSongs, searchQuery]);
+    let result = [...favoriteSongs];
+
+    // 1. Lọc theo từ khóa tìm kiếm
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (s) =>
+          s.songTitle?.toLowerCase().includes(q) ||
+          s.artistName?.toLowerCase().includes(q)
+      );
+    }
+
+    // 2. Lọc theo thể loại
+    if (selectedGenre) {
+      const target = selectedGenre.toLowerCase();
+      result = result.filter((s) => {
+        if (!s.genres || s.genres.length === 0) return false;
+        return s.genres.some((g) => {
+          const gId = (g.id || "").toLowerCase();
+          const gName = (g.name || "").toLowerCase();
+          const cleanGName = gName.replace(/[^a-z0-9]/g, "");
+          const cleanTarget = target.replace(/[^a-z0-9]/g, "");
+
+          if (gId === target || cleanGName === cleanTarget) return true;
+          // Alias Rap & Hip-Hop (khớp bài hát gắn thẻ Rap hoặc Hip-Hop)
+          if (
+            (cleanTarget.includes("rap") || cleanTarget.includes("hiphop")) &&
+            (cleanGName.includes("rap") || cleanGName.includes("hiphop"))
+          ) {
+            return true;
+          }
+          // Alias Lofi & Lo-Fi
+          if (cleanTarget.includes("lofi") && cleanGName.includes("lofi")) {
+            return true;
+          }
+          return false;
+        });
+      });
+    }
+
+    // 3. Sắp xếp danh sách
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case "oldest":
+          return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        case "title_asc":
+          return (a.songTitle || "").localeCompare(b.songTitle || "", "vi");
+        case "artist_asc":
+          return (a.artistName || "").localeCompare(b.artistName || "", "vi");
+        case "duration_desc":
+          return (b.durationSeconds || 0) - (a.durationSeconds || 0);
+        case "recent":
+        default:
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+    });
+
+    return result;
+  }, [favoriteSongs, searchQuery, selectedGenre, sortBy]);
 
   // Format ngày thêm (Ví dụ: "4 thg 7, 2026")
   const formatDateAdded = (dateStr) => {
@@ -265,48 +369,81 @@ export const LikedSongsPage = () => {
           >
             <Shuffle size={24} />
           </button>
-
-          {/* Nút Tải xuống / Lưu */}
-          <button
-            className="text-spotify-sub hover:text-white transition-colors cursor-pointer"
-            title="Tải xuống để nghe ngoại tuyến"
-          >
-            <ArrowDownCircle size={24} />
-          </button>
         </div>
 
         {/* Cụm Tìm kiếm & Sắp xếp bên phải */}
-        <div className="flex items-center gap-4 text-spotify-sub">
-          {isSearchOpen ? (
-            <div className="relative flex items-center bg-[#242424] rounded-full px-3 py-1.5 border border-white/10 w-48 sm:w-64">
-              <Search size={16} className="text-spotify-sub flex-shrink-0" />
-              <input
-                autoFocus
-                type="text"
-                placeholder="Tìm trong Bài hát đã thích"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onBlur={() => !searchQuery && setIsSearchOpen(false)}
-                className="bg-transparent border-none outline-none text-white text-xs ml-2 w-full placeholder-spotify-sub"
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="hover:text-white transition-colors cursor-pointer p-1"
-              title="Tìm kiếm trong danh sách"
-            >
-              <Search size={20} />
-            </button>
-          )}
+        <div className="flex items-center gap-3 text-spotify-sub ml-auto">
+          {/* Ô Tìm kiếm */}
+          <div className="relative flex items-center">
+            {isSearchOpen ? (
+              <div className="relative flex items-center bg-[#242424] rounded-full px-3 py-1.5 border border-white/10 w-44 sm:w-60 transition-all duration-200">
+                <Search size={16} className="text-spotify-sub flex-shrink-0" />
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Tìm trong danh sách..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onBlur={() => !searchQuery && setIsSearchOpen(false)}
+                  className="bg-transparent border-none outline-none text-white text-xs ml-2 w-full placeholder-spotify-sub"
+                />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-white/10 hover:text-white transition-colors cursor-pointer text-spotify-sub"
+                title="Tìm kiếm trong danh sách"
+              >
+                <Search size={19} />
+              </button>
+            )}
+          </div>
 
-          <button
-            className="flex items-center gap-2 text-sm hover:text-white transition-colors cursor-pointer py-1 px-2 rounded hover:bg-white/5"
-            title="Sắp xếp danh sách"
-          >
-            <span className="hidden sm:inline">Mới thêm gần đây</span>
-            <List size={18} />
-          </button>
+          {/* Dropdown Sắp xếp: Kích thước cố định w-44 tránh thanh tìm kiếm bị thụt thò khi đổi chữ */}
+          <div ref={sortDropdownRef} className="relative flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsSortOpen((prev) => !prev)}
+              className="w-44 flex items-center justify-between gap-2 text-sm hover:text-white transition-colors cursor-pointer py-1.5 px-3 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10 flex-shrink-0 select-none"
+              title="Sắp xếp danh sách"
+            >
+              <span className="truncate font-medium text-neutral-300 text-left">
+                {SORT_OPTIONS.find((opt) => opt.id === sortBy)?.label || "Mới thêm gần đây"}
+              </span>
+              <List size={18} className="text-neutral-400 flex-shrink-0 ml-1" />
+            </button>
+
+            {/* Menu Dropdown Popup */}
+            {isSortOpen && (
+              <div className="absolute right-0 mt-2 w-52 rounded-xl bg-[#282828] border border-neutral-700/80 shadow-[0_12px_32px_rgba(0,0,0,0.8)] py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 text-[10px] uppercase font-bold text-neutral-400 tracking-wider">
+                  Sắp xếp theo
+                </div>
+                {SORT_OPTIONS.map((opt) => {
+                  const isSelected = sortBy === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setSortBy(opt.id);
+                        setIsSortOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-2 text-xs font-semibold transition-colors cursor-pointer text-left ${
+                        isSelected
+                          ? "text-[#fa2d48] bg-white/5"
+                          : "text-neutral-300 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {isSelected && <Check size={14} className="text-[#fa2d48] flex-shrink-0 ml-2" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -330,25 +467,40 @@ export const LikedSongsPage = () => {
             </>
           )}
 
-          {/* Dải cuộn Chips - Ẩn thanh cuộn mặc định */}
+          {/* Dải cuộn Chips - Thể loại nhạc */}
           <div
             ref={chipsScrollRef}
             onScroll={handleChipsScroll}
             className="flex items-center gap-2 overflow-x-auto py-1 px-1 scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
           >
-            {FILTER_CHIPS.map((chip) => {
-              const isSelected = activeChip === chip;
+            {/* Nút Tất cả */}
+            <button
+              type="button"
+              onClick={() => setSelectedGenre(null)}
+              className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer flex-shrink-0 border select-none ${
+                selectedGenre === null
+                  ? "bg-[#fa2d48] text-white border-[#fa2d48] font-bold shadow-[0_2px_10px_rgba(250,45,72,0.3)]"
+                  : "bg-[#242424]/90 hover:bg-[#323232] text-white border-transparent hover:border-white/10"
+              }`}
+            >
+              Tất cả
+            </button>
+
+            {genres.map((genre) => {
+              const genreKey = genre.id || genre.name;
+              const isSelected = selectedGenre === genreKey;
               return (
                 <button
-                  key={chip}
-                  onClick={() => setActiveChip(isSelected ? null : chip)}
+                  key={genreKey}
+                  type="button"
+                  onClick={() => setSelectedGenre(isSelected ? null : genreKey)}
                   className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer flex-shrink-0 border select-none ${
                     isSelected
                       ? "bg-[#fa2d48] text-white border-[#fa2d48] font-bold shadow-[0_2px_10px_rgba(250,45,72,0.3)]"
                       : "bg-[#242424]/90 hover:bg-[#323232] text-white border-transparent hover:border-white/10"
                   }`}
                 >
-                  {chip}
+                  {genre.name}
                 </button>
               );
             })}
@@ -528,20 +680,34 @@ export const LikedSongsPage = () => {
               <h3 className="text-xl font-bold text-white">
                 {searchQuery
                   ? `Không tìm thấy kết quả cho "${searchQuery}"`
+                  : selectedGenre
+                  ? "Không có bài hát yêu thích nào thuộc thể loại này"
                   : "Những bài hát bạn yêu thích sẽ xuất hiện ở đây"}
               </h3>
               <p className="text-sm text-spotify-sub max-w-md">
-                Lưu các bài hát bạn yêu thích bằng cách nhấn vào biểu tượng trái
-                tim trên thanh phát nhạc hoặc danh sách bài hát.
+                {selectedGenre
+                  ? "Hãy thử chọn thể loại khác hoặc bấm để xem lại toàn bộ bài hát đã thích."
+                  : "Lưu các bài hát bạn yêu thích bằng cách nhấn vào biểu tượng trái tim trên thanh phát nhạc hoặc danh sách bài hát."}
               </p>
-              <Button
-                variant="white"
-                size="md"
-                className="mt-2 text-black font-bold rounded-full px-6"
-                onClick={() => navigate("/")}
-              >
-                Khám phá bài hát
-              </Button>
+              {selectedGenre ? (
+                <Button
+                  variant="glass"
+                  size="md"
+                  className="mt-2 text-white font-bold rounded-full px-6"
+                  onClick={() => setSelectedGenre(null)}
+                >
+                  Xem tất cả thể loại
+                </Button>
+              ) : (
+                <Button
+                  variant="white"
+                  size="md"
+                  className="mt-2 text-black font-bold rounded-full px-6"
+                  onClick={() => navigate("/")}
+                >
+                  Khám phá bài hát
+                </Button>
+              )}
             </div>
           )}
         </div>

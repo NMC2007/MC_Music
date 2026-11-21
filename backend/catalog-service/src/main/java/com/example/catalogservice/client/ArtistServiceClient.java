@@ -10,7 +10,7 @@ import com.example.catalogservice.config.FeignConfig;
 import java.util.List;
 import java.util.UUID;
 
-@FeignClient(name = "artists-service", url = "${artists.service.url}", configuration = FeignConfig.class)
+@FeignClient(name = "artists-service", url = "${artists.service.url:http://localhost:8083}", configuration = FeignConfig.class)
 public interface ArtistServiceClient {
 
     @GetMapping("/api/internal/artists/{artistId}")

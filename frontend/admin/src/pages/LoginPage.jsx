@@ -87,9 +87,9 @@ export const LoginPage = () => {
   };
 
   const handleFillDemoAdmin = () => {
-    setValue("email", "admin@mcmusic.com");
-    setValue("password", "admin123");
-    toast.info("Đã điền tài khoản mẫu: admin@mcmusic.com");
+    setValue("email", "admin1@gmail.com", { shouldValidate: true });
+    setValue("password", "Passwor@123", { shouldValidate: true });
+    toast.info("Đã điền tài khoản test: admin1@gmail.com");
   };
 
   return (
@@ -191,7 +191,7 @@ export const LoginPage = () => {
               </div>
               <input
                 type="email"
-                placeholder="admin@mcmusic.com"
+                placeholder="admin1@gmail.com"
                 {...register("email")}
                 className={`w-full bg-[#1c1c1c] hover:bg-[#222222] focus:bg-[#222222] text-white text-sm rounded-xl pl-10 pr-4 py-3 outline-none border transition-all duration-200 ${
                   errors.email
@@ -250,7 +250,7 @@ export const LoginPage = () => {
               className="text-xs text-neutral-400 hover:text-[#fa2d48] flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Sparkles size={13} className="text-[#fa2d48]" />
-              <span>Gợi ý tài khoản demo</span>
+              <span>Tài khoản test</span>
             </button>
             <span className="text-[11px] text-neutral-500">Cổng: Port 5171</span>
           </div>

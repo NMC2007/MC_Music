@@ -38,10 +38,17 @@ export const LoginPage = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(loginSchema),
   });
+
+  const handleFillTestAccount = () => {
+    setValue("email", "artist1@mcmusic.com", { shouldValidate: true });
+    setValue("password", "Password123", { shouldValidate: true });
+    toast.info("Đã điền tài khoản test: artist1@mcmusic.com");
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -212,6 +219,19 @@ export const LoginPage = () => {
                 {errors.password.message}
               </p>
             )}
+          </div>
+
+          {/* Quick Demo Fill Helper */}
+          <div className="flex items-center justify-between pt-1">
+            <button
+              type="button"
+              onClick={handleFillTestAccount}
+              className="text-xs text-neutral-400 hover:text-[#fa2d48] flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Sparkles size={13} className="text-[#fa2d48]" />
+              <span>Tài khoản test</span>
+            </button>
+            <span className="text-[11px] text-neutral-500">Artist Studio</span>
           </div>
 
           {/* Nút Đăng nhập */}

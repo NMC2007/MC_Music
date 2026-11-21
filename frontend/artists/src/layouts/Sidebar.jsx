@@ -6,15 +6,11 @@ import {
   Disc3,
   UserCheck,
   Music2,
-  LogOut,
   Sparkles,
   UploadCloud,
 } from "lucide-react";
-import { useAuthStore } from "#/store/useAuthStore";
-import { CoverImage } from "#/components/ui/CoverImage";
 
 export const Sidebar = () => {
-  const { artist, logout } = useAuthStore();
   const navigate = useNavigate();
 
   const navItems = [
@@ -122,42 +118,6 @@ export const Sidebar = () => {
           >
             <UploadCloud size={14} className="group-hover:scale-110 transition-transform" />
             Tải nhạc lên ngay
-          </button>
-        </div>
-      </div>
-
-      {/* ── 4. THÔNG TIN NGHỆ SĨ & ĐĂNG XUẤT (FOOTER) ── */}
-      <div className="pt-3">
-        <div className="flex items-center justify-between p-2 rounded-xl bg-[#181818]">
-          <div
-            onClick={() => navigate("/profile")}
-            className="flex items-center gap-2.5 min-w-0 cursor-pointer group flex-1"
-          >
-            <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-              <CoverImage
-                src={artist?.avatarUrl}
-                alt={artist?.stageName}
-                className="w-full h-full object-cover"
-                isArtist
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-white truncate group-hover:text-[#fa2d48] transition-colors">
-                {artist?.stageName || "Nghệ sĩ"}
-              </p>
-              <p className="text-[10px] text-neutral-500 truncate">
-                {artist?.email || "artist@mcmusic.vn"}
-              </p>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={logout}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer flex-shrink-0 ml-1.5"
-            title="Đăng xuất"
-          >
-            <LogOut size={16} />
           </button>
         </div>
       </div>

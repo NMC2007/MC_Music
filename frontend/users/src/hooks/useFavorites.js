@@ -11,7 +11,7 @@ import {
   addFavoriteAlbumApi,
   removeFavoriteAlbumApi,
 } from "../api/users/favorites";
-import { getPublicAlbums } from "../api/catalog/public";
+import { getPublicAlbums, getPublicSongs } from "../api/catalog/public";
 
 export const FAVORITES_QUERY_KEY = ["userFavorites", "songs"];
 export const FAVORITE_ALBUMS_QUERY_KEY = ["userFavorites", "albums"];
@@ -71,10 +71,40 @@ export const useFavorites = () => {
     return map;
   }, [publicAlbumsQuery.data]);
 
-  // Danh sách bài hát yêu thích dạng mảng
+  // 4. Query danh sách bài hát công khai từ Catalog để enrich metadata (genres, durationSeconds, audioUrl)
+  const publicSongsQuery = useQuery({
+    queryKey: ["publicSongs", "catalogLookup"],
+    queryFn: () => getPublicSongs({ size: 100 }),
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const publicSongsMap = useMemo(() => {
+    const map = new Map();
+    const list = publicSongsQuery.data?.data?.content || [];
+    list.forEach((s) => {
+      if (s.id) map.set(s.id, s);
+    });
+    return map;
+  }, [publicSongsQuery.data]);
+
+  // Danh sách bài hát yêu thích dạng mảng (đã enrich metadata từ Catalog: genres, durationSeconds)
   const favoriteSongs = useMemo(() => {
-    return songsQuery.data?.data?.content || [];
-  }, [songsQuery.data]);
+    const rawList = songsQuery.data?.data?.content || [];
+    return rawList.map((item) => {
+      const publicMeta = publicSongsMap.get(item.songId);
+      return {
+        ...item,
+        genres: publicMeta?.genres || [],
+        durationSeconds: publicMeta?.durationSeconds || item.durationSeconds || 0,
+        audioUrl: publicMeta?.audioUrl || item.audioUrl,
+        albumTitle: publicMeta?.albumTitle || item.albumTitle,
+        raw: {
+          ...publicMeta,
+          ...item,
+        },
+      };
+    });
+  }, [songsQuery.data, publicSongsMap]);
 
   // Set chứa songId để tra cứu O(1)
   const favoriteSongIds = useMemo(() => {

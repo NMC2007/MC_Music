@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Link, useNavigate, useLocation } from "react-router";
-import { Music2, ArrowLeft, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Music2, ArrowLeft, Mail, Lock, Eye, EyeOff, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { loginApi } from "../api/auth/auth";
 import { useAuthStore } from "../store/useAuthStore";
@@ -36,10 +36,17 @@ export const LoginPage = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(loginSchema),
   });
+
+  const handleFillTestAccount = () => {
+    setValue("email", "test1@example.com", { shouldValidate: true });
+    setValue("password", "Password123", { shouldValidate: true });
+    toast.info("Đã điền tài khoản test: test1@example.com");
+  };
 
   const onSubmit = async (data) => {
     try {
@@ -176,8 +183,16 @@ export const LoginPage = () => {
               </p>
             )}
 
-            {/* Quên mật khẩu */}
-            <div className="flex justify-end mt-2">
+            {/* Quên mật khẩu & Tài khoản test */}
+            <div className="flex items-center justify-between mt-2">
+              <button
+                type="button"
+                onClick={handleFillTestAccount}
+                className="text-xs text-neutral-400 hover:text-[#fa2d48] flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Sparkles size={13} className="text-[#fa2d48]" />
+                <span>Tài khoản test</span>
+              </button>
               <a
                 href="#"
                 onClick={(e) => {
