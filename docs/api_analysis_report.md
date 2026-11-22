@@ -63,6 +63,7 @@ Tài liệu này quy chuẩn toàn bộ danh mục API RESTful trong hệ sinh t
 | `/api/artist/auth/login` | Đăng nhập tài khoản Nghệ sĩ | Public | `artists-service` | Trả về JWT Access & Refresh Token |
 | `/api/admin/auth/login` | Đăng nhập Quản trị viên | Public | `admin-service` | Trả về JWT Access & Refresh Token |
 | `/api/catalog/artist/songs` | Tải lên ca khúc mới | Artist (Bearer) | `catalog-service` | Multipart form: audio + cover image + metadata |
+| `/api/catalog/public/songs/batch` | Lấy chi tiết nhiều bài hát theo mảng IDs | Public | `catalog-service` | Body: Mảng UUID `["uuid-1", "uuid-2"]` |
 | `/api/catalog/artist/albums` | Tạo Album mới | Artist (Bearer) | `catalog-service` | Multipart form: cover image + metadata |
 | `/api/catalog/artist/songs/{id}/lyrics` | Thêm / Cập nhật lời bài hát | Artist (Bearer) | `catalog-service` | `{ content, syncedContent, language }` |
 | `/api/catalog/artist/songs/{id}/artists` | Mời nghệ sĩ hợp tác (feat/producer) | Artist (Bearer) | `catalog-service` | `{ artistId, artistName, role }` |

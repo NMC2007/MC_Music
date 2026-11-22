@@ -1,9 +1,11 @@
 import React, { useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
 import { Button } from "../ui/Button";
 
 /**
  * Modal Xác nhận xóa Playlist khi danh sách phát có chứa ít nhất 1 bài nhạc
+ * - Hiển thị ở layer trên cùng (createPortal vào document.body)
  * - Thiết kế chuẩn Spotify Dark Mode
  * - Tự động đóng bằng phím Escape
  */
@@ -27,8 +29,8 @@ export const DeletePlaylistConfirmModal = ({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[99990] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Backdrop */}
       <div
         className="absolute inset-0"
@@ -76,6 +78,9 @@ export const DeletePlaylistConfirmModal = ({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
+
+export default DeletePlaylistConfirmModal;

@@ -48,8 +48,18 @@ public class PublicCatalogService {
         return albumRepository.findPublicAlbums(cleanKeyword, pageable)
                 .map(album -> modelMapper.map(album, AlbumResponse.class));
     }
-
     @Transactional(readOnly = true)
+    public List<SongResponse> getSongsByIds(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        return songRepository.findAllById(ids).stream()
+                .filter(song -> "APPROVED".equals(song.getStatus()) && !Boolean.TRUE.equals(song.getIsDeleted()))
+                .map(song -> modelMapper.map(song, SongResponse.class))
+                .collect(Collectors.toList());
+    }
+
+        @Transactional(readOnly = true)
     public SongResponse getSongById(UUID id) {
         com.example.catalogservice.model.entity.Song song = songRepository.findById(id)
                 .orElseThrow(() -> new com.example.catalogservice.exception.ResourceNotFoundException("Bài hát không tồn tại"));

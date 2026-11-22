@@ -64,6 +64,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 | 3.8 | `GET` | `/api/catalog/public/albums/{id}` | Lấy chi tiết thông tin album |
 | 3.9 | `GET` | `/api/catalog/public/songs/{id}/lyrics` | Lấy lời bài hát |
 | 3.10 | `GET` | `/api/catalog/public/search` | Tìm kiếm thống nhất (Unified Search: Songs, Albums, Artists) |
+| 3.11 | `POST` | `/api/catalog/public/songs/batch` | Lấy chi tiết danh sách nhiều bài hát theo mảng IDs |
 
 ---
 
@@ -119,6 +120,8 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
       "status": "PENDING",
       "isDeleted": false,
       "createdAt": "2026-11-04T15:00:00",
+      "albumId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "albumTitle": "Chúng Ta Của Hiện Tại",
       "artists": [
         {
           "artistId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
@@ -1057,9 +1060,41 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/catalog/public/songs/{id}`
-- **Mô tả:** Lấy thông tin chi tiết của một bài hát (bao gồm thông tin audio, artist, genres) để phát nhạc. Bài hát phải ở trạng thái `APPROVED` và chưa bị xóa mềm (`isDeleted = false`). Báo lỗi 404 nếu bài hát bị xóa mềm hoặc chưa duyệt.
+- **Mô tả:** Lấy thông tin chi tiết của một bài hát (bao gồm thông tin audio, artist, genres, albumId, albumTitle) để phát nhạc và hiển thị trang chi tiết. Bài hát phải ở trạng thái `APPROVED` và chưa bị xóa mềm (`isDeleted = false`). Báo lỗi 404 nếu bài hát bị xóa mềm hoặc chưa duyệt.
 - **Path Variable:**
   - `id` (UUID): ID của bài hát.
+- **Response `data`:**
+  ```json
+  {
+    "id": "e4f5a8a1-3b7c-4e89-9a1d-7201c13d3101",
+    "ownerId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "ownerName": "Sơn Tùng M-TP",
+    "title": "Chúng Ta Của Hiện Tại",
+    "durationSeconds": 302,
+    "audioUrl": "https://res.cloudinary.com/demo/video/upload/song.mp3",
+    "coverImage": "https://res.cloudinary.com/demo/image/upload/cover.jpg",
+    "explicit": false,
+    "playCount": 125000,
+    "likeCount": 8500,
+    "status": "APPROVED",
+    "createdAt": "2026-11-04T15:00:00",
+    "albumId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+    "albumTitle": "Chúng Ta",
+    "artists": [
+      {
+        "artistId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+        "artistName": "Sơn Tùng M-TP",
+        "role": "MAIN"
+      }
+    ],
+    "genres": [
+      {
+        "id": "8f1a2b3c-4d5e-6f7a-8b9c-0d1e2f3a4b5c",
+        "name": "Pop"
+      }
+    ]
+  }
+  ```
 
 ---
 
@@ -1177,6 +1212,22 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
     "timestamp": "2026-11-04T15:45:00"
   }
   ```
+
+---
+
+### 3.11. Lấy chi tiết danh sách nhiều bài hát theo mảng IDs (Batch Songs Lookup)
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:8686/api/catalog/public/songs/batch`
+- **Mô tả:** Lấy thông tin chi tiết (bao gồm audioUrl, artists, genres, albumId, albumTitle, duration) của nhiều bài hát cùng lúc theo danh sách UUID. Chỉ trả về những bài hát ở trạng thái `APPROVED` và chưa bị xóa mềm (`isDeleted = false`). API công khai, không yêu cầu xác thực.
+- **Request Body (JSON):**
+  ```json
+  [
+    "e4f5a8a1-3b7c-4e89-9a1d-7201c13d3101",
+    "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"
+  ]
+  ```
+- **Response `data`:** Mảng các đối tượng `SongResponse` (giống cấu trúc trả về của API 3.7).
 
 ---
 

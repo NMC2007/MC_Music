@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Play, Pause, Music2 } from "lucide-react";
+import { Play, Pause, Music2, Heart } from "lucide-react";
 import {
   searchCatalogApi,
   getPublicGenres,
@@ -9,6 +9,7 @@ import {
 } from "../api/catalog/public";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useFavorites } from "../hooks/useFavorites";
+import { useFollowArtists } from "../hooks/useFollowArtists";
 import { CoverImage } from "../components/ui/CoverImage";
 import { Button } from "../components/ui/Button";
 import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
@@ -69,7 +70,13 @@ export const SearchPage = () => {
   const [loadingSongId, setLoadingSongId] = useState(null);
 
   const { currentSong, isPlaying, setIsPlaying, playSongWithContext } = usePlayerStore();
-  const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
+  const {
+    isFavoriteSong,
+    toggleFavoriteSong,
+    isFavoriteAlbum,
+    toggleFavoriteAlbum,
+  } = useFavorites();
+  const { isFollowing, toggleFollowArtist } = useFollowArtists();
 
   // Reset filter khi keyword thay đổi
   useEffect(() => {
@@ -219,11 +226,9 @@ export const SearchPage = () => {
       {/* Loading State */}
       {isLoadingSearch && (
         <div className="space-y-6">
-          <div className="flex gap-6">
-            <div className="w-56 h-56 rounded-xl bg-neutral-800 animate-pulse flex-shrink-0" />
-            <div className="flex-1 flex flex-col gap-2">
-              {Array.from({ length: 5 }).map((_, i) => <SkeletonResultRow key={i} />)}
-            </div>
+          <div className="w-full h-48 rounded-2xl bg-neutral-800 animate-pulse" />
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 5 }).map((_, i) => <SkeletonResultRow key={i} />)}
           </div>
         </div>
       )}
@@ -245,153 +250,133 @@ export const SearchPage = () => {
       {!isLoadingSearch && hasAnyResult && (
         <div className="flex flex-col gap-10">
 
-          {/* ── Section: Kết quả hàng đầu + Bài hát ─────────────────────── */}
-          {(activeFilter === "all" || activeFilter === "songs" || activeFilter === "artists") && (
-            <div className={`flex flex-col ${activeFilter === "all" ? "lg:flex-row" : ""} gap-6`}>
-
-              {/* Top Result Card */}
-              {topResult && (activeFilter === "all" || (activeFilter === "artists" && topResult.type === "ARTIST")) && (
-                <div className="flex flex-col gap-3 lg:w-[280px] flex-shrink-0">
-                  <h2 className="text-xl font-bold text-white">Kết quả hàng đầu</h2>
-                  <TopResultCard
-                    topResult={topResult}
-                    loadingSongId={loadingSongId}
-                    onPlay={handlePlaySong}
-                    onNavigate={navigate}
-                    isPlaying={isPlaying}
-                    currentSong={currentSong}
-                  />
-                </div>
-              )}
-
-              {/* Bài hát */}
-              {songs.length > 0 && (activeFilter === "all" || activeFilter === "songs") && (
-                <div className="flex flex-col gap-3 flex-1 min-w-0">
-                  <h2 className="text-xl font-bold text-white">Bài hát</h2>
-                  <div className="flex flex-col">
-                    {songs.slice(0, activeFilter === "all" ? 5 : songs.length).map((song) => {
-                      const isCurrentSong = currentSong?.id === song.id;
-                      const isLoading = loadingSongId === song.id;
-                      const isLiked = isFavoriteSong(song.id);
-
-                      return (
-                        <div
-                          key={song.id}
-                          onClick={() => handlePlaySong(song, songsPool)}
-                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer group transition-colors ${
-                            isCurrentSong ? "bg-[#282828]" : "hover:bg-[#1a1a1a]"
-                          }`}
-                        >
-                          {/* Ảnh bìa */}
-                          <div className="w-10 h-10 flex-shrink-0 relative">
-                            <CoverImage
-                              src={song.coverImage}
-                              alt={song.title}
-                              className="w-full h-full object-cover rounded"
-                            />
-                            {isLoading && (
-                              <div className="absolute inset-0 bg-black/60 rounded flex items-center justify-center">
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              </div>
-                            )}
-                            {!isLoading && (
-                              <div className="absolute inset-0 bg-black/60 rounded opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                {isCurrentSong && isPlaying ? (
-                                  <Pause size={14} fill="white" className="text-white" />
-                                ) : (
-                                  <Play size={14} fill="white" className="text-white ml-0.5" />
-                                )}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Thông tin bài hát */}
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className={`text-sm font-medium truncate ${isCurrentSong ? "text-[#fa2d48]" : "text-white"}`}>
-                              {song.title}
-                            </span>
-                            <span className="text-xs text-spotify-sub truncate">
-                              {song.ownerName}
-                            </span>
-                          </div>
-
-                          {/* Thời lượng + Actions */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {/* Like */}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavoriteSong(song);
-                              }}
-                              className={`p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 ${isLiked ? "opacity-100 text-[#fa2d48]" : "text-spotify-sub hover:text-white"}`}
-                              title={isLiked ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
-                            >
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"
-                                fill={isLiked ? "#fa2d48" : "none"} stroke={isLiked ? "#fa2d48" : "currentColor"}
-                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                              </svg>
-                            </button>
-
-                            <span className="text-xs text-spotify-sub w-10 text-right">
-                              {formatDuration(song.durationSeconds)}
-                            </span>
-
-                            {/* Add to playlist */}
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <AddToPlaylistMenu song={song} />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* ── 1. Kết quả hàng đầu (Hiển thị to rõ, trải rộng toàn chiều ngang) ── */}
+          {topResult && (activeFilter === "all" || (activeFilter === "artists" && topResult.type === "ARTIST") || (activeFilter === "songs" && topResult.type === "SONG") || (activeFilter === "albums" && topResult.type === "ALBUM")) && (
+            <section className="flex flex-col gap-3.5 w-full">
+              <h2 className="text-2xl font-black text-white">Kết quả hàng đầu</h2>
+              <TopResultCard
+                topResult={topResult}
+                loadingSongId={loadingSongId}
+                onPlay={handlePlaySong}
+                onNavigate={navigate}
+                isPlaying={isPlaying}
+                currentSong={currentSong}
+                isFavoriteSong={isFavoriteSong}
+                toggleFavoriteSong={toggleFavoriteSong}
+                isFavoriteAlbum={isFavoriteAlbum}
+                toggleFavoriteAlbum={toggleFavoriteAlbum}
+                isFollowing={isFollowing}
+                toggleFollowArtist={toggleFollowArtist}
+              />
+            </section>
           )}
 
-          {/* ── Section: Nghệ sĩ ─────────────────────────────────────────── */}
-          {artists.length > 0 && (activeFilter === "all" || activeFilter === "artists") && (
-            <section>
-              <h2 className="text-xl font-bold text-white mb-4">Nghệ sĩ</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {artists.map((artist) => (
-                  <div
-                    key={artist.id}
-                    onClick={() => navigate(`/artist/${artist.id}`)}
-                    className="bg-transparent hover:bg-spotify-hover transition-all p-3 rounded-lg cursor-pointer group"
-                  >
-                    <div className="relative mb-3">
-                      <CoverImage
-                        src={artist.avatarUrl}
-                        alt={artist.stageName}
-                        isArtist={true}
-                        className="w-full aspect-square object-cover rounded-full shadow-lg"
-                      />
-                      <Button
-                        variant="primary"
-                        size="md"
-                        iconOnly
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg"
-                      >
-                        <Play size={20} className="fill-white text-white ml-0.5" />
-                      </Button>
+          {/* ── 2. Bài hát liên quan (Dời xuống dưới Kết quả hàng đầu) ── */}
+          {songs.length > 0 && (activeFilter === "all" || activeFilter === "songs") && (
+            <section className="flex flex-col gap-3.5 w-full">
+              <h2 className="text-2xl font-black text-white">Bài hát</h2>
+              <div className="flex flex-col">
+                {songs.slice(0, activeFilter === "all" ? 5 : songs.length).map((song) => {
+                  const isCurrentSong = currentSong?.id === song.id;
+                  const isLoading = loadingSongId === song.id;
+                  const isLiked = isFavoriteSong(song.id);
+
+                  return (
+                    <div
+                      key={song.id}
+                      onClick={() => handlePlaySong(song, songsPool)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer group transition-colors ${
+                        isCurrentSong ? "bg-[#282828]" : "hover:bg-[#1a1a1a]"
+                      }`}
+                    >
+                      {/* Ảnh bìa */}
+                      <div className="w-11 h-11 flex-shrink-0 relative">
+                        <CoverImage
+                          src={song.coverImage}
+                          alt={song.title}
+                          className="w-full h-full object-cover rounded-md"
+                        />
+                        {isLoading && (
+                          <div className="absolute inset-0 bg-black/60 rounded-md flex items-center justify-center">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                        {!isLoading && (
+                          <div className="absolute inset-0 bg-black/60 rounded-md opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            {isCurrentSong && isPlaying ? (
+                              <Pause size={16} fill="white" className="text-white" />
+                            ) : (
+                              <Play size={16} fill="white" className="text-white ml-0.5" />
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Thông tin bài hát */}
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/song/${song.id}`);
+                          }}
+                          title={song.title}
+                          className={`text-sm font-semibold truncate hover:underline cursor-pointer transition-colors ${
+                            isCurrentSong ? "text-[#fa2d48]" : "text-white"
+                          }`}
+                        >
+                          {song.title}
+                        </span>
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (song.ownerId) navigate(`/artist/${song.ownerId}`);
+                          }}
+                          title={song.ownerName}
+                          className="text-xs text-spotify-sub hover:underline hover:text-white transition-colors truncate mt-0.5 cursor-pointer"
+                        >
+                          {song.ownerName}
+                        </span>
+                      </div>
+
+                      {/* Thời lượng + Actions */}
+                      <div className="flex items-center gap-2.5 flex-shrink-0">
+                        {/* Like */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavoriteSong(song);
+                          }}
+                          className={`p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 ${isLiked ? "opacity-100 text-[#fa2d48]" : "text-spotify-sub hover:text-white"}`}
+                          title={isLiked ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"
+                            fill={isLiked ? "#fa2d48" : "none"} stroke={isLiked ? "#fa2d48" : "currentColor"}
+                            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                          </svg>
+                        </button>
+
+                        <span className="text-xs text-spotify-sub w-10 text-right">
+                          {formatDuration(song.durationSeconds)}
+                        </span>
+
+                        {/* Add to playlist */}
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <AddToPlaylistMenu song={song} />
+                        </div>
+                      </div>
                     </div>
-                    <p className="text-white font-semibold text-sm truncate">{artist.stageName}</p>
-                    <p className="text-spotify-sub text-xs mt-0.5 truncate">Nghệ sĩ</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}
 
-          {/* ── Section: Album ─────────────────────────────────────────────── */}
+          {/* ── 3. Toàn bộ phần Album rời xuống dưới ── */}
           {albums.length > 0 && (activeFilter === "all" || activeFilter === "albums") && (
             <section>
-              <h2 className="text-xl font-bold text-white mb-4">Album</h2>
+              <h2 className="text-2xl font-black text-white mb-4">Album</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                 {albums.map((album) => (
                   <div
@@ -425,14 +410,63 @@ export const SearchPage = () => {
             </section>
           )}
 
+          {/* ── 4. Phần Nghệ sĩ liên quan ── */}
+          {artists.length > 0 && (activeFilter === "all" || activeFilter === "artists") && (
+            <section>
+              <h2 className="text-2xl font-black text-white mb-4">Nghệ sĩ</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {artists.map((artist) => (
+                  <div
+                    key={artist.id}
+                    onClick={() => navigate(`/artist/${artist.id}`)}
+                    className="bg-transparent hover:bg-spotify-hover transition-all p-3 rounded-lg cursor-pointer group"
+                  >
+                    <div className="relative mb-3">
+                      <CoverImage
+                        src={artist.avatarUrl}
+                        alt={artist.stageName}
+                        isArtist={true}
+                        className="w-full aspect-square object-cover rounded-full shadow-lg"
+                      />
+                      <Button
+                        variant="primary"
+                        size="md"
+                        iconOnly
+                        onClick={(e) => { e.stopPropagation(); }}
+                        className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg"
+                      >
+                        <Play size={20} className="fill-white text-white ml-0.5" />
+                      </Button>
+                    </div>
+                    <p className="text-white font-semibold text-sm truncate">{artist.stageName}</p>
+                    <p className="text-spotify-sub text-xs mt-0.5 truncate">Nghệ sĩ</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
         </div>
       )}
     </div>
   );
 };
 
-// ─── TopResult Card Component ────────────────────────────────────────────────
-const TopResultCard = ({ topResult, loadingSongId, onPlay, onNavigate, isPlaying, currentSong }) => {
+// ─── TopResult Card Component (Hiển thị to rõ, ảnh vuông trái, chữ phải) ──────
+const TopResultCard = ({
+  topResult,
+  loadingSongId,
+  onPlay,
+  onNavigate,
+  isPlaying,
+  currentSong,
+  isFavoriteSong,
+  toggleFavoriteSong,
+  isFavoriteAlbum,
+  toggleFavoriteAlbum,
+  isFollowing,
+  toggleFollowArtist,
+}) => {
   if (!topResult?.item) return null;
 
   const { type, item } = topResult;
@@ -443,58 +477,176 @@ const TopResultCard = ({ topResult, loadingSongId, onPlay, onNavigate, isPlaying
 
   const name = isArtist ? item.stageName : item.title;
   const image = isArtist ? item.avatarUrl : item.coverImage;
-  const subtitle = isArtist ? "Nghệ sĩ" : isSong ? `Bài hát • ${item.ownerName || ""}` : `Album • ${item.ownerName || ""}`;
 
   const handleCardClick = () => {
     if (isArtist) onNavigate(`/artist/${item.id}`);
     else if (isAlbum) onNavigate(`/album/${item.id}`);
-    else onPlay(item, []);
+    else onPlay(item, [item]);
   };
 
   const isCurrentPlaying = isSong && currentSong?.id === item.id && isPlaying;
   const isLoading = loadingSongId === item.id;
 
+  const isSongLiked = isSong ? isFavoriteSong(item.id) : false;
+  const isAlbumLiked = isAlbum ? isFavoriteAlbum(item.id) : false;
+  const isArtistFollowed = isArtist ? isFollowing(item.id) : false;
+
+  const handlePlayClick = (e) => {
+    e.stopPropagation();
+    if (isSong) {
+      onPlay(item, [item]);
+    } else {
+      handleCardClick();
+    }
+  };
+
   return (
     <div
       onClick={handleCardClick}
-      className="relative bg-[#181818] hover:bg-[#282828] transition-colors rounded-xl p-5 cursor-pointer group h-full min-h-[200px] flex flex-col justify-between shadow-lg"
+      className="relative w-full bg-gradient-to-r from-[#1c1c1c] via-[#161616] to-[#121212] hover:from-[#242424] hover:via-[#1a1a1a] hover:to-[#161616] border border-white/5 hover:border-white/10 transition-all duration-300 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col sm:flex-row items-center sm:items-stretch gap-6 group cursor-pointer"
     >
-      {/* Ảnh */}
-      <div className={`w-24 h-24 shadow-2xl flex-shrink-0 mb-4 ${isArtist ? "rounded-full" : "rounded-lg"} overflow-hidden`}>
+      {/* ── Ảnh hiển thị hình vuông bên trái ── */}
+      <div className="w-40 h-40 sm:w-44 sm:h-44 md:w-52 md:h-52 aspect-square flex-shrink-0 shadow-[0_16px_36px_rgba(0,0,0,0.7)] overflow-hidden rounded-2xl border border-white/10 relative">
         <CoverImage
           src={image}
           alt={name}
           isArtist={isArtist}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
       </div>
 
-      {/* Thông tin */}
-      <div>
-        <h3 className="text-2xl font-black text-white truncate leading-tight">{name}</h3>
-        <p className="text-sm text-spotify-sub mt-1">{subtitle}</p>
-      </div>
+      {/* ── Phần chữ hiển thị bên phải ── */}
+      <div className="flex-1 min-w-0 flex flex-col justify-between py-1 w-full text-center sm:text-left">
+        <div>
+          {/* Type Badge */}
+          <div className="flex items-center justify-center sm:justify-start gap-2 mb-2">
+            <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-white/10 text-white border border-white/10 shadow-sm">
+              {isArtist ? "Nghệ sĩ" : isSong ? "Bài hát" : "Album"}
+            </span>
+            {(isSong || isAlbum) && item.ownerName && (
+              <span className="text-xs text-neutral-400 truncate">
+                bởi{" "}
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (item.ownerId) onNavigate(`/artist/${item.ownerId}`);
+                  }}
+                  className="text-neutral-200 font-semibold hover:underline hover:text-white cursor-pointer"
+                >
+                  {item.ownerName}
+                </span>
+              </span>
+            )}
+          </div>
 
-      {/* Nút Play nổi */}
-      <Button
-        variant="primary"
-        size="lg"
-        iconOnly
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isSong) onPlay(item, []);
-          else handleCardClick();
-        }}
-        className="absolute bottom-5 right-5 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-[0_8px_20px_rgba(250,45,72,0.5)]"
-      >
-        {isLoading ? (
-          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        ) : isCurrentPlaying ? (
-          <Pause size={28} fill="white" className="text-white" />
-        ) : (
-          <Play size={28} fill="white" className="text-white ml-1" />
-        )}
-      </Button>
+          {/* Tên to rõ */}
+          <h3
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isArtist) onNavigate(`/artist/${item.id}`);
+              else if (isAlbum) onNavigate(`/album/${item.id}`);
+              else if (isSong) onNavigate(`/song/${item.id}`);
+            }}
+            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 my-1 hover:underline cursor-pointer group-hover:text-[#fa2d48] transition-colors"
+            title={name}
+          >
+            {name}
+          </h3>
+
+          {/* Metadata phụ */}
+          <p className="text-xs sm:text-sm text-spotify-sub mt-2 line-clamp-2">
+            {isArtist
+              ? (item.followerCount ? `${Number(item.followerCount).toLocaleString("vi-VN")} người theo dõi` : "Nghệ sĩ chính thức trên MC Music")
+              : isSong
+              ? (item.durationSeconds ? `Thời lượng: ${formatDuration(item.durationSeconds)} • Bản thu âm chính thức` : "Bản thu âm chất lượng cao")
+              : (item.releaseDate ? `Năm phát hành: ${new Date(item.releaseDate).getFullYear()}` : "Tuyển tập album chính thức")}
+          </p>
+        </div>
+
+        {/* Các nút hành động bên phải */}
+        <div
+          className="flex items-center justify-center sm:justify-start gap-3.5 mt-6 pt-2 flex-wrap"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Nút Play */}
+          <button
+            type="button"
+            onClick={handlePlayClick}
+            className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#fa2d48] hover:bg-[#ff4b63] hover:scale-105 active:scale-95 flex items-center justify-center text-white shadow-[0_8px_20px_rgba(250,45,72,0.45)] transition-all cursor-pointer flex-shrink-0"
+            title={isCurrentPlaying ? "Tạm dừng" : "Phát"}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : isCurrentPlaying ? (
+              <Pause size={24} fill="white" className="text-white" />
+            ) : (
+              <Play size={24} fill="white" className="text-white ml-0.5" />
+            )}
+          </button>
+
+          {/* Nút Theo dõi (cho Nghệ sĩ) */}
+          {isArtist && (
+            <button
+              type="button"
+              onClick={() => toggleFollowArtist(item)}
+              className={`px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold border transition-all cursor-pointer select-none ${
+                isArtistFollowed
+                  ? "bg-white/10 text-white border-white/40 hover:bg-white/20 hover:border-white"
+                  : "border-neutral-500 hover:border-white text-white bg-transparent hover:scale-105 active:scale-95"
+              }`}
+            >
+              {isArtistFollowed ? "Đang theo dõi" : "Theo dõi"}
+            </button>
+          )}
+
+          {/* Nút Yêu thích (cho Bài hát) */}
+          {isSong && (
+            <button
+              type="button"
+              onClick={() => toggleFavoriteSong(item)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold border transition-all cursor-pointer select-none ${
+                isSongLiked
+                  ? "border-[#fa2d48]/40 bg-[#fa2d48]/15 text-[#fa2d48]"
+                  : "border-neutral-700 hover:border-white text-neutral-300 hover:text-white bg-transparent hover:scale-105"
+              }`}
+              title={isSongLiked ? "Xóa khỏi Bài hát đã thích" : "Thêm vào Bài hát đã thích"}
+            >
+              <Heart
+                size={18}
+                className={isSongLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
+              />
+              <span>{isSongLiked ? "Đã thích" : "Yêu thích"}</span>
+            </button>
+          )}
+
+          {/* Nút Yêu thích (cho Album) */}
+          {isAlbum && (
+            <button
+              type="button"
+              onClick={() => toggleFavoriteAlbum({ ...item, albumId: item.id, id: item.id })}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-bold border transition-all cursor-pointer select-none ${
+                isAlbumLiked
+                  ? "border-[#fa2d48]/40 bg-[#fa2d48]/15 text-[#fa2d48]"
+                  : "border-neutral-700 hover:border-white text-neutral-300 hover:text-white bg-transparent hover:scale-105"
+              }`}
+              title={isAlbumLiked ? "Xóa khỏi Thư viện" : "Lưu vào Thư viện"}
+            >
+              <Heart
+                size={18}
+                className={isAlbumLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
+              />
+              <span>{isAlbumLiked ? "Đã lưu vào Thư viện" : "Lưu vào Thư viện"}</span>
+            </button>
+          )}
+
+          {/* Add to Playlist menu (cho Bài hát) */}
+          {isSong && (
+            <div className="flex-shrink-0">
+              <AddToPlaylistMenu song={item} />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

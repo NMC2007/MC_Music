@@ -26,7 +26,7 @@ export const SectionPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { playSongWithContext } = usePlayerStore();
+  const { playSongWithContext, playWithAutoQueue } = usePlayerStore();
   const { favoriteSongs, isLoadingSongs: isLoadingFavorites } = useFavorites();
   const { followedArtists, isLoadingFollowed } = useFollowArtists();
 
@@ -131,7 +131,7 @@ export const SectionPage = () => {
       const res = await getSongById(historyItem.songId);
       const song = res?.data;
       if (song) {
-        playSongWithContext(song, [song]);
+        playWithAutoQueue(song);
       }
     } catch (err) {
       console.error("Lỗi khi phát bài hát từ lịch sử:", err);
@@ -143,7 +143,7 @@ export const SectionPage = () => {
       const res = await getSongById(favItem.songId);
       const song = res?.data;
       if (song) {
-        playSongWithContext(song, [song]);
+        playWithAutoQueue(song);
       }
     } catch (err) {
       console.error("Lỗi khi phát bài hát từ danh sách yêu thích:", err);
@@ -285,6 +285,8 @@ export const SectionPage = () => {
         <SongCard
           key={artistId || idx}
           type="artist"
+          id={artistId}
+          artistId={artistId}
           title={stageName}
           subtitle="Nghệ sĩ"
           artistName={stageName}
@@ -300,6 +302,9 @@ export const SectionPage = () => {
         <SongCard
           key={item.id || idx}
           type="album"
+          id={item.id}
+          albumId={item.id}
+          artistId={item.ownerId}
           title={item.title}
           subtitle={`${formatAlbumType(item.albumType)} • ${item.ownerName}`}
           artistName={item.ownerName}
@@ -317,6 +322,9 @@ export const SectionPage = () => {
         <SongCard
           key={item.id || item.songId || idx}
           type="song"
+          id={item.id || item.songId}
+          songId={item.id || item.songId}
+          artistId={item.artistId || item.ownerId}
           title={item.songTitle}
           subtitle={item.artistName}
           artistName={item.artistName}
@@ -332,6 +340,9 @@ export const SectionPage = () => {
         <SongCard
           key={item.songId || idx}
           type="song"
+          id={item.songId}
+          songId={item.songId}
+          artistId={item.artistId || item.ownerId}
           title={item.songTitle}
           subtitle={item.artistName}
           artistName={item.artistName}
@@ -347,6 +358,9 @@ export const SectionPage = () => {
       <SongCard
         key={item.id || idx}
         type="song"
+        id={item.id}
+        songId={item.id}
+        artistId={item.ownerId}
         title={item.title}
         subtitle={item.ownerName}
         artistName={item.ownerName}

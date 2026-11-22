@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Globe, Lock, Loader2, Music2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../ui/Button";
@@ -197,8 +198,10 @@ export const PlaylistFormModal = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[99990] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200">
       {/* Backdrop overlay */}
       <div
         className="absolute inset-0"
@@ -340,6 +343,7 @@ export const PlaylistFormModal = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

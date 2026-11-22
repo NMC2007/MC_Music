@@ -96,3 +96,14 @@ export const searchCatalogApi = async (keyword, limit = 8) => {
   });
   return response.data;
 };
+
+/**
+ * Lấy thông tin chi tiết danh sách nhiều bài hát theo mảng IDs
+ * @param {Array<string>} songIds - Danh sách UUID của các bài hát
+ * @returns {Promise<Object>} ApiResponse chứa mảng SongResponse
+ */
+export const getSongsBatchApi = async (songIds = []) => {
+  if (!songIds || songIds.length === 0) return { data: [] };
+  const response = await api.post('/catalog/public/songs/batch', songIds);
+  return response.data;
+};

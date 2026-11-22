@@ -16,6 +16,7 @@ import { Button } from "../components/ui/Button";
 import { SongRow } from "../components/ui/SongRow";
 import { CoverImage } from "../components/ui/CoverImage";
 import { SkeletonRow } from "../components/ui/Skeleton";
+import { DetailActionBar } from "../components/ui/DetailActionBar";
 
 export const AlbumPage = () => {
   const { id: albumId } = useParams();
@@ -141,45 +142,22 @@ export const AlbumPage = () => {
       </div>
 
       {/* ── ACTION BAR ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-6 py-5 bg-gradient-to-b from-[#1a0a0a]/60 to-transparent">
-        {/* Nút Play chính */}
-        <button
-          onClick={handlePlayAlbum}
-          disabled={songs.length === 0 && !isLoading}
-          className="w-14 h-14 rounded-full bg-spotify-primary hover:bg-spotify-primary-hover flex items-center justify-center shadow-[0_8px_16px_rgba(250,45,72,0.3)] transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-        >
-          {isAlbumPlaying ? (
-            <Pause size={24} fill="white" className="text-white" />
-          ) : (
-            <Play size={24} fill="white" className="text-white ml-1" />
-          )}
-        </button>
-
-        {/* Nút Trộn bài */}
-        <Button variant="ghost" size="md" iconOnly tooltip="Trộn bài" tooltipPosition="top" onClick={handleShufflePlay}>
-          <Shuffle size={22} />
-        </Button>
-
-        {/* Nút Thả tim Album */}
-        <Button
-          variant="ghost"
-          size="md"
-          iconOnly
-          tooltip={isAlbumLiked ? "Xóa khỏi Thư viện" : "Lưu vào Thư viện"}
-          tooltipPosition="top"
-          onClick={() => toggleFavoriteAlbum(album ? { ...album, albumId: albumId || album.id, id: albumId || album.id } : { id: albumId, albumId })}
-          className={`hover:bg-transparent transition-all ${
-            isAlbumLiked
-              ? "!text-[#fa2d48] hover:!text-[#ff4b63]"
-              : "text-spotify-sub hover:text-white"
-          }`}
-        >
-          <Heart
-            size={22}
-            className={isAlbumLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
-          />
-        </Button>
-      </div>
+      <DetailActionBar
+        isPlaying={isAlbumPlaying}
+        onPlay={handlePlayAlbum}
+        disabled={songs.length === 0 && !isLoading}
+        onShuffle={handleShufflePlay}
+        isLiked={isAlbumLiked}
+        onLike={() =>
+          toggleFavoriteAlbum(
+            album
+              ? { ...album, albumId: albumId || album.id, id: albumId || album.id }
+              : { id: albumId, albumId }
+          )
+        }
+        likeTooltip={isAlbumLiked ? "Xóa khỏi Thư viện" : "Lưu vào Thư viện"}
+        gradientFrom="from-[#1a0a0a]/60"
+      />
 
       {/* ── TRACK LIST ──────────────────────────────────────────────────────── */}
       <div className="px-6 pb-10">

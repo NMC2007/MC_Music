@@ -310,6 +310,10 @@ export const ArtistPage = () => {
                 >
                   <SongCard
                     type="album"
+                    id={album.id}
+                    albumId={album.id}
+                    artistId={artistId || album.ownerId}
+                    artistName={artist?.stageName || album.ownerName}
                     title={album.title}
                     subtitle={`${
                       album.albumType === "ALBUM"
@@ -317,7 +321,7 @@ export const ArtistPage = () => {
                         : album.albumType === "EP"
                           ? "EP"
                           : "Đĩa đơn"
-                    } • ${album.releaseDate?.slice(0, 4) || ""}`}
+                    } • ${artist?.stageName || album.ownerName || album.releaseDate?.slice(0, 4) || ""}`}
                     imageUrl={album.coverImage}
                     onClick={() =>
                       navigate(`/album/${album.id}`, {

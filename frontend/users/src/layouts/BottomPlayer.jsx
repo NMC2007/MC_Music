@@ -22,8 +22,11 @@ import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
 import { MarqueeText } from "../components/ui/MarqueeText";
 import { addPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
+import { useNavigate } from "react-router";
+import { getSongById } from "../api/catalog/public";
 
 export const BottomPlayer = () => {
+  const navigate = useNavigate();
   const {
     currentSong,
     isPlaying,
@@ -239,6 +242,30 @@ export const BottomPlayer = () => {
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
   const volumePercent = isMuted ? 0 : volume * 100;
 
+  const handleSongClick = (e) => {
+    e?.stopPropagation?.();
+    const songId = currentSong?.id || currentSong?.songId;
+    if (songId) {
+      navigate(`/song/${songId}`);
+    }
+  };
+
+  const handleArtistClick = async (e) => {
+    e?.stopPropagation?.();
+    let artistId = currentSong?.ownerId || currentSong?.artistId;
+    if (!artistId && (currentSong?.id || currentSong?.songId)) {
+      try {
+        const res = await getSongById(currentSong.id || currentSong.songId);
+        artistId = res?.data?.ownerId;
+      } catch (err) {
+        console.error("Lỗi lấy thông tin nghệ sĩ:", err);
+      }
+    }
+    if (artistId) {
+      navigate(`/artist/${artistId}`);
+    }
+  };
+
   return (
     <>
       <footer className="h-20 bg-spotify-black border-t border-neutral-900 flex items-center justify-between px-4 z-50 relative">
@@ -259,18 +286,24 @@ export const BottomPlayer = () => {
           <img
             src={currentSong.coverUrl || currentSong.coverImage}
             alt="Cover"
-            className="w-14 h-14 rounded-md object-cover shadow-sm flex-shrink-0"
+            onClick={handleSongClick}
+            className="w-14 h-14 rounded-md object-cover shadow-sm flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity"
+            title={`Xem chi tiết bài hát: ${currentSong.title}`}
           />
           <div className="flex-1 min-w-0 flex flex-col justify-center overflow-hidden">
             <MarqueeText
               as="h4"
               text={currentSong.title || "Chưa có bài hát"}
+              onClick={handleSongClick}
               className="text-sm font-bold text-white cursor-pointer hover:underline"
+              title={`Xem chi tiết bài hát: ${currentSong.title}`}
             />
             <MarqueeText
               as="p"
               text={currentSong.artist || currentSong.ownerName || currentSong.artistName || "Nghệ sĩ"}
-              className="text-xs text-spotify-sub cursor-pointer hover:underline hover:text-white mt-0.5"
+              onClick={handleArtistClick}
+              className="text-xs text-spotify-sub cursor-pointer hover:underline hover:text-white mt-0.5 transition-colors"
+              title={`Xem trang nghệ sĩ: ${currentSong.artist || currentSong.ownerName || currentSong.artistName}`}
             />
           </div>
 

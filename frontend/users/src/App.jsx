@@ -15,6 +15,7 @@ import { LikedSongsPage } from './pages/LikedSongsPage';
 import { PlaylistPage } from './pages/PlaylistPage';
 import { SearchPage } from './pages/SearchPage';
 import { SectionPage } from './pages/SectionPage';
+import { SongPage } from './pages/SongPage';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           {/* Group 1: Các trang được bọc trong MainLayout (Có Sidebar & Player) */}
           <Route element={<MainLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/song/:id" element={<SongPage />} />
             <Route path="/album/:id" element={<AlbumPage />} />
             <Route path="/artist/:id" element={<ArtistPage />} />
             <Route path="/playlist/:id" element={<PlaylistPage />} />

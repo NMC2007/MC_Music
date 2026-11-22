@@ -22,7 +22,7 @@ export const HomePage = () => {
   const user = useAuthStore((state) => state.user);
   const userId = user?.userId || user?.id || null;
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { playSongWithContext } = usePlayerStore();
+  const { playSongWithContext, playWithAutoQueue } = usePlayerStore();
   const { favoriteSongs, isLoadingSongs: isLoadingFavorites } = useFavorites();
   const { followedArtists, isLoadingFollowed } = useFollowArtists();
   const navigate = useNavigate();
@@ -32,7 +32,7 @@ export const HomePage = () => {
       const res = await getSongById(historyItem.songId);
       const song = res?.data;
       if (song) {
-        playSongWithContext(song, [song]);
+        playWithAutoQueue(song);
       }
     } catch (err) {
       console.error("Lỗi khi phát bài hát từ lịch sử:", err);
@@ -44,7 +44,7 @@ export const HomePage = () => {
       const res = await getSongById(favItem.songId);
       const song = res?.data;
       if (song) {
-        playSongWithContext(song, [song]);
+        playWithAutoQueue(song);
       }
     } catch (err) {
       console.error("Lỗi khi phát bài hát từ danh sách yêu thích:", err);
@@ -169,6 +169,9 @@ export const HomePage = () => {
                 >
                   <SongCard
                     type="song"
+                    id={item.songId || item.id}
+                    songId={item.songId || item.id}
+                    artistId={item.artistId || item.ownerId}
                     title={item.songTitle}
                     subtitle={item.artistName}
                     artistName={item.artistName}
@@ -202,6 +205,9 @@ export const HomePage = () => {
                 >
                   <SongCard
                     type="song"
+                    id={item.songId}
+                    songId={item.songId}
+                    artistId={item.artistId || item.ownerId}
                     title={item.songTitle}
                     subtitle={item.artistName}
                     artistName={item.artistName}
@@ -235,6 +241,8 @@ export const HomePage = () => {
                 >
                   <SongCard
                     type="artist"
+                    id={artist.artistId || artist.id}
+                    artistId={artist.artistId || artist.id}
                     title={artist.artistName || artist.stageName}
                     subtitle="Nghệ sĩ"
                     artistName={artist.artistName || artist.stageName}
@@ -278,13 +286,16 @@ export const HomePage = () => {
             >
               <SongCard
                 type="song"
+                id={song.id}
+                songId={song.id}
+                artistId={song.ownerId}
                 title={song.title}
                 subtitle={song.ownerName}
                 artistName={song.ownerName}
                 imageUrl={song.coverImage}
-                onClick={() => playSongWithContext(song, songs, idx)}
+                onClick={() => playWithAutoQueue(song)}
                 onPlayClick={() => {
-                  playSongWithContext(song, songs, idx);
+                  playWithAutoQueue(song);
                 }}
               />
             </div>
@@ -315,6 +326,8 @@ export const HomePage = () => {
             >
               <SongCard
                 type="artist"
+                id={artist.id}
+                artistId={artist.id}
                 title={artist.stageName}
                 subtitle="Nghệ sĩ"
                 artistName={artist.stageName}
@@ -350,6 +363,9 @@ export const HomePage = () => {
             >
               <SongCard
                 type="album"
+                id={album.id}
+                albumId={album.id}
+                artistId={album.ownerId}
                 title={album.title}
                 subtitle={`${formatAlbumType(album.albumType)} • ${album.ownerName}`}
                 artistName={album.ownerName}

@@ -30,6 +30,7 @@ import { SkeletonRow } from "../components/ui/Skeleton";
 import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
 import { EditPlaylistModal } from "../components/playlist/EditPlaylistModal";
 import { DeletePlaylistConfirmModal } from "../components/playlist/DeletePlaylistConfirmModal";
+import { Popover } from "../components/ui/Popover";
 
 export const PlaylistPage = () => {
   const { id: playlistId } = useParams();
@@ -72,30 +73,6 @@ export const PlaylistPage = () => {
     if (!user?.id || !playlist?.userId) return true;
     return playlist.userId === user.id;
   }, [user, playlist]);
-
-  // Đóng dropdown menu khi click ra ngoài
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setIsMenuOpen(false);
-      }
-    };
-    if (isMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMenuOpen]);
-
-  // Đóng dropdown menu khi bấm Escape
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape" && isMenuOpen) {
-        setIsMenuOpen(false);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isMenuOpen]);
 
   // 2. Fetch danh sách bài hát trong Playlist
   const {
@@ -347,55 +324,62 @@ export const PlaylistPage = () => {
 
           {/* Nút ... Tùy chọn Playlist cá nhân */}
           {isOwner && (
-            <div className="relative" ref={menuRef}>
-              <Button
-                variant="ghost"
-                size="md"
-                iconOnly
-                tooltip="Tùy chọn khác"
-                tooltipPosition="top"
-                onClick={() => setIsMenuOpen((prev) => !prev)}
-                className="hover:bg-white/10 text-neutral-300 hover:text-white"
+            <>
+              <div ref={menuRef} className="inline-flex">
+                <Button
+                  variant="ghost"
+                  size="md"
+                  iconOnly
+                  tooltip="Tùy chọn khác"
+                  tooltipPosition="top"
+                  onClick={() => setIsMenuOpen((prev) => !prev)}
+                  className={`hover:bg-white/10 text-neutral-300 hover:text-white ${
+                    isMenuOpen ? "text-white bg-white/10" : ""
+                  }`}
+                >
+                  <MoreHorizontal size={22} />
+                </Button>
+              </div>
+
+              {/* Menu Dropdown Popup hiển thị ở top-layer qua React Portal */}
+              <Popover
+                isOpen={isMenuOpen}
+                onClose={() => setIsMenuOpen(false)}
+                triggerRef={menuRef}
+                className="w-56 rounded-xl bg-[#282828] shadow-[0_16px_36px_rgba(0,0,0,0.85)] border border-neutral-700/80 p-1.5 flex flex-col gap-1"
               >
-                <MoreHorizontal size={22} />
-              </Button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setIsEditModalOpen(true);
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-neutral-200 hover:text-white hover:bg-neutral-700 rounded-lg transition-colors text-left cursor-pointer"
+                >
+                  <Pencil size={16} className="text-neutral-400" />
+                  <span>Sửa thông tin chi tiết</span>
+                </button>
 
-              {/* Menu Dropdown Popup */}
-              {isMenuOpen && (
-                <div className="absolute left-0 mt-2 w-56 rounded-lg bg-[#282828] shadow-2xl border border-neutral-700/80 py-1.5 z-30 animate-in fade-in-50 zoom-in-95 duration-150">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsEditModalOpen(true);
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-neutral-200 hover:text-white hover:bg-neutral-700 transition-colors text-left cursor-pointer"
-                  >
-                    <Pencil size={16} className="text-neutral-400" />
-                    <span>Sửa thông tin chi tiết</span>
-                  </button>
+                <div className="my-1 border-t border-neutral-700/80" />
 
-                  <div className="my-1 border-t border-neutral-700/80" />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      // Quy tắc: Nếu có >= 1 bài hát thì hiện modal xác nhận; nếu không có bài nào thì xóa thẳng không cần hỏi
-                      if (rawSongs.length > 0) {
-                        setIsDeleteConfirmOpen(true);
-                      } else {
-                        deletePlaylist(playlistId).then(() => navigate("/"));
-                      }
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-neutral-700 transition-colors text-left cursor-pointer"
-                  >
-                    <Trash2 size={16} />
-                    <span>Xóa danh sách phát</span>
-                  </button>
-                </div>
-              )}
-            </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    // Quy tắc: Nếu có >= 1 bài hát thì hiện modal xác nhận; nếu không có bài nào thì xóa thẳng không cần hỏi
+                    if (rawSongs.length > 0) {
+                      setIsDeleteConfirmOpen(true);
+                    } else {
+                      deletePlaylist(playlistId).then(() => navigate("/"));
+                    }
+                  }}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors text-left cursor-pointer"
+                >
+                  <Trash2 size={16} />
+                  <span>Xóa danh sách phát</span>
+                </button>
+              </Popover>
+            </>
           )}
         </div>
 

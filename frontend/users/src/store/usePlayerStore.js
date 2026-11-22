@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useAuthStore } from './useAuthStore';
 import { showLoginToast } from '../utils/toastUtils';
-import { getSongLyrics } from '../api/catalog/public';
+import { getSongLyrics, getPublicSongs, getSongById } from '../api/catalog/public';
 
 const BUFFER_SIZE = 6;
 
@@ -64,7 +64,7 @@ const shuffleArray = (array) => {
 };
 
 // Tìm bài hát tiếp theo từ sourcePool để nạp bù vào hàng đợi
-const getNextCandidate = (currentQueue, currentSong, sourcePool, repeatMode) => {
+const getNextCandidate = (currentQueue, currentSong, sourcePool, repeatMode, isAutoRadio = false) => {
   if (!sourcePool || sourcePool.length === 0) return null;
   const existingIds = new Set([
     ...(currentSong ? [currentSong.id] : []),
@@ -82,7 +82,7 @@ const getNextCandidate = (currentQueue, currentSong, sourcePool, repeatMode) => 
   const total = sourcePool.length;
   for (let offset = 1; offset <= total; offset++) {
     const targetIdx = (lastIndex + offset) % total;
-    if (repeatMode !== 'all' && lastIndex + offset >= total) {
+    if (repeatMode !== 'all' && !isAutoRadio && lastIndex + offset >= total) {
       break;
     }
     const candidate = sourcePool[targetIdx];
@@ -91,8 +91,8 @@ const getNextCandidate = (currentQueue, currentSong, sourcePool, repeatMode) => 
     }
   }
 
-  // Nếu tất cả bài đều đã nằm trong hàng đợi nhưng repeatMode === 'all'
-  if (repeatMode === 'all' && total > 1) {
+  // Nếu tất cả bài đều đã nằm trong hàng đợi nhưng repeatMode === 'all' hoặc đang ở chế độ auto-radio
+  if ((repeatMode === 'all' || isAutoRadio) && total > 1) {
     for (let offset = 1; offset <= total; offset++) {
       const targetIdx = (lastIndex + offset) % total;
       const candidate = sourcePool[targetIdx];
@@ -116,6 +116,7 @@ export const usePlayerStore = create(
       sourcePool: [], // Toàn bộ bài hát thuộc ngữ cảnh hiện tại (Album, Artist, Trending...)
       sourceIndex: -1, // Vị trí bài đang phát trong sourcePool
       history: [], // Lịch sử các bài vừa nghe trong phiên
+      isAutoRadio: false, // Trạng thái phát nhạc radio tự động theo thể loại (phát liên tục không gián đoạn)
 
       isShuffle: false,
       repeatMode: 'off', // 'off' | 'all' | 'one'
@@ -144,6 +145,7 @@ export const usePlayerStore = create(
           history: [],
           isShuffle: false,
           repeatMode: 'off',
+          isAutoRadio: false,
         });
         if (typeof window !== 'undefined') {
           try {
@@ -208,12 +210,116 @@ export const usePlayerStore = create(
   },
 
   /**
+   * Phát bài hát kèm tự động tạo hàng đợi thông minh dựa trên thể loại nhạc (Smart Genre Queue / Auto Radio)
+   * 1. Lập tức phát bài hát ngay để không có độ trễ cho người dùng.
+   * 2. Lấy thể loại của bài hát (từ dữ liệu có sẵn hoặc gọi getSongById nếu cần).
+   * 3. Lấy danh sách các bài hát công khai cùng thể loại (hoặc bổ sung trending nếu thể loại có ít bài).
+   * 4. Trộn ngẫu nhiên danh sách thể loại và nạp 6 bài chờ vào queue.
+   * 5. Khi phát hết các bài, tự động lặp xoay vòng từ pool để luồng phát KHÔNG BAO GIỜ bị gián đoạn.
+   */
+  playWithAutoQueue: async (song) => {
+    if (!song) return;
+    const songId = song.id || song.songId;
+    if (!songId) return;
+
+    // Bước 1: Chuẩn bị thông tin bài hát
+    let fullSong = song;
+    // Nếu thiếu audioUrl hoặc thiếu genres, fetch chi tiết bài hát
+    if (!fullSong.audioUrl || !fullSong.genres) {
+      try {
+        const res = await getSongById(songId);
+        if (res?.data) {
+          fullSong = { ...song, ...res.data, id: songId };
+        }
+      } catch (e) {
+        console.error("Lỗi lấy thông tin bài hát:", e);
+      }
+    }
+
+    fullSong = { ...fullSong, id: songId };
+
+    // Bước 2: Bắt đầu phát ngay lập tức (Zero Latency)
+    // Đặt sourcePool tạm thời là [fullSong], isAutoRadio = true
+    set({
+      currentSong: fullSong,
+      isPlaying: true,
+      currentTime: 0,
+      queue: [],
+      originalQueue: [],
+      sourcePool: [fullSong],
+      sourceIndex: 0,
+      isAutoRadio: true,
+    });
+
+    // Bước 3: Tìm bài hát cùng thể loại trong background
+    try {
+      let genreId = null;
+      if (fullSong.genres && Array.isArray(fullSong.genres) && fullSong.genres.length > 0) {
+        const randomGenre = fullSong.genres[Math.floor(Math.random() * fullSong.genres.length)];
+        genreId = randomGenre.id;
+      }
+
+      let candidateSongs = [];
+
+      // Fetch bài theo thể loại
+      if (genreId) {
+        try {
+          const res = await getPublicSongs({ genreId, size: 30 });
+          candidateSongs = (res?.data?.content || []).filter((s) => s.id !== songId);
+        } catch (err) {
+          console.warn("Lỗi tải bài hát theo thể loại:", err);
+        }
+      }
+
+      // Nếu không có bài cùng thể loại hoặc ít hơn 6 bài, bổ sung bài hát thịnh hành
+      if (candidateSongs.length < 6) {
+        try {
+          const trendRes = await getPublicSongs({ size: 30, sort: 'playCount,desc' });
+          const trendSongs = (trendRes?.data?.content || []).filter(
+            (s) => s.id !== songId && !candidateSongs.some((c) => c.id === s.id)
+          );
+          candidateSongs = [...candidateSongs, ...trendSongs];
+        } catch (err) {
+          console.warn("Lỗi tải bài hát thịnh hành bổ sung:", err);
+        }
+      }
+
+      // Xáo trộn ngẫu nhiên danh sách gợi ý
+      const shuffled = shuffleArray(candidateSongs);
+      const completePool = [fullSong, ...shuffled];
+      const buffer = shuffled.slice(0, BUFFER_SIZE);
+
+      // KIỂM TRA QUAN TRỌNG: Chỉ cập nhật nếu bài hát đang phát hiện tại vẫn là bài này
+      // (Tránh trường hợp người dùng đã nhanh tay bấm chọn bài khác trên trang trong lúc đang tải)
+      const current = get().currentSong;
+      if (current && (current.id === songId || current.songId === songId)) {
+        set({
+          sourcePool: completePool,
+          sourceIndex: 0,
+          queue: buffer,
+          originalQueue: [...buffer],
+          isAutoRadio: true,
+        });
+      }
+    } catch (err) {
+      console.error("Lỗi khởi tạo hàng đợi tự động:", err);
+    }
+  },
+
+  /**
    * Phát 1 bài kèm ngữ cảnh nguồn (Album, Artist, Trending...)
    * Nạp ngay bài đang chọn và chuẩn bị đúng 6 bài chờ kế tiếp
    */
   playSongWithContext: (song, sourceList = [], startIndex) => {
     if (!song) return;
     const pool = sourceList && sourceList.length > 0 ? sourceList : [song];
+
+    // Nếu pool chỉ có 1 bài hát -> tự động chuyển sang playWithAutoQueue để lấy bài cùng thể loại
+    if (pool.length <= 1) {
+      get().playWithAutoQueue(song);
+      return;
+    }
+
     const resolvedIndex =
       startIndex !== undefined
         ? startIndex
@@ -248,6 +354,7 @@ export const usePlayerStore = create(
       originalQueue: savedOriginal,
       sourcePool: pool,
       sourceIndex: validIndex,
+      isAutoRadio: false,
     });
   },
 
@@ -256,11 +363,66 @@ export const usePlayerStore = create(
    */
   setCurrentSong: (song) => {
     const { sourcePool } = get();
-    if (sourcePool && sourcePool.length > 0 && sourcePool.some((s) => s.id === song.id)) {
+    if (sourcePool && sourcePool.length > 1 && sourcePool.some((s) => s.id === song.id)) {
       get().playSongWithContext(song, sourcePool);
     } else {
-      get().playSongWithContext(song, [song]);
+      get().playWithAutoQueue(song);
     }
+  },
+
+  /**
+   * Phát 1 bài hát trực tiếp từ trong Hàng đợi chờ phát (Queue Drawer)
+   * YÊU CẦU ĐẶC BIỆT: Bảo lưu nguyên vẹn thứ tự các bài tiếp theo trong queue, KHÔNG RESET queue!
+   * Đưa các bài bị bỏ qua và bài hiện tại vào history.
+   * Tự động bù các bài từ sourcePool vào cuối queue để luôn duy trì BUFFER_SIZE (6 bài).
+   */
+  playQueueSong: (songId) => {
+    const { queue, currentSong, history, sourcePool, repeatMode, isShuffle, originalQueue, isAutoRadio } = get();
+    const songIndex = queue.findIndex((s) => (s.id === songId || s.songId === songId));
+    if (songIndex === -1) return;
+
+    const targetSong = queue[songIndex];
+
+    // Các bài đứng trước targetSong trong queue coi như bị bỏ qua -> đưa cùng currentSong vào history
+    const skippedSongs = queue.slice(0, songIndex);
+    const remainingQueue = queue.slice(songIndex + 1);
+
+    const updatedHistory = [
+      ...(currentSong ? [currentSong] : []),
+      ...skippedSongs.reverse(),
+      ...history,
+    ].slice(0, 30);
+
+    // Nạp bù từ sourcePool vào cuối remainingQueue cho đủ BUFFER_SIZE (6 bài)
+    let newQueue = [...remainingQueue];
+    while (newQueue.length < BUFFER_SIZE) {
+      const refill = getNextCandidate(newQueue, targetSong, sourcePool, repeatMode, isAutoRadio);
+      if (!refill) break;
+      newQueue.push(refill);
+    }
+
+    // Cập nhật originalQueue
+    let newOriginalQueue = originalQueue;
+    if (!isShuffle) {
+      newOriginalQueue = [...newQueue];
+    } else {
+      newOriginalQueue = [
+        ...originalQueue.filter((s) => s.id !== targetSong.id && !skippedSongs.some((sk) => sk.id === s.id)),
+        ...newQueue.slice(remainingQueue.length),
+      ];
+    }
+
+    const newSourceIndex = sourcePool.findIndex((s) => s.id === targetSong.id);
+
+    set({
+      currentSong: targetSong,
+      isPlaying: true,
+      currentTime: 0,
+      queue: newQueue,
+      originalQueue: newOriginalQueue,
+      sourceIndex: newSourceIndex >= 0 ? newSourceIndex : 0,
+      history: updatedHistory,
+    });
   },
 
   /**
@@ -286,6 +448,80 @@ export const usePlayerStore = create(
   },
 
   /**
+   * Thêm 1 bài hát vào Hàng đợi chờ phát (Add to Queue / Play Next)
+   * YÊU CẦU:
+   * - Bài hát được thêm vào ngay phía sau bài đang phát hiện tại.
+   * - Nếu người dùng thêm từ 2 bài trở lên, các bài sẽ sắp xếp theo thứ tự lần lượt được thêm:
+   *   (Bài thêm trước phát trước, bài thêm sau phát tiếp theo).
+   */
+  addToQueue: async (song) => {
+    if (!song) return;
+    const songId = song.id || song.songId;
+    if (!songId) return;
+
+    const { currentSong, queue, isShuffle, originalQueue, sourcePool } = get();
+
+    // Nếu chưa có bài nào đang phát, bắt đầu phát bài này luôn
+    if (!currentSong) {
+      await get().playWithAutoQueue(song);
+      return;
+    }
+
+    // Đảm bảo đầy đủ thông tin bài hát (như audioUrl, duration...)
+    let fullSong = song;
+    if (!fullSong.audioUrl) {
+      try {
+        const res = await getSongById(songId);
+        if (res?.data) {
+          fullSong = { ...song, ...res.data, id: songId };
+        }
+      } catch (err) {
+        console.error("Lỗi lấy thông tin bài hát khi thêm vào hàng đợi:", err);
+      }
+    }
+
+    fullSong = { ...fullSong, id: songId, isUserQueued: true };
+
+    // Lọc bỏ bài này nếu nó đã xuất hiện ở phía sau trong queue (tránh lặp bài)
+    const filteredQueue = queue.filter((s) => (s.id || s.songId) !== songId);
+
+    // Tìm vị trí chèn: sau các bài đã được người dùng ưu tiên thêm vào hàng đợi trước đó
+    let insertIndex = 0;
+    while (insertIndex < filteredQueue.length && filteredQueue[insertIndex].isUserQueued) {
+      insertIndex++;
+    }
+
+    const newQueue = [
+      ...filteredQueue.slice(0, insertIndex),
+      fullSong,
+      ...filteredQueue.slice(insertIndex),
+    ];
+
+    // Bổ sung bài này vào sourcePool nếu chưa có trong pool
+    let newSourcePool = sourcePool;
+    if (!sourcePool.some((s) => (s.id || s.songId) === songId)) {
+      newSourcePool = [...sourcePool, fullSong];
+    }
+
+    // Cập nhật originalQueue
+    let newOriginalQueue = originalQueue;
+    if (!isShuffle) {
+      newOriginalQueue = [...newQueue];
+    } else {
+      newOriginalQueue = [
+        ...originalQueue.filter((s) => (s.id || s.songId) !== songId),
+        fullSong,
+      ];
+    }
+
+    set({
+      queue: newQueue,
+      originalQueue: newOriginalQueue,
+      sourcePool: newSourcePool,
+    });
+  },
+
+  /**
    * Phát bài tiếp theo (Auto-Next hoặc bấm nút Next)
    * Lấy bài #1 của queue lên phát và tự động lấy 1 bài bù vào cuối queue để giữ đủ 6 bài
    */
@@ -298,14 +534,15 @@ export const usePlayerStore = create(
       isShuffle,
       originalQueue,
       history,
+      isAutoRadio,
     } = get();
 
     if (!currentSong) return;
 
     // Nếu hàng đợi không còn bài nào
     if (queue.length === 0) {
-      if (repeatMode === 'all' && sourcePool.length > 0) {
-        // Lặp lại từ bài đầu tiên của pool
+      if ((repeatMode === 'all' || isAutoRadio) && sourcePool.length > 0) {
+        // Lặp lại từ bài đầu tiên của pool để luồng phát liên tục không bị gián đoạn
         get().playSongWithContext(sourcePool[0], sourcePool, 0);
       } else {
         set({ isPlaying: false });
@@ -328,7 +565,8 @@ export const usePlayerStore = create(
       newQueue,
       nextSong,
       sourcePool,
-      repeatMode
+      repeatMode,
+      isAutoRadio
     );
     if (refillCandidate) {
       newQueue.push(refillCandidate);
@@ -471,11 +709,11 @@ export const usePlayerStore = create(
    * Tự động kéo 1 bài tiếp theo từ sourcePool lên bù vào để luôn đủ 6 bài
    */
   removeFromQueue: (songId) => {
-    const { queue, currentSong, sourcePool, repeatMode, originalQueue } = get();
+    const { queue, currentSong, sourcePool, repeatMode, originalQueue, isAutoRadio } = get();
     const remaining = queue.filter((s) => s.id !== songId);
 
     // Tìm bài bù vào cuối
-    const refill = getNextCandidate(remaining, currentSong, sourcePool, repeatMode);
+    const refill = getNextCandidate(remaining, currentSong, sourcePool, repeatMode, isAutoRadio);
     if (refill) {
       remaining.push(refill);
     }
@@ -497,6 +735,7 @@ export const usePlayerStore = create(
         sourcePool: state.sourcePool,
         sourceIndex: state.sourceIndex,
         history: state.history,
+        isAutoRadio: state.isAutoRadio,
         isShuffle: state.isShuffle,
         repeatMode: state.repeatMode,
         volume: state.volume,
@@ -529,6 +768,7 @@ if (typeof window !== 'undefined') {
             sourcePool: state.sourcePool,
             sourceIndex: state.sourceIndex,
             history: state.history,
+            isAutoRadio: state.isAutoRadio,
             isShuffle: state.isShuffle,
             repeatMode: state.repeatMode,
             volume: state.volume,

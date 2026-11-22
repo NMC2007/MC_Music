@@ -22,6 +22,8 @@ public class SongResponse {
     private String rejectionReason;
     private Boolean isDeleted;
     private LocalDateTime createdAt;
+    private UUID albumId;
+    private String albumTitle;
     private List<SongArtistResponse> artists;
     private List<GenreResponse> genres;
 }

@@ -90,21 +90,22 @@ export const LikedSongsPage = () => {
         return cleanDb === cleanPop;
       });
 
-      if (matched) {
-        return {
-          id: matched.id,
-          name: popular.name,
-        };
-      }
       return {
-        id: popular.id,
+        id: matched?.id || popular.id,
         name: popular.name,
+        key: popular.id,
+        dbId: matched?.id || null,
       };
     });
   }, [genresData]);
 
-  // State bộ lọc thể loại (null = Tất cả)
-  const [selectedGenre, setSelectedGenre] = useState(null);
+  // State bộ lọc thể loại (null = Tất cả, hoặc key thể loại như "rap", "hip-hop"...)
+  const [selectedGenreKey, setSelectedGenreKey] = useState(null);
+
+  const activeGenreObj = useMemo(() => {
+    if (!selectedGenreKey) return null;
+    return genres.find((g) => g.key === selectedGenreKey) || null;
+  }, [genres, selectedGenreKey]);
 
   // State sắp xếp
   const [sortBy, setSortBy] = useState("recent");
@@ -188,28 +189,68 @@ export const LikedSongsPage = () => {
     }
 
     // 2. Lọc theo thể loại
-    if (selectedGenre) {
-      const target = selectedGenre.toLowerCase();
+    if (activeGenreObj) {
+      const targetKey = activeGenreObj.key.toLowerCase();
+      const targetName = activeGenreObj.name.toLowerCase();
+      const targetDbId = activeGenreObj.dbId ? activeGenreObj.dbId.toLowerCase() : null;
+      const cleanTargetName = targetName.replace(/[^a-z0-9]/g, "");
+
       result = result.filter((s) => {
         if (!s.genres || s.genres.length === 0) return false;
         return s.genres.some((g) => {
           const gId = (g.id || "").toLowerCase();
           const gName = (g.name || "").toLowerCase();
           const cleanGName = gName.replace(/[^a-z0-9]/g, "");
-          const cleanTarget = target.replace(/[^a-z0-9]/g, "");
 
-          if (gId === target || cleanGName === cleanTarget) return true;
-          // Alias Rap & Hip-Hop (khớp bài hát gắn thẻ Rap hoặc Hip-Hop)
+          // 1. Khớp theo UUID thể loại từ DB
+          if (targetDbId && gId && gId === targetDbId) return true;
+
+          // 2. Khớp theo tên chuẩn hóa
+          if (cleanGName && cleanTargetName && cleanGName === cleanTargetName) return true;
+
+          // 3. Khớp theo key
+          if (cleanGName && cleanGName === targetKey.replace(/[^a-z0-9]/g, "")) return true;
+
+          // 4. Alias Rap & Hip-Hop (khớp bài hát gắn thẻ Rap hoặc Hip-Hop)
           if (
-            (cleanTarget.includes("rap") || cleanTarget.includes("hiphop")) &&
+            (targetKey.includes("rap") || cleanTargetName.includes("rap") || targetKey.includes("hiphop") || cleanTargetName.includes("hiphop")) &&
             (cleanGName.includes("rap") || cleanGName.includes("hiphop"))
           ) {
             return true;
           }
-          // Alias Lofi & Lo-Fi
-          if (cleanTarget.includes("lofi") && cleanGName.includes("lofi")) {
+
+          // 5. Alias Lofi & Lo-Fi & Chill
+          if (
+            (targetKey.includes("lofi") || cleanTargetName.includes("lofi")) &&
+            (cleanGName.includes("lofi") || cleanGName.includes("chill"))
+          ) {
             return true;
           }
+
+          // 6. Alias R&B & Soul
+          if (
+            (targetKey.includes("rb") || cleanTargetName.includes("rb") || cleanTargetName.includes("rnb")) &&
+            (cleanGName.includes("rb") || cleanGName.includes("rnb") || cleanGName.includes("soul"))
+          ) {
+            return true;
+          }
+
+          // 7. Alias EDM & Dance & Electronic
+          if (
+            (targetKey.includes("edm") || cleanTargetName.includes("edm")) &&
+            (cleanGName.includes("edm") || cleanGName.includes("dance") || cleanGName.includes("electro"))
+          ) {
+            return true;
+          }
+
+          // 8. Alias Pop (Pop, V-Pop, K-Pop, US-UK)
+          if (
+            (targetKey === "pop" || cleanTargetName === "pop") &&
+            cleanGName.includes("pop")
+          ) {
+            return true;
+          }
+
           return false;
         });
       });
@@ -233,7 +274,7 @@ export const LikedSongsPage = () => {
     });
 
     return result;
-  }, [favoriteSongs, searchQuery, selectedGenre, sortBy]);
+  }, [favoriteSongs, searchQuery, activeGenreObj, sortBy]);
 
   // Format ngày thêm (Ví dụ: "4 thg 7, 2026")
   const formatDateAdded = (dateStr) => {
@@ -476,9 +517,9 @@ export const LikedSongsPage = () => {
             {/* Nút Tất cả */}
             <button
               type="button"
-              onClick={() => setSelectedGenre(null)}
+              onClick={() => setSelectedGenreKey(null)}
               className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer flex-shrink-0 border select-none ${
-                selectedGenre === null
+                selectedGenreKey === null
                   ? "bg-[#fa2d48] text-white border-[#fa2d48] font-bold shadow-[0_2px_10px_rgba(250,45,72,0.3)]"
                   : "bg-[#242424]/90 hover:bg-[#323232] text-white border-transparent hover:border-white/10"
               }`}
@@ -487,13 +528,12 @@ export const LikedSongsPage = () => {
             </button>
 
             {genres.map((genre) => {
-              const genreKey = genre.id || genre.name;
-              const isSelected = selectedGenre === genreKey;
+              const isSelected = selectedGenreKey === genre.key;
               return (
                 <button
-                  key={genreKey}
+                  key={genre.key}
                   type="button"
-                  onClick={() => setSelectedGenre(isSelected ? null : genreKey)}
+                  onClick={() => setSelectedGenreKey(isSelected ? null : genre.key)}
                   className={`px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all cursor-pointer flex-shrink-0 border select-none ${
                     isSelected
                       ? "bg-[#fa2d48] text-white border-[#fa2d48] font-bold shadow-[0_2px_10px_rgba(250,45,72,0.3)]"
@@ -680,21 +720,21 @@ export const LikedSongsPage = () => {
               <h3 className="text-xl font-bold text-white">
                 {searchQuery
                   ? `Không tìm thấy kết quả cho "${searchQuery}"`
-                  : selectedGenre
+                  : selectedGenreKey
                   ? "Không có bài hát yêu thích nào thuộc thể loại này"
                   : "Những bài hát bạn yêu thích sẽ xuất hiện ở đây"}
               </h3>
               <p className="text-sm text-spotify-sub max-w-md">
-                {selectedGenre
+                {selectedGenreKey
                   ? "Hãy thử chọn thể loại khác hoặc bấm để xem lại toàn bộ bài hát đã thích."
                   : "Lưu các bài hát bạn yêu thích bằng cách nhấn vào biểu tượng trái tim trên thanh phát nhạc hoặc danh sách bài hát."}
               </p>
-              {selectedGenre ? (
+              {selectedGenreKey ? (
                 <Button
                   variant="glass"
                   size="md"
                   className="mt-2 text-white font-bold rounded-full px-6"
-                  onClick={() => setSelectedGenre(null)}
+                  onClick={() => setSelectedGenreKey(null)}
                 >
                   Xem tất cả thể loại
                 </Button>

@@ -11,7 +11,7 @@ import {
   addFavoriteAlbumApi,
   removeFavoriteAlbumApi,
 } from "../api/users/favorites";
-import { getPublicAlbums, getPublicSongs } from "../api/catalog/public";
+import { getPublicAlbums, getPublicSongs, getSongsBatchApi } from "../api/catalog/public";
 
 export const FAVORITES_QUERY_KEY = ["userFavorites", "songs"];
 export const FAVORITE_ALBUMS_QUERY_KEY = ["userFavorites", "albums"];
@@ -71,33 +71,40 @@ export const useFavorites = () => {
     return map;
   }, [publicAlbumsQuery.data]);
 
-  // 4. Query danh sách bài hát công khai từ Catalog để enrich metadata (genres, durationSeconds, audioUrl)
-  const publicSongsQuery = useQuery({
-    queryKey: ["publicSongs", "catalogLookup"],
-    queryFn: () => getPublicSongs({ size: 100 }),
+  // 4. Query thông tin chi tiết chính xác từ Catalog cho danh sách bài hát yêu thích (Batch API)
+  const favoriteSongIdsList = useMemo(() => {
+    const rawList = songsQuery.data?.data?.content || [];
+    return rawList.map((item) => item.songId).filter(Boolean);
+  }, [songsQuery.data]);
+
+  const batchSongsQuery = useQuery({
+    queryKey: ["catalogSongsBatch", favoriteSongIdsList],
+    queryFn: () => getSongsBatchApi(favoriteSongIdsList),
+    enabled: favoriteSongIdsList.length > 0,
     staleTime: 1000 * 60 * 10,
   });
 
   const publicSongsMap = useMemo(() => {
     const map = new Map();
-    const list = publicSongsQuery.data?.data?.content || [];
+    const list = batchSongsQuery.data?.data || [];
     list.forEach((s) => {
       if (s.id) map.set(s.id, s);
     });
     return map;
-  }, [publicSongsQuery.data]);
+  }, [batchSongsQuery.data]);
 
-  // Danh sách bài hát yêu thích dạng mảng (đã enrich metadata từ Catalog: genres, durationSeconds)
+  // Danh sách bài hát yêu thích dạng mảng (đã enrich metadata chính xác từ Catalog: genres, durationSeconds, albumTitle)
   const favoriteSongs = useMemo(() => {
     const rawList = songsQuery.data?.data?.content || [];
     return rawList.map((item) => {
       const publicMeta = publicSongsMap.get(item.songId);
       return {
         ...item,
-        genres: publicMeta?.genres || [],
+        genres: publicMeta?.genres || item.genres || [],
         durationSeconds: publicMeta?.durationSeconds || item.durationSeconds || 0,
         audioUrl: publicMeta?.audioUrl || item.audioUrl,
         albumTitle: publicMeta?.albumTitle || item.albumTitle,
+        artists: publicMeta?.artists || item.artists || [],
         raw: {
           ...publicMeta,
           ...item,
@@ -165,13 +172,14 @@ export const useFavorites = () => {
       }
     },
     onMutate: async ({ song, isLiked }) => {
+      await queryClient.cancelQueries({ queryKey: currentSongsQueryKey });
       await queryClient.cancelQueries({ queryKey: FAVORITES_QUERY_KEY });
-      const previousData = queryClient.getQueryData(FAVORITES_QUERY_KEY);
+      const previousData = queryClient.getQueryData(currentSongsQueryKey) || queryClient.getQueryData(FAVORITES_QUERY_KEY);
 
       const songId = song.id || song.songId;
       const songTitle = song.title || song.songTitle || "bài hát";
 
-      queryClient.setQueryData(FAVORITES_QUERY_KEY, (old) => {
+      const updateCache = (old) => {
         if (!old) {
           if (isLiked) return old;
           return {
@@ -189,6 +197,10 @@ export const useFavorites = () => {
                     "Nghệ sĩ",
                   coverImage: song.coverUrl || song.coverImage || "",
                   createdAt: new Date().toISOString(),
+                  genres: song.genres || [],
+                  durationSeconds: song.durationSeconds || song.duration || 0,
+                  audioUrl: song.audioUrl || "",
+                  albumTitle: song.albumTitle || "",
                 },
               ],
               page: { size: 100, number: 0, totalElements: 1, totalPages: 1 },
@@ -209,6 +221,10 @@ export const useFavorites = () => {
               song.artist || song.ownerName || song.artistName || "Nghệ sĩ",
             coverImage: song.coverUrl || song.coverImage || "",
             createdAt: new Date().toISOString(),
+            genres: song.genres || [],
+            durationSeconds: song.durationSeconds || song.duration || 0,
+            audioUrl: song.audioUrl || "",
+            albumTitle: song.albumTitle || "",
           };
           newContent = [
             newItem,
@@ -229,7 +245,10 @@ export const useFavorites = () => {
             },
           },
         };
-      });
+      };
+
+      queryClient.setQueryData(currentSongsQueryKey, updateCache);
+      queryClient.setQueryData(FAVORITES_QUERY_KEY, updateCache);
 
       // Toast tức thời
       if (isLiked) {

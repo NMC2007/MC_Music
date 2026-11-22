@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router";
 import { Play, Heart } from "lucide-react";
 import { CoverImage } from "./CoverImage";
 import { useFavorites } from "../../hooks/useFavorites";
@@ -15,6 +16,7 @@ export const SongRow = ({
   currentPlaylistId = null,
   onRemove = null,
 }) => {
+  const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
 
@@ -34,6 +36,22 @@ export const SongRow = ({
     toggleFavoriteSong(song);
   };
 
+  const handleTitleClick = (e) => {
+    e.stopPropagation();
+    const targetSongId = song?.id || song?.songId;
+    if (targetSongId) {
+      navigate(`/song/${targetSongId}`);
+    }
+  };
+
+  const handleArtistClick = (e) => {
+    e.stopPropagation();
+    const targetArtistId = song?.ownerId || song?.artistId;
+    if (targetArtistId) {
+      navigate(`/artist/${targetArtistId}`);
+    }
+  };
+
   return (
     <div
       className="flex items-center gap-4 py-2 px-4 rounded-md hover:bg-[#2a2a2a] group cursor-pointer transition-colors"
@@ -44,7 +62,14 @@ export const SongRow = ({
       {/* Cột STT / Nút Play */}
       <div className="w-6 text-right flex justify-end">
         {isHovered ? (
-          <button className="text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer">
+          <button
+            type="button"
+            className="text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onPlayClick) onPlayClick();
+            }}
+          >
             <Play size={16} fill="currentColor" />
           </button>
         ) : (
@@ -70,13 +95,19 @@ export const SongRow = ({
       {/* Thông tin bài hát */}
       <div className="flex-1 flex flex-col justify-center min-w-0">
         <span
-          className={`text-base truncate ${
+          onClick={handleTitleClick}
+          title={song.title}
+          className={`text-base truncate hover:underline cursor-pointer transition-colors ${
             isPlaying ? "text-[#fa2d48] font-bold" : "text-white"
           }`}
         >
           {song.title}
         </span>
-        <span className="text-sm text-spotify-sub group-hover:text-white transition-colors truncate">
+        <span
+          onClick={handleArtistClick}
+          title={song.artistName || song.ownerName}
+          className="text-sm text-spotify-sub hover:underline hover:text-white transition-colors truncate cursor-pointer"
+        >
           {song.artistName || song.ownerName}
         </span>
       </div>
@@ -88,6 +119,7 @@ export const SongRow = ({
         }`}
       >
         <button
+          type="button"
           className={`p-1.5 rounded-full hover:scale-110 active:scale-95 transition-all cursor-pointer ${
             isLiked
               ? "text-[#fa2d48]"

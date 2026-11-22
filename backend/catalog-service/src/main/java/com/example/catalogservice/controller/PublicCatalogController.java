@@ -158,6 +158,12 @@ public class PublicCatalogController {
         return ResponseEntity.ok(ApiResponse.success(song, "Lấy thông tin bài hát thành công"));
     }
 
+    @PostMapping("/songs/batch")
+    public ResponseEntity<ApiResponse<List<SongResponse>>> getSongsBatch(@RequestBody List<UUID> songIds) {
+        List<SongResponse> songs = publicCatalogService.getSongsByIds(songIds);
+        return ResponseEntity.ok(ApiResponse.success(songs, "Lấy danh sách bài hát thành công"));
+    }
+
     @GetMapping("/albums/{id}")
     public ResponseEntity<ApiResponse<AlbumResponse>> getAlbumById(@PathVariable UUID id) {
         AlbumResponse album = publicCatalogService.getAlbumById(id);

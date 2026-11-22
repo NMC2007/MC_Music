@@ -33,6 +33,7 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
     toggleShuffle,
     reorderQueue,
     removeFromQueue,
+    playQueueSong,
     playSongWithContext,
     playHistorySong,
     sourcePool,
@@ -327,6 +328,7 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
                         onDragOver={(e) => handleDragOver(e, index)}
                         onDrop={(e) => handleDrop(e, index)}
                         onDragEnd={handleDragEnd}
+                        onDoubleClick={() => playQueueSong(song.id)}
                         className={`flex items-center gap-2 p-2 rounded-xl transition-all select-none group cursor-grab active:cursor-grabbing ${
                           isDragging
                             ? "opacity-30 scale-95 border-2 border-dashed border-[#fa2d48]"
@@ -357,9 +359,9 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
                           />
                           <button
                             onClick={() =>
-                              playSongWithContext(song, sourcePool)
+                              playQueueSong(song.id)
                             }
-                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white"
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white cursor-pointer"
                             title="Phát ngay bài này"
                           >
                             <Play size={14} fill="currentColor" />
@@ -367,10 +369,20 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
                         </div>
 
                         {/* Tiêu đề & Nghệ sĩ */}
-                        <div className="flex-1 min-w-0">
-                          <h6 className="text-xs font-semibold text-white truncate">
-                            {song.title}
-                          </h6>
+                        <div
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => playQueueSong(song.id)}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <h6 className="text-xs font-semibold text-white truncate hover:text-[#fa2d48] transition-colors">
+                              {song.title}
+                            </h6>
+                            {song.isUserQueued && (
+                              <span className="text-[9px] font-bold text-[#fa2d48] bg-[#fa2d48]/15 px-1.5 py-0.5 rounded flex-shrink-0">
+                                Đã thêm
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[11px] text-spotify-sub truncate">
                             {song.artist || song.ownerName || song.artistName}
                           </p>
