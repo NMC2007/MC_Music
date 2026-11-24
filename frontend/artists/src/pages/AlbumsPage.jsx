@@ -88,7 +88,9 @@ export const AlbumsPage = () => {
   const [searchKeyword, setSearchKeyword] = useState("");
 
   // Modal states
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(() => {
+    return new URLSearchParams(window.location.search).get("action") === "create";
+  });
   const [editTarget, setEditTarget] = useState(null);      // album object
   const [deleteTarget, setDeleteTarget] = useState(null);  // album object to confirm delete
   const [detailTarget, setDetailTarget] = useState(null);  // album object for tracklist modal
@@ -134,22 +136,25 @@ export const AlbumsPage = () => {
   const totalElements = albumsRes?.data?.totalElements || 0;
   const totalPages = albumsRes?.data?.totalPages || 0;
 
-  // ── XỬ LÝ URL PARAMS (?action=create HOẶC ?albumId=...) ──────────────────
+  // ── XỬ LÝ URL PARAMS (?albumId=...) ──────────────────
+  const albumIdParam = new URLSearchParams(location.search).get("albumId");
+  const [prevAlbumIdParam, setPrevAlbumIdParam] = useState(null);
+
+  if (albumIdParam && albumIdParam !== prevAlbumIdParam && rawAlbums.length > 0) {
+    setPrevAlbumIdParam(albumIdParam);
+    const found = rawAlbums.find((a) => a.id === albumIdParam);
+    if (found) {
+      setDetailTarget(found);
+    }
+  }
+
+  // ── DỌN DẸP QUERY PARAM (?action=create) ──────────────────
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const action = params.get("action");
-    const albumIdParam = params.get("albumId");
-
-    if (action === "create") {
-      setIsCreateOpen(true);
+    if (params.get("action") === "create") {
       navigate("/albums", { replace: true });
-    } else if (albumIdParam && rawAlbums.length > 0) {
-      const found = rawAlbums.find((a) => a.id === albumIdParam);
-      if (found) {
-        setDetailTarget(found);
-      }
     }
-  }, [location.search, navigate, rawAlbums]);
+  }, [location.search, navigate]);
 
   // Lọc theo từ khóa tìm kiếm
   const albums = searchKeyword

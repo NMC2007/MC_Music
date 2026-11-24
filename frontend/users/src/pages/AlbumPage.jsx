@@ -1,22 +1,17 @@
 import React, { useMemo } from "react";
 import { useParams, useLocation } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Play,
-  Pause,
-  Shuffle,
-  Heart,
-  Clock,
-} from "lucide-react";
+import { Clock } from "lucide-react";
 
 import { getAlbumSongs, getAlbumById } from "../api/catalog/public";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useFavorites } from "../hooks/useFavorites";
-import { Button } from "../components/ui/Button";
 import { SongRow } from "../components/ui/SongRow";
 import { CoverImage } from "../components/ui/CoverImage";
 import { SkeletonRow } from "../components/ui/Skeleton";
 import { DetailActionBar } from "../components/ui/DetailActionBar";
+
+const getRandomIndex = (len) => Math.floor(Math.random() * len);
 
 export const AlbumPage = () => {
   const { id: albumId } = useParams();
@@ -84,7 +79,7 @@ export const AlbumPage = () => {
 
   const handleShufflePlay = () => {
     if (songs.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * songs.length);
+    const randomIndex = getRandomIndex(songs.length);
     playSongWithContext(songs[randomIndex], songs, randomIndex);
   };
 

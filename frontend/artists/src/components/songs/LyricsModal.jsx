@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,14 +38,14 @@ export const LyricsModal = ({ isOpen, onClose, song }) => {
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isDirty },
   } = useForm({
     resolver: zodResolver(lyricsSchema),
     defaultValues: { content: "", language: "vi" },
   });
 
-  const contentValue = watch("content");
+  const contentValue = useWatch({ control, name: "content" });
   const charCount = contentValue?.length || 0;
 
   // Tải lời bài hát hiện có (nếu đã có)

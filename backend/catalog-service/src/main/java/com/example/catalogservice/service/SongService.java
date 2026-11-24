@@ -309,7 +309,7 @@ public class SongService {
     }
     
     @Transactional(readOnly = true)
-    public Page<SongResponse> getSongsByOwner(UUID ownerId, String status, Boolean isDeleted, Pageable pageable) {
+    public Page<SongResponse> getSongsByOwner(UUID ownerId, String status, Boolean isDeleted, String keyword, Pageable pageable) {
         String filterStatus = null;
         if (status != null && !status.isBlank()) {
             filterStatus = status.trim().toUpperCase();
@@ -318,18 +318,17 @@ public class SongService {
             }
         }
 
-        Page<Song> songPage;
-        if (filterStatus != null && isDeleted != null) {
-            songPage = songRepository.findByOwnerIdAndStatusAndIsDeleted(ownerId, filterStatus, isDeleted, pageable);
-        } else if (filterStatus != null) {
-            songPage = songRepository.findByOwnerIdAndStatusAndIsDeletedFalse(ownerId, filterStatus, pageable);
-        } else if (isDeleted != null) {
-            songPage = songRepository.findByOwnerIdAndIsDeleted(ownerId, isDeleted, pageable);
-        } else {
-            songPage = songRepository.findByOwnerIdAndIsDeletedFalse(ownerId, pageable);
-        }
+        boolean actualIsDeleted = (isDeleted != null) ? isDeleted : false;
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+
+        Page<Song> songPage = songRepository.findByOwnerIdWithFilters(ownerId, filterStatus, actualIsDeleted, cleanKeyword, pageable);
 
         return songPage.map(song -> modelMapper.map(song, SongResponse.class));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<SongResponse> getSongsByOwner(UUID ownerId, String status, Boolean isDeleted, Pageable pageable) {
+        return getSongsByOwner(ownerId, status, isDeleted, null, pageable);
     }
 
     @Transactional(readOnly = true)

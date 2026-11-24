@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,6 +35,8 @@ const ALBUM_TYPES = [
   { value: "SINGLE", label: "Single (Đĩa đơn)", desc: "Ấn phẩm tập trung 1 - 2 bài hát" },
 ];
 
+const getTodayDateString = () => new Date().toISOString().split("T")[0];
+
 export const CreateAlbumModal = ({ isOpen, onClose, onSuccess }) => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
@@ -44,7 +46,7 @@ export const CreateAlbumModal = ({ isOpen, onClose, onSuccess }) => {
   const [selectedType, setSelectedType] = useState("ALBUM");
 
   // Lấy ngày hiện tại định dạng YYYY-MM-DD làm mặc định
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = useMemo(() => getTodayDateString(), []);
 
   const {
     register,

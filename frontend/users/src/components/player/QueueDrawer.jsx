@@ -34,9 +34,7 @@ export const QueueDrawer = ({ isOpen, onClose }) => {
     reorderQueue,
     removeFromQueue,
     playQueueSong,
-    playSongWithContext,
     playHistorySong,
-    sourcePool,
     history: storeHistory,
   } = usePlayerStore();
 

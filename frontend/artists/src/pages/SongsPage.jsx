@@ -157,7 +157,9 @@ export const SongsPage = () => {
   const [searchKeyword, setSearchKeyword] = useState("");
 
   // Modal states
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(() => {
+    return new URLSearchParams(window.location.search).get("action") === "upload";
+  });
   const [editTarget, setEditTarget] = useState(null);      // song object
   const [lyricsTarget, setLyricsTarget] = useState(null);  // song object
   const [artistTarget, setArtistTarget] = useState(null);  // song object
@@ -172,11 +174,10 @@ export const SongsPage = () => {
 
   const isTrashTab = activeTab === "trash";
 
-  // ── TỰ ĐỘNG MỞ MODAL UPLOAD từ query param ?action=upload ────────────────
+  // ── DỌN DẸP QUERY PARAM ?action=upload SAU KHI ĐÃ MỞ MODAL ────────────────
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get("action") === "upload") {
-      setIsUploadOpen(true);
       navigate("/songs", { replace: true });
     }
   }, [location.search, navigate]);
@@ -217,7 +218,13 @@ export const SongsPage = () => {
     placeholderData: (prev) => prev,
   });
 
-  const songs = songsRes?.data?.content || [];
+  const rawSongs = songsRes?.data?.content || [];
+  // Hỗ trợ lọc client-side dự phòng giúp phản hồi tức thì
+  const songs = searchKeyword
+    ? rawSongs.filter((s) =>
+        s.title?.toLowerCase().includes(searchKeyword.toLowerCase().trim())
+      )
+    : rawSongs;
   const totalElements = songsRes?.data?.totalElements || 0;
   const totalPages = songsRes?.data?.totalPages || 0;
 

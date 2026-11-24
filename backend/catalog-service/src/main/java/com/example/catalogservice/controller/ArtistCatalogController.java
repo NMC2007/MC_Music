@@ -129,10 +129,11 @@ public class ArtistCatalogController {
     public ResponseEntity<ApiResponse<Page<SongResponse>>> getMySongs(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Boolean isDeleted,
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<SongResponse> response = songService.getSongsByOwner(getCurrentArtistId(), status, isDeleted, pageable);
+        Page<SongResponse> response = songService.getSongsByOwner(getCurrentArtistId(), status, isDeleted, keyword, pageable);
         return ResponseEntity.ok(ApiResponse.success(response, "Lấy danh sách bài hát thành công"));
     }
 

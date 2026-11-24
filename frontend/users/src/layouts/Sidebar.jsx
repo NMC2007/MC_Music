@@ -26,6 +26,8 @@ import { showLoginToast } from "../utils/toastUtils";
 // Danh mục bộ lọc theo đúng thiết kế tham khảo
 const FILTERS = ["Playlist", "EP", "Album", "Nghệ sĩ"];
 
+const getRandomIndex = (len) => Math.floor(Math.random() * len);
+
 export const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -141,7 +143,7 @@ export const Sidebar = () => {
       const res = await getArtistSongs(artistId, { size: 50, sort: "likeCount,desc" });
       const songs = res?.data?.content || [];
       if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
+        const randomIndex = getRandomIndex(songs.length);
         playSongWithContext(songs[randomIndex], songs, randomIndex);
       }
     } catch (err) {

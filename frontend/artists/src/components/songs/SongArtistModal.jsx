@@ -39,16 +39,18 @@ export const SongArtistModal = ({ isOpen, onClose, song }) => {
     return () => clearTimeout(timer);
   }, [keyword]);
 
-  // Đồng bộ danh sách nghệ sĩ khi mở modal
-  useEffect(() => {
-    if (song && isOpen) {
+  // Đồng bộ danh sách nghệ sĩ khi mở modal mà không dùng setState trong effect
+  const [prevModalState, setPrevModalState] = useState({ isOpen: false, songId: null });
+  if (isOpen !== prevModalState.isOpen || (song?.id !== prevModalState.songId)) {
+    setPrevModalState({ isOpen, songId: song?.id });
+    if (isOpen && song) {
       setCurrentArtists(song.artists || []);
       setKeyword("");
       setDebouncedKeyword("");
       setSelectedArtist(null);
       setSelectedRole("FEATURED");
     }
-  }, [song, isOpen]);
+  }
 
   // Tìm kiếm nghệ sĩ công khai
   const { data: artistsRes, isLoading: isSearching } = useQuery({

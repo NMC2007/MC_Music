@@ -374,6 +374,11 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
     }
   };
 
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    handleSubmit(onSubmit)(e);
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -383,7 +388,7 @@ export const UploadSongModal = ({ isOpen, onClose, onSuccess }) => {
       maxWidth="max-w-2xl"
       closeOnOverlayClick={!isUploading}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pt-1">
+      <form onSubmit={handleFormSubmit} className="space-y-5 pt-1">
         {/* ── PHẦN 1: FILE ÂM THANH & ẢNH BÌA ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* File âm thanh */}

@@ -52,6 +52,23 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     @Query("SELECT COUNT(s) as totalSongs, COALESCE(SUM(s.playCount), 0) as totalPlays, COALESCE(SUM(s.likeCount), 0) as totalLikes FROM Song s WHERE s.ownerId = :artistId AND s.isDeleted = false")
     com.example.catalogservice.repository.projection.ArtistStatsProjection getArtistStats(@Param("artistId") UUID artistId);
 
+    @Query(value = "SELECT s FROM Song s " +
+           "WHERE s.ownerId = :ownerId " +
+           "AND (:isDeleted IS NULL OR s.isDeleted = :isDeleted) " +
+           "AND (:status IS NULL OR s.status = :status) " +
+           "AND (:keyword IS NULL OR :keyword = '' OR LOWER(s.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))",
+           countQuery = "SELECT COUNT(s) FROM Song s " +
+           "WHERE s.ownerId = :ownerId " +
+           "AND (:isDeleted IS NULL OR s.isDeleted = :isDeleted) " +
+           "AND (:status IS NULL OR s.status = :status) " +
+           "AND (:keyword IS NULL OR :keyword = '' OR LOWER(s.title) LIKE LOWER(CONCAT('%', CAST(:keyword AS string), '%')))")
+    Page<Song> findByOwnerIdWithFilters(
+            @Param("ownerId") UUID ownerId,
+            @Param("status") String status,
+            @Param("isDeleted") Boolean isDeleted,
+            @Param("keyword") String keyword,
+            Pageable pageable);
+
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE Song s SET s.playCount = s.playCount + 1 WHERE s.id = :id")
     void incrementPlayCount(@Param("id") UUID id);

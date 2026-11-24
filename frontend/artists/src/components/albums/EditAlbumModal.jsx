@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -55,8 +55,10 @@ export const EditAlbumModal = ({ isOpen, onClose, album, onSuccess }) => {
     resolver: zodResolver(editAlbumSchema),
   });
 
-  // Đồng bộ dữ liệu album vào form khi mở modal
-  useEffect(() => {
+  // Đồng bộ dữ liệu album vào form khi mở modal mà không dùng setState trong effect
+  const [prevModalState, setPrevModalState] = useState({ isOpen: false, albumId: null });
+  if (isOpen !== prevModalState.isOpen || (album?.id !== prevModalState.albumId)) {
+    setPrevModalState({ isOpen, albumId: album?.id });
     if (album && isOpen) {
       setValue("title", album.title || "");
       const type = album.albumType || "ALBUM";
@@ -70,7 +72,7 @@ export const EditAlbumModal = ({ isOpen, onClose, album, onSuccess }) => {
       setCoverPreview(album.coverImage || null);
       setCoverFile(null);
     }
-  }, [album, isOpen, setValue]);
+  }
 
   const handleCoverSelect = (e) => {
     const file = e.target.files?.[0];

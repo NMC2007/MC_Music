@@ -18,6 +18,8 @@ import { getUserPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
 
+const getRandomIndex = (len) => Math.floor(Math.random() * len);
+
 export const HomePage = () => {
   const user = useAuthStore((state) => state.user);
   const userId = user?.userId || user?.id || null;
@@ -59,7 +61,7 @@ export const HomePage = () => {
       });
       const songs = res.data?.content || [];
       if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
+        const randomIndex = getRandomIndex(songs.length);
         playSongWithContext(songs[randomIndex], songs, randomIndex);
       }
     } catch (err) {
@@ -279,7 +281,7 @@ export const HomePage = () => {
         {isLoadingSongs ? (
           renderSkeletons()
         ) : songs.length > 0 ? (
-          songs.map((song, idx) => (
+          songs.map((song) => (
             <div
               key={song.id}
               className="w-[140px] sm:w-[170px] md:w-[190px] lg:w-[210px] flex-shrink-0"

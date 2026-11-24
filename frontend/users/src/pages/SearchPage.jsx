@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Play, Pause, Music2, Heart } from "lucide-react";
@@ -79,9 +79,11 @@ export const SearchPage = () => {
   const { isFollowing, toggleFollowArtist } = useFollowArtists();
 
   // Reset filter khi keyword thay đổi
-  useEffect(() => {
+  const [prevKeyword, setPrevKeyword] = useState(keyword);
+  if (keyword !== prevKeyword) {
+    setPrevKeyword(keyword);
     setActiveFilter("all");
-  }, [keyword]);
+  }
 
   // ── 1. Fetch thể loại (luôn fetch để dùng ở Browse Mode) ──────────────────
   const { data: genresData, isLoading: isLoadingGenres } = useQuery({

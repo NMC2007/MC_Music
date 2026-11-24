@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Disc3,
@@ -53,8 +53,10 @@ export const AlbumDetailModal = ({ isOpen, onClose, album }) => {
     staleTime: 1000 * 60 * 2,
   });
 
-  // Đồng bộ danh sách bài hát vào state cục bộ để hỗ trợ kéo thả reorder
-  useEffect(() => {
+  // Đồng bộ danh sách bài hát vào state cục bộ để hỗ trợ kéo thả reorder mà không dùng setState trong effect
+  const [prevSongsRes, setPrevSongsRes] = useState(null);
+  if (albumSongsRes !== prevSongsRes) {
+    setPrevSongsRes(albumSongsRes);
     if (albumSongsRes?.data?.content) {
       const sorted = [...albumSongsRes.data.content].sort(
         (a, b) => (a.trackNumber || 999) - (b.trackNumber || 999)
@@ -65,10 +67,12 @@ export const AlbumDetailModal = ({ isOpen, onClose, album }) => {
       setTracks([]);
       setHasOrderChanged(false);
     }
-  }, [albumSongsRes]);
+  }
 
-  // Reset state khi mở/đóng modal
-  useEffect(() => {
+  // Reset state khi mở/đóng modal mà không dùng setState trong effect
+  const [prevOpenState, setPrevOpenState] = useState(isOpen);
+  if (isOpen !== prevOpenState) {
+    setPrevOpenState(isOpen);
     if (!isOpen) {
       setPreviewSong(null);
       setHasOrderChanged(false);
@@ -77,7 +81,7 @@ export const AlbumDetailModal = ({ isOpen, onClose, album }) => {
       setIsAddSongOpen(false);
       setAddSearchInput("");
     }
-  }, [isOpen]);
+  }
 
   // ── FETCH TẤT CẢ BÀI HÁT CỦA NGHỆ SĨ ĐỂ THÊM VÀO ALBUM ──
   const { data: mySongsRes } = useQuery({

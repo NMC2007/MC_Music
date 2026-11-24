@@ -45,7 +45,7 @@ export const SongCard = ({
     displaySubtitle = parts.slice(1).join(" • ");
   }
 
-  const handleCardClick = (e) => {
+  const handleCardClick = () => {
     if (onPlayClick) {
       onPlayClick();
     } else if (onClick) {

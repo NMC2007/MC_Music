@@ -17,7 +17,20 @@ export const ArtistLayout = () => {
     setOnboardingDismissed,
     setArtist,
   } = useAuthStore();
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const artistId = artist?.id || artist?.artistId;
+  const isDismissed = artistId && dismissedOnboardingArtistIds?.includes(artistId);
+  const alreadyHasMedia = Boolean(artist?.avatarUrl && artist?.coverUrl);
+  const shouldShowOnboarding = Boolean(pendingNewAccountOnboarding && !isDismissed && !alreadyHasMedia);
+
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(shouldShowOnboarding);
+  const [prevShouldShow, setPrevShouldShow] = useState(shouldShowOnboarding);
+
+  if (shouldShowOnboarding !== prevShouldShow) {
+    setPrevShouldShow(shouldShowOnboarding);
+    if (shouldShowOnboarding) {
+      setIsOnboardingOpen(true);
+    }
+  }
 
   // Gọi API lấy profile nghệ sĩ khi đã đăng nhập và đồng bộ vào store
   const { data: profileRes } = useQuery({
@@ -35,16 +48,6 @@ export const ArtistLayout = () => {
     }
   }, [profileRes, setArtist]);
 
-  // Chỉ tự động hiển thị Onboarding 1 lần duy nhất cho tài khoản MỚI TẠO (từ RegisterPage)
-  useEffect(() => {
-    const artistId = artist?.id || artist?.artistId;
-    const isDismissed = artistId && dismissedOnboardingArtistIds?.includes(artistId);
-    const alreadyHasMedia = Boolean(artist?.avatarUrl && artist?.coverUrl);
-
-    if (pendingNewAccountOnboarding && !isDismissed && !alreadyHasMedia) {
-      setIsOnboardingOpen(true);
-    }
-  }, [pendingNewAccountOnboarding, artist, dismissedOnboardingArtistIds]);
 
   // Tự động cuộn lên đầu trang mỗi khi chuyển route
   useEffect(() => {

@@ -4,7 +4,13 @@ import com.example.catalogservice.client.ArtistServiceClient;
 import com.example.catalogservice.exception.BadRequestException;
 import com.example.catalogservice.exception.ResourceNotFoundException;
 import com.example.catalogservice.exception.UnauthorizedAccessException;
+import com.example.catalogservice.model.dto.response.SongResponse;
 import com.example.catalogservice.model.entity.Song;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import java.util.List;
 import com.example.catalogservice.repository.AlbumRepository;
 import com.example.catalogservice.repository.GenreRepository;
 import com.example.catalogservice.repository.LyricsRepository;
@@ -153,6 +159,27 @@ class SongServiceTest {
 
         assertThatThrownBy(() -> songService.updateSongStatus(songId, "APPROVED", null))
                 .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("Nghệ sĩ tìm kiếm bài hát theo từ khóa keyword thành công")
+    void shouldGetSongsByOwnerWithKeywordFilter() {
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Song> songPage = new PageImpl<>(List.of(sampleSong));
+        SongResponse songResponse = new SongResponse();
+        songResponse.setId(songId);
+        songResponse.setTitle(sampleSong.getTitle());
+
+        when(songRepository.findByOwnerIdWithFilters(eq(artistId), eq("APPROVED"), eq(false), eq("Âm Thầm"), eq(pageable)))
+                .thenReturn(songPage);
+        when(modelMapper.map(sampleSong, SongResponse.class)).thenReturn(songResponse);
+
+        Page<SongResponse> result = songService.getSongsByOwner(artistId, "APPROVED", false, "Âm Thầm", pageable);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getTitle()).isEqualTo("Âm Thầm Bên Em");
+        verify(songRepository).findByOwnerIdWithFilters(artistId, "APPROVED", false, "Âm Thầm", pageable);
     }
 }
 

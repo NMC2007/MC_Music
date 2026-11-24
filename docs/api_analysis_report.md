@@ -44,7 +44,7 @@ Tài liệu này quy chuẩn toàn bộ danh mục API RESTful trong hệ sinh t
 | `/api/user/history` | Xem lịch sử nghe nhạc gần đây | User (Bearer) | `users-service` | |
 | `/api/artist/me` | Lấy thông tin hồ sơ nghệ sĩ | Artist (Bearer) | `artists-service` | |
 | `/api/artist/dashboard` | Xem số liệu thống kê Studio | Artist (Bearer) | `artists-service` | Lấy stats từ Catalog |
-| `/api/catalog/artist/songs` | Xem danh sách bài hát do mình tải lên | Artist (Bearer) | `catalog-service` | Trả về cả `status` & `rejectionReason` |
+| `/api/catalog/artist/songs` | Xem danh sách bài hát do mình tải lên | Artist (Bearer) | `catalog-service` | Hỗ trợ phân trang, lọc `status`, `isDeleted`, tìm kiếm `keyword` |
 | `/api/catalog/artist/albums` | Xem danh sách album do mình tạo | Artist (Bearer) | `catalog-service` | Trả về cả `status` & `rejectionReason` |
 | `/api/catalog/admin/songs/pending` | Lấy danh sách bài hát chờ duyệt | Admin (Bearer) | `catalog-service` | Lọc `status=PENDING` |
 | `/api/catalog/admin/albums/pending` | Lấy danh sách album chờ duyệt | Admin (Bearer) | `catalog-service` | Lọc `status=PENDING` |

@@ -19,6 +19,8 @@ import { getUserPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
 
+const getRandomIndex = (len) => Math.floor(Math.random() * len);
+
 export const SectionPage = () => {
   const { id: sectionId } = useParams();
   const location = useLocation();
@@ -158,7 +160,7 @@ export const SectionPage = () => {
       });
       const songs = res.data?.content || [];
       if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
+        const randomIndex = getRandomIndex(songs.length);
         playSongWithContext(songs[randomIndex], songs, randomIndex);
       }
     } catch (err) {

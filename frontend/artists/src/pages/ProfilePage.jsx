@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,9 +44,9 @@ export const ProfilePage = () => {
 
   // File state & preview
   const [avatarFile, setAvatarFile] = useState(null);
-  const [avatarPreview, setAvatarPreview] = useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState(null);
   const [coverFile, setCoverFile] = useState(null);
-  const [coverPreview, setCoverPreview] = useState(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState(null);
   const [hasCopiedId, setHasCopiedId] = useState(false);
 
   // ── FETCH THÔNG TIN PROFILE MỚI NHẤT TỪ BACKEND ──
@@ -57,11 +57,13 @@ export const ProfilePage = () => {
   });
 
   const currentArtist = profileRes?.data || artist;
+  const avatarPreview = avatarPreviewUrl || currentArtist?.avatarUrl || null;
+  const coverPreview = coverPreviewUrl || currentArtist?.coverUrl || null;
 
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm({
@@ -72,17 +74,13 @@ export const ProfilePage = () => {
     },
   });
 
-  const bioValue = watch("biography") || "";
+  const bioValue = useWatch({ control, name: "biography" }) || "";
 
   // Đồng bộ thông tin vào form khi tải xong
   useEffect(() => {
     if (currentArtist) {
       setValue("stageName", currentArtist.stageName || "");
       setValue("biography", currentArtist.biography || "");
-      setAvatarPreview(currentArtist.avatarUrl || null);
-      setCoverPreview(currentArtist.coverUrl || null);
-      setAvatarFile(null);
-      setCoverFile(null);
     }
   }, [currentArtist, setValue]);
 
@@ -99,7 +97,7 @@ export const ProfilePage = () => {
         return;
       }
       setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
+      setAvatarPreviewUrl(URL.createObjectURL(file));
       toast.info("Đã chọn ảnh đại diện mới. Bấm 'Lưu thay đổi' để áp dụng.");
     }
   };
@@ -117,7 +115,7 @@ export const ProfilePage = () => {
         return;
       }
       setCoverFile(file);
-      setCoverPreview(URL.createObjectURL(file));
+      setCoverPreviewUrl(URL.createObjectURL(file));
       toast.info("Đã chọn ảnh bìa mới. Bấm 'Lưu thay đổi' để áp dụng.");
     }
   };
@@ -127,10 +125,12 @@ export const ProfilePage = () => {
     if (currentArtist) {
       setValue("stageName", currentArtist.stageName || "");
       setValue("biography", currentArtist.biography || "");
-      setAvatarPreview(currentArtist.avatarUrl || null);
-      setCoverPreview(currentArtist.coverUrl || null);
+      setAvatarPreviewUrl(null);
+      setCoverPreviewUrl(null);
       setAvatarFile(null);
       setCoverFile(null);
+      setAvatarPreviewUrl(null);
+      setCoverPreviewUrl(null);
     }
   };
 
@@ -176,6 +176,8 @@ export const ProfilePage = () => {
 
       setAvatarFile(null);
       setCoverFile(null);
+      setAvatarPreviewUrl(null);
+      setCoverPreviewUrl(null);
     } catch (err) {
       console.error("Lỗi cập nhật hồ sơ:", err);
       toast.error("Cập nhật thất bại", {

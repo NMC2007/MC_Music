@@ -26,7 +26,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 | :---: | :--- | :--- | :--- |
 | **A** | **QUẢN LÝ BÀI HÁT (SONGS)** | | |
 | 1.1 | `POST` | `/api/catalog/artist/songs` | Đăng tải bài hát mới (`multipart/form-data`, status `PENDING`) |
-| 1.2 | `GET` | `/api/catalog/artist/songs` hoặc `/song` | Lấy danh sách bài hát của tôi (hỗ trợ lọc `status`, `isDeleted`) |
+| 1.2 | `GET` | `/api/catalog/artist/songs` hoặc `/song` | Lấy danh sách bài hát của tôi (hỗ trợ lọc `status`, `isDeleted`, `keyword`) |
 | 1.3 | `PUT` | `/api/catalog/artist/songs/{id}` | Chỉnh sửa bài hát (tên, cover, genre, đổi/gỡ album; status -> `PENDING`) |
 | 1.4 | `DELETE` | `/api/catalog/artist/songs/{id}` | Xóa mềm bài hát (`is_deleted=true`, không xóa Cloudinary, giảm track album) |
 | 1.5 | `PUT` | `/api/catalog/artist/songs/{id}/restore` | Khôi phục bài hát từ thùng rác (`is_deleted=false`, giữ nguyên status) |
@@ -146,7 +146,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
 
 - **Method:** `GET`
 - **Endpoint:** `http://localhost:8686/api/catalog/artist/songs` *(hoặc `http://localhost:8686/api/catalog/artist/song`)*
-- **Mô tả:** Lấy danh sách toàn bộ bài hát mà nghệ sĩ đăng nhập đã đăng tải. Hỗ trợ phân trang, lọc theo trạng thái kiểm duyệt (`status`) và lọc theo bài hát đang hoạt động hoặc trong thùng rác (`isDeleted`).
+- **Mô tả:** Lấy danh sách toàn bộ bài hát mà nghệ sĩ đăng nhập đã đăng tải. Hỗ trợ phân trang, lọc theo trạng thái kiểm duyệt (`status`), lọc theo bài hát đang hoạt động hoặc trong thùng rác (`isDeleted`) và tìm kiếm theo tên bài hát (`keyword`).
 - **Query Parameters:**
   - `status` (String, Tùy chọn): Lọc bài hát theo trạng thái kiểm duyệt (không phân biệt hoa/thường):
     - `PENDING`: Bài hát đang chờ Admin duyệt (bao gồm bài mới tải lên hoặc vừa chỉnh sửa).
@@ -156,6 +156,7 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
   - `isDeleted` (Boolean, Tùy chọn):
     - `false` (hoặc để trống): Lấy các bài hát đang hoạt động.
     - `true`: Lấy danh sách các bài hát trong thùng rác đã bị xóa mềm.
+  - `keyword` (String, Tùy chọn): Từ khóa tìm kiếm theo tên bài hát (không phân biệt hoa/thường, tìm kiếm tương đối).
   - `page` (Int, Tùy chọn): Số trang (Bắt đầu từ 0, mặc định: 0).
   - `size` (Int, Tùy chọn): Số bản ghi mỗi trang (Mặc định: 10).
 - **Ví dụ Request cURL:**
@@ -164,7 +165,11 @@ Base URL cho Catalog Service thông qua Gateway là: `http://localhost:8686/api/
   curl -X GET "http://localhost:8686/api/catalog/artist/songs?page=0&size=10" \
     -H "Authorization: Bearer <ACCESS_TOKEN_CỦA_ARTIST>"
 
-  # 2. Lọc danh sách bài hát đang chờ Admin duyệt:
+  # 2. Tìm kiếm bài hát theo tên từ khóa:
+  curl -X GET "http://localhost:8686/api/catalog/artist/songs?keyword=Em" \
+    -H "Authorization: Bearer <ACCESS_TOKEN_CỦA_ARTIST>"
+
+  # 3. Lọc danh sách bài hát đang chờ Admin duyệt:
   curl -X GET "http://localhost:8686/api/catalog/artist/songs?status=PENDING" \
     -H "Authorization: Bearer <ACCESS_TOKEN_CỦA_ARTIST>"
 

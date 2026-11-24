@@ -101,13 +101,8 @@ export const Popover = ({
 }) => {
   const popoverRef = useRef(null);
 
-  // Tính toạ độ tức thì ngay khi mở, KHÔNG dùng toạ độ rác (-9999 hay 0) tránh hiệu ứng nhảy/trượt
-  const [coords, setCoords] = useState(() => {
-    if (triggerRef?.current) {
-      return computePopoverPosition(triggerRef.current, null, placement, offset);
-    }
-    return { top: 0, left: 0, ready: false };
-  });
+  // Khởi tạo toạ độ mặc định, useLayoutEffect sẽ tính toạ độ chính xác trước khi trình duyệt paint
+  const [coords, setCoords] = useState({ top: 0, left: 0, ready: false });
 
   const updatePosition = useCallback(() => {
     if (!triggerRef?.current) return;

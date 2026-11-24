@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -116,8 +116,10 @@ export const EditSongModal = ({ isOpen, onClose, song, onSuccess }) => {
   });
   const albums = albumsRes?.data?.content || [];
 
-  // Đồng bộ thông tin bài hát vào form khi mở modal
-  useEffect(() => {
+  // Đồng bộ thông tin bài hát vào form khi mở modal mà không dùng setState trong effect
+  const [prevModalState, setPrevModalState] = useState({ isOpen: false, songId: null });
+  if (isOpen !== prevModalState.isOpen || (song?.id !== prevModalState.songId)) {
+    setPrevModalState({ isOpen, songId: song?.id });
     if (song && isOpen) {
       setValue("title", song.title || "");
       setValue("albumId", song.albumId || "");
@@ -127,7 +129,7 @@ export const EditSongModal = ({ isOpen, onClose, song, onSuccess }) => {
       setCoverFile(null);
       setGenreError("");
     }
-  }, [song, isOpen, setValue]);
+  }
 
   const handleCoverSelect = (e) => {
     const file = e.target.files?.[0];

@@ -2,23 +2,20 @@ import React, { useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Play,
-  Pause,
-  Heart,
-  Share2,
   Disc3,
   Clock,
   Calendar,
   Headphones,
   FileText,
 } from "lucide-react";
+
+const getRandomIndex = (len) => Math.floor(Math.random() * len);
 import { toast } from "sonner";
 
 import {
   getSongById,
   getSongLyrics,
   getArtistSongs,
-  getAlbumById,
 } from "../api/catalog/public";
 import { getArtistDetail } from "../api/artists/public";
 import { usePlayerStore } from "../store/usePlayerStore";
@@ -68,7 +65,7 @@ const ArtistParticipantCard = ({ artistId, stageName, role, isOwner = false }) =
       });
       const songs = res.data?.content || [];
       if (songs.length > 0) {
-        const randomIndex = Math.floor(Math.random() * songs.length);
+        const randomIndex = getRandomIndex(songs.length);
         playSongWithContext(songs[randomIndex], songs, randomIndex);
       }
     } catch (err) {

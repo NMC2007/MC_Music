@@ -11,7 +11,7 @@ import {
   addFavoriteAlbumApi,
   removeFavoriteAlbumApi,
 } from "../api/users/favorites";
-import { getPublicAlbums, getPublicSongs, getSongsBatchApi } from "../api/catalog/public";
+import { getPublicAlbums, getSongsBatchApi } from "../api/catalog/public";
 
 export const FAVORITES_QUERY_KEY = ["userFavorites", "songs"];
 export const FAVORITE_ALBUMS_QUERY_KEY = ["userFavorites", "albums"];
