@@ -1,10 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Play,
-  Pause,
-  Shuffle,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
@@ -13,22 +10,28 @@ import { getArtistDetail } from "../api/artists/public";
 import {
   getArtistSongs,
   getArtistAlbums,
-  getAlbumSongs,
 } from "../api/catalog/public";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useFollowArtists } from "../hooks/useFollowArtists";
-import { Button } from "../components/ui/Button";
+import { useFavorites } from "../hooks/useFavorites";
+import { usePlaybackActions } from "../hooks/usePlaybackActions";
 import { SongRow } from "../components/ui/SongRow";
 import { SongCard } from "../components/ui/SongCard";
 import { SectionCarousel } from "../components/ui/SectionCarousel";
 import { SkeletonRow, SkeletonCard } from "../components/ui/Skeleton";
+import { DetailActionBar } from "../components/ui/DetailActionBar";
+import { FilterChipsBar } from "../components/ui/FilterChipsBar";
 
 export const ArtistPage = () => {
   const { id: artistId } = useParams();
   const navigate = useNavigate();
   const { isFollowing, toggleFollowArtist } = useFollowArtists();
-  const { currentSong, isPlaying, setIsPlaying, playSongWithContext } =
-    usePlayerStore();
+  const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
+  const { playAlbum: handlePlayAlbumCard } = usePlaybackActions();
+  const currentSong = usePlayerStore((state) => state.currentSong);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
+  const playSongWithContext = usePlayerStore((state) => state.playSongWithContext);
 
   const isFollowed = isFollowing(artistId);
 
@@ -58,8 +61,15 @@ export const ArtistPage = () => {
 
   // ─── Dữ liệu ──────────────────────────────────────────────────────────────
   const artist = artistData?.data;
-  const allSongs = songsData?.data?.content || [];
+  const allSongs = useMemo(() => songsData?.data?.content || [], [songsData]);
   const allAlbums = albumsData?.data?.content || [];
+
+  const handlePlayRow = useCallback(
+    (song, idx) => {
+      playSongWithContext(song, allSongs, idx);
+    },
+    [playSongWithContext, allSongs]
+  );
 
   // Lọc album theo loại
   const filteredAlbums = albumFilter
@@ -106,21 +116,6 @@ export const ArtistPage = () => {
       avatar: artist.avatarUrl,
       avatarUrl: artist.avatarUrl,
     });
-  };
-
-  const handlePlayAlbumCard = async (albumId) => {
-    try {
-      const res = await getAlbumSongs(albumId, {
-        size: 50,
-        sort: "createdAt,asc",
-      });
-      const songs = res.data?.content || [];
-      if (songs.length > 0) {
-        playSongWithContext(songs[0], songs, 0);
-      }
-    } catch (err) {
-      console.error(err);
-    }
   };
 
   const filterButtons = [
@@ -172,53 +167,29 @@ export const ArtistPage = () => {
         <div className="absolute inset-0 bg-gradient-to-t from-spotify-black via-spotify-black/40 to-transparent" />
 
         {/* Tên nghệ sĩ */}
-        <div className="absolute bottom-6 left-6 right-6">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-white drop-shadow-lg leading-none">
+        <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6">
+          <h1 className="text-3xl sm:text-5xl md:text-7xl font-black text-white drop-shadow-lg leading-tight">
             {artist.stageName}
           </h1>
-          <p className="mt-3 text-sm text-white/80">
+          <p className="mt-1.5 sm:mt-3 text-xs sm:text-sm text-white/80">
             {formatFollowers(artist.followerCount)} người theo dõi
           </p>
         </div>
       </div>
 
       {/* ── ACTION BAR ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-4 px-6 py-5 bg-gradient-to-b from-spotify-black/60 to-transparent">
-        {/* Nút Play chính */}
-        <button
-          onClick={handlePlayArtist}
-          className="w-14 h-14 rounded-full bg-spotify-primary hover:bg-spotify-primary-hover flex items-center justify-center shadow-[0_8px_16px_rgba(250,45,72,0.3)] transition-all hover:scale-105 flex-shrink-0"
-        >
-          {isArtistPlaying ? (
-            <Pause size={24} fill="white" className="text-white" />
-          ) : (
-            <Play size={24} fill="white" className="text-white ml-1" />
-          )}
-        </button>
-
-        {/* Nút Trộn bài */}
-        <Button
-          variant="ghost"
-          size="md"
-          iconOnly
-          tooltip="Trộn bài"
-          tooltipPosition="top"
-          onClick={handleShufflePlay}
-        >
-          <Shuffle size={22} />
-        </Button>
-
-        {/* Nút Follow tối giản theo thiết kế */}
-        <button
-          onClick={handleFollow}
-          className="px-4 py-1.5 rounded-full border border-neutral-500/60 hover:border-white text-white font-bold text-sm bg-transparent hover:scale-105 active:scale-95 transition-all cursor-pointer select-none"
-        >
-          {isFollowed ? "Đang theo dõi" : "Theo dõi"}
-        </button>
-      </div>
+      <DetailActionBar
+        isPlaying={isArtistPlaying}
+        onPlay={handlePlayArtist}
+        disabled={allSongs.length === 0 && !isLoadingSongs}
+        onShuffle={handleShufflePlay}
+        isFollowed={isFollowed}
+        onFollow={handleFollow}
+        gradientFrom="from-spotify-black/60"
+      />
 
       {/* ── NỘI DUNG ────────────────────────────────────────────────────────── */}
-      <div className="px-6 pb-10 flex flex-col gap-10">
+      <div className="px-4 sm:px-6 pb-10 flex flex-col gap-8 sm:gap-10">
         {/* ── SECTION: PHỔ BIẾN ─────────────────────────────────────────────── */}
         <section>
           <h2 className="text-2xl font-bold text-white mb-4">Phổ biến</h2>
@@ -242,7 +213,9 @@ export const ArtistPage = () => {
                     index={idx + 1}
                     song={song}
                     isPlaying={isPlaying && currentSong?.id === song.id}
-                    onPlayClick={() => playSongWithContext(song, allSongs, idx)}
+                    isLiked={isFavoriteSong(song.id)}
+                    onToggleLike={toggleFavoriteSong}
+                    onPlayClick={handlePlayRow}
                   />
                 ))}
               </div>
@@ -275,21 +248,13 @@ export const ArtistPage = () => {
           </div>
 
           {/* Filter pills */}
-          <div className="flex items-center gap-2 mb-4">
-            {filterButtons.map((f) => (
-              <button
-                key={f.label}
-                onClick={() => setAlbumFilter(f.value)}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
-                  albumFilter === f.value
-                    ? "bg-white text-black"
-                    : "bg-spotify-hover text-white hover:bg-spotify-card-hover"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <FilterChipsBar
+            items={filterButtons.map((f) => ({ key: f.value, label: f.label }))}
+            selectedKey={albumFilter}
+            onSelect={setAlbumFilter}
+            activeVariant="white"
+            className="mb-4"
+          />
 
           {isLoadingAlbums ? (
             <div className="flex gap-4 overflow-hidden">

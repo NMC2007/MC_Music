@@ -5,6 +5,8 @@ import { Button } from "./Button";
 /**
  * Component thanh điều khiển phát nhạc và tương tác dùng chung cho các trang chi tiết
  * (SongPage, AlbumPage, PlaylistPage, ArtistPage)
+ * - Mobile (< 768px): Layout chuẩn Spotify Mobile (Nút Tim / Follow / Menu ở bên TRÁI; Nút Trộn bài & Nút Play to ở bên PHẢI).
+ * - Desktop (>= 768px): Layout chuẩn Spotify Desktop (Play -> Shuffle -> Like -> Follow -> Menu -> Share).
  * Không bị dính cứng (sticky) trên đỉnh trang, cuộn tự nhiên theo nội dung trang.
  */
 export const DetailActionBar = ({
@@ -24,112 +26,163 @@ export const DetailActionBar = ({
   gradientFrom = "from-[#1a0a0a]/60",
   className = "",
 }) => {
+  // Nút Play chính to tròn
+  const renderPlayButton = (size = "lg") =>
+    onPlay && (
+      <Button
+        type="button"
+        variant="primary"
+        size={size}
+        iconOnly
+        onClick={onPlay}
+        disabled={disabled || isLoading}
+        aria-label={isPlaying ? "Tạm dừng" : "Phát"}
+        className={`${
+          size === "lg" ? "!w-14 !h-14" : "!w-12 !h-12"
+        } shadow-[0_8px_20px_rgba(250,45,72,0.4)] flex-shrink-0`}
+      >
+        {isLoading ? (
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : isPlaying ? (
+          <Pause size={size === "lg" ? 24 : 20} fill="white" className="text-white" />
+        ) : (
+          <Play size={size === "lg" ? 24 : 20} fill="white" className="text-white translate-x-[2px]" />
+        )}
+      </Button>
+    );
+
+  // Nút Trộn bài
+  const renderShuffleButton = () =>
+    onShuffle && (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        iconOnly
+        tooltip="Trộn bài"
+        tooltipPosition="top"
+        aria-label="Trộn bài"
+        onClick={onShuffle}
+        disabled={disabled}
+        className="!w-10 !h-10 text-neutral-300 hover:text-white hover:bg-white/10 flex-shrink-0 hover:scale-110 active:scale-95 transition-transform"
+      >
+        <Shuffle size={20} />
+      </Button>
+    );
+
+  // Nút Yêu thích (Tim Album / Bài hát)
+  const renderLikeButton = () =>
+    onLike && (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        iconOnly
+        aria-label={
+          likeTooltip ||
+          (isLiked
+            ? "Xóa khỏi danh sách yêu thích"
+            : "Thêm vào danh sách yêu thích")
+        }
+        onClick={onLike}
+        className={`!w-10 !h-10 flex-shrink-0 hover:bg-white/10 transition-colors ${
+          isLiked
+            ? "!text-[#fa2d48] hover:!text-[#ff4b63]"
+            : "text-neutral-300 hover:text-white"
+        }`}
+        tooltip={
+          likeTooltip ||
+          (isLiked
+            ? "Xóa khỏi danh sách yêu thích"
+            : "Thêm vào danh sách yêu thích")
+        }
+        tooltipPosition="top"
+      >
+        <Heart
+          size={24}
+          className={isLiked ? "fill-[#fa2d48] text-[#fa2d48]" : ""}
+        />
+      </Button>
+    );
+
+  // Nút Theo dõi nghệ sĩ
+  const renderFollowButton = () =>
+    onFollow && (
+      <Button
+        type="button"
+        variant={isFollowed ? "secondary" : "white"}
+        size="sm"
+        onClick={onFollow}
+        className="!h-9 px-4 text-xs font-bold flex-shrink-0 shadow-sm"
+      >
+        {isFollowed ? "Đang theo dõi" : "Theo dõi"}
+      </Button>
+    );
+
+  // Nút Chia sẻ
+  const renderShareButton = () =>
+    onShare && (
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        iconOnly
+        onClick={onShare}
+        aria-label="Sao chép liên kết chia sẻ"
+        className="!w-10 !h-10 text-neutral-400 hover:text-white hover:bg-white/10 flex-shrink-0"
+        tooltip="Sao chép liên kết chia sẻ"
+        tooltipPosition="top"
+      >
+        <Share2 size={20} />
+      </Button>
+    );
+
   return (
     <div
-      className={`flex items-center justify-between gap-4 px-6 md:px-10 py-5 bg-gradient-to-b ${gradientFrom} to-transparent ${className}`}
+      className={`bg-gradient-to-b ${gradientFrom} to-transparent ${className}`}
     >
-      <div className="flex items-center gap-4 flex-wrap">
-        {/* Nút Play chính to tròn */}
-        {onPlay && (
-          <button
-            type="button"
-            onClick={onPlay}
-            disabled={disabled || isLoading}
-            className="w-14 h-14 rounded-full bg-[#fa2d48] hover:bg-[#ff4b63] hover:scale-105 active:scale-95 flex items-center justify-center text-white shadow-[0_8px_20px_rgba(250,45,72,0.35)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-            title={isPlaying ? "Tạm dừng" : "Phát"}
-          >
-            {isLoading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : isPlaying ? (
-              <Pause size={24} fill="white" className="text-white" />
-            ) : (
-              <Play size={24} fill="white" className="text-white ml-1" />
-            )}
-          </button>
-        )}
+      {/* ── BỐ CỤC MOBILE (< 768px): CHUẨN SPOTIFY MOBILE ── */}
+      <div className="flex md:hidden items-center justify-between gap-3 px-4 py-3 w-full">
+        {/* Nhóm bên Trái: Nút Tim / Theo dõi / Menu / Chia sẻ */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {renderLikeButton()}
+          {renderFollowButton()}
+          {menuComponent && (
+            <div className="flex items-center justify-center flex-shrink-0">
+              {menuComponent}
+            </div>
+          )}
+          {renderShareButton()}
+        </div>
 
-        {/* Nút Trộn bài (nếu có) */}
-        {onShuffle && (
-          <Button
-            variant="ghost"
-            size="md"
-            iconOnly
-            tooltip="Trộn bài"
-            tooltipPosition="top"
-            onClick={onShuffle}
-            disabled={disabled}
-            className="hover:scale-110 active:scale-95 transition-transform"
-          >
-            <Shuffle size={22} />
-          </Button>
-        )}
-
-        {/* Nút Yêu thích (nếu có isLiked hoặc onLike) */}
-        {onLike && (
-          <button
-            type="button"
-            onClick={onLike}
-            className={`w-11 h-11 rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer ${
-              isLiked
-                ? "text-[#fa2d48] hover:bg-white/10"
-                : "text-neutral-400 hover:text-white hover:bg-white/10"
-            }`}
-            title={
-              likeTooltip ||
-              (isLiked
-                ? "Xóa khỏi danh sách yêu thích"
-                : "Thêm vào danh sách yêu thích")
-            }
-          >
-            <Heart
-              size={26}
-              className={isLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
-            />
-          </button>
-        )}
-
-        {/* Nút Theo dõi (nếu là Artist) */}
-        {onFollow && (
-          <button
-            type="button"
-            onClick={onFollow}
-            className={`px-5 py-2 rounded-full text-xs font-bold border transition-all cursor-pointer select-none ${
-              isFollowed
-                ? "bg-white/10 text-white border-white/40 hover:bg-white/20 hover:border-white"
-                : "border-neutral-500 hover:border-white text-white bg-transparent hover:scale-105 active:scale-95"
-            }`}
-          >
-            {isFollowed ? "Đang theo dõi" : "Theo dõi"}
-          </button>
-        )}
-
-        {/* Component menu phụ (ví dụ: AddToPlaylistMenu) */}
-        {menuComponent && (
-          <div className="flex items-center justify-center hover:scale-110 active:scale-95 transition-transform">
-            {menuComponent}
-          </div>
-        )}
-
-        {/* Nút Chia sẻ (nếu có onShare) */}
-        {onShare && (
-          <button
-            type="button"
-            onClick={onShare}
-            className="w-11 h-11 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 hover:scale-110 active:scale-95 transition-all cursor-pointer"
-            title="Sao chép liên kết chia sẻ"
-          >
-            <Share2 size={24} />
-          </button>
-        )}
+        {/* Nhóm bên Phải: Nút Trộn bài & Nút Play to */}
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          {renderShuffleButton()}
+          {renderPlayButton("md")}
+        </div>
       </div>
 
-      {/* Children bên phải (nếu có các control lọc, tìm kiếm, v.v.) */}
-      {children && (
-        <div className="flex items-center gap-3">{children}</div>
-      )}
+      {/* ── BỐ CỤC DESKTOP (>= 768px): CHUẨN SPOTIFY DESKTOP ── */}
+      <div className="hidden md:flex items-center justify-between gap-4 px-6 md:px-10 py-5 w-full">
+        <div className="flex items-center gap-4 flex-wrap">
+          {renderPlayButton("lg")}
+          {renderShuffleButton()}
+          {renderLikeButton()}
+          {renderFollowButton()}
+          {menuComponent && (
+            <div className="flex items-center justify-center hover:scale-110 active:scale-95 transition-transform flex-shrink-0">
+              {menuComponent}
+            </div>
+          )}
+          {renderShareButton()}
+        </div>
+
+        {children && (
+          <div className="flex items-center gap-3 flex-shrink-0">{children}</div>
+        )}
+      </div>
     </div>
   );
 };
 
 export default DetailActionBar;
-

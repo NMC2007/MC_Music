@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useParams, useLocation } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Clock } from "lucide-react";
@@ -27,9 +27,11 @@ export const AlbumPage = () => {
   });
   const album = albumDetailData?.data || stateAlbum;
 
-  const { currentSong, isPlaying, setIsPlaying, playSongWithContext } =
-    usePlayerStore();
-  const { isFavoriteAlbum, toggleFavoriteAlbum } = useFavorites();
+  const currentSong = usePlayerStore((state) => state.currentSong);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
+  const playSongWithContext = usePlayerStore((state) => state.playSongWithContext);
+  const { isFavoriteAlbum, toggleFavoriteAlbum, isFavoriteSong, toggleFavoriteSong } = useFavorites();
 
   const isAlbumLiked = isFavoriteAlbum(albumId || album?.id);
 
@@ -41,6 +43,13 @@ export const AlbumPage = () => {
   });
 
   const songs = useMemo(() => songsData?.data?.content || [], [songsData]);
+
+  const handlePlayRow = useCallback(
+    (song, idx) => {
+      playSongWithContext(song, songs, idx);
+    },
+    [playSongWithContext, songs]
+  );
 
   // ─── Tính tổng thời lượng album ──────────────────────────────────────────
   const totalDuration = useMemo(() => {
@@ -91,45 +100,45 @@ export const AlbumPage = () => {
     <div className="flex flex-col min-h-full">
       {/* ── HEADER ──────────────────────────────────────────────────────────── */}
       <div
-        className={`relative flex flex-col sm:flex-row items-end gap-6 px-6 pt-16 pb-8 bg-gradient-to-b ${gradientFallback}`}
+        className={`relative flex flex-col sm:flex-row items-center sm:items-end text-center sm:text-left gap-4 sm:gap-6 px-4 sm:px-6 pt-4 sm:pt-16 pb-4 sm:pb-8 bg-gradient-to-b ${gradientFallback}`}
       >
         {/* Ảnh bìa Album */}
-        <div className="flex-shrink-0 w-44 h-44 sm:w-52 sm:h-52 shadow-2xl self-center sm:self-end">
+        <div className="flex-shrink-0 w-36 h-36 sm:w-52 sm:h-52 shadow-2xl mx-auto sm:mx-0">
           <CoverImage
             src={album?.coverImage}
             alt={album?.title || "Album"}
-            className="w-full h-full object-cover rounded-md"
+            className="w-full h-full object-cover rounded-xl sm:rounded-md"
           />
         </div>
 
         {/* Thông tin Album */}
-        <div className="flex flex-col gap-2 pb-2">
-          <span className="text-xs font-bold text-white/80 uppercase tracking-widest">
+        <div className="flex flex-col gap-1.5 sm:gap-2 pb-1 sm:pb-2 min-w-0">
+          <span className="text-[11px] sm:text-xs font-bold text-white/80 uppercase tracking-widest">
             {formatAlbumType(album?.albumType)}
           </span>
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black text-white leading-none">
+          <h1 className="text-2xl sm:text-4xl md:text-6xl font-black text-white leading-tight break-words">
             {album?.title || "Đang tải..."}
           </h1>
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <span className="text-sm font-bold text-white">
+          <div className="flex items-center justify-center sm:justify-start gap-2 mt-1 sm:mt-2 flex-wrap text-xs sm:text-sm">
+            <span className="font-bold text-white">
               {album?.ownerName}
             </span>
             {album?.releaseDate && (
               <>
-                <span className="text-spotify-sub text-sm">•</span>
-                <span className="text-sm text-spotify-sub">
+                <span className="text-spotify-sub">•</span>
+                <span className="text-spotify-sub">
                   {album.releaseDate.slice(0, 4)}
                 </span>
               </>
             )}
             {songs.length > 0 && (
               <>
-                <span className="text-spotify-sub text-sm">•</span>
-                <span className="text-sm text-spotify-sub">
+                <span className="text-spotify-sub">•</span>
+                <span className="text-spotify-sub">
                   {songs.length} bài hát
                 </span>
-                <span className="text-spotify-sub text-sm">•</span>
-                <span className="text-sm text-spotify-sub">{totalDuration}</span>
+                <span className="text-spotify-sub">•</span>
+                <span className="text-spotify-sub">{totalDuration}</span>
               </>
             )}
           </div>
@@ -185,7 +194,9 @@ export const AlbumPage = () => {
                 index={idx + 1}
                 song={song}
                 isPlaying={isPlaying && currentSong?.id === song.id}
-                onPlayClick={() => playSongWithContext(song, songs, idx)}
+                isLiked={isFavoriteSong(song.id)}
+                onToggleLike={toggleFavoriteSong}
+                onPlayClick={handlePlayRow}
               />
             ))}
           </div>

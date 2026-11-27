@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -9,7 +9,6 @@ import {
   FileText,
 } from "lucide-react";
 
-const getRandomIndex = (len) => Math.floor(Math.random() * len);
 import { toast } from "sonner";
 
 import {
@@ -20,6 +19,7 @@ import {
 import { getArtistDetail } from "../api/artists/public";
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useFavorites } from "../hooks/useFavorites";
+import { usePlaybackActions } from "../hooks/usePlaybackActions";
 import { Button } from "../components/ui/Button";
 import { CoverImage } from "../components/ui/CoverImage";
 import { SongRow } from "../components/ui/SongRow";
@@ -33,7 +33,7 @@ import { DetailActionBar } from "../components/ui/DetailActionBar";
  */
 const ArtistParticipantCard = ({ artistId, stageName, role, isOwner = false }) => {
   const navigate = useNavigate();
-  const { playSongWithContext } = usePlayerStore();
+  const { playArtist } = usePlaybackActions();
 
   const { data: artistDetailData } = useQuery({
     queryKey: ["artistDetail", artistId],
@@ -56,22 +56,7 @@ const ArtistParticipantCard = ({ artistId, stageName, role, isOwner = false }) =
     return role;
   }, [role, isOwner]);
 
-  const handlePlayArtist = async () => {
-    if (!artistId) return;
-    try {
-      const res = await getArtistSongs(artistId, {
-        size: 50,
-        sort: "likeCount,desc",
-      });
-      const songs = res.data?.content || [];
-      if (songs.length > 0) {
-        const randomIndex = getRandomIndex(songs.length);
-        playSongWithContext(songs[randomIndex], songs, randomIndex);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const handlePlayArtist = () => playArtist(artistId);
 
   return (
     <SongCard
@@ -92,8 +77,11 @@ export const SongPage = () => {
   const { id: songId } = useParams();
   const navigate = useNavigate();
 
-  const { currentSong, isPlaying, setIsPlaying, playSongWithContext, playWithAutoQueue } =
-    usePlayerStore();
+  const currentSong = usePlayerStore((state) => state.currentSong);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
+  const playSongWithContext = usePlayerStore((state) => state.playSongWithContext);
+  const playWithAutoQueue = usePlayerStore((state) => state.playWithAutoQueue);
   const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
 
   // ── 1. Fetch thông tin chi tiết bài hát ──────────────────────────────────
@@ -176,6 +164,13 @@ export const SongPage = () => {
   };
 
   const isLiked = isFavoriteSong(song?.id);
+
+  const handlePlayMoreRow = useCallback(
+    (item, idx) => {
+      playSongWithContext(item, moreSongs, idx);
+    },
+    [playSongWithContext, moreSongs]
+  );
   const isCurrentPlaying =
     isPlaying && (currentSong?.id === song?.id || currentSong?.songId === song?.id);
 
@@ -234,9 +229,9 @@ export const SongPage = () => {
   return (
     <div className="flex flex-col min-h-full pb-28">
       {/* ── HEADER BÀI HÁT ──────────────────────────────────────────────────── */}
-      <div className="relative flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 px-6 md:px-10 pt-12 pb-8 bg-gradient-to-b from-[#4a1a1a]/80 via-[#1f1215] to-[#121212]">
+      <div className="relative flex flex-col md:flex-row items-center md:items-end gap-5 sm:gap-6 md:gap-8 px-4 sm:px-6 md:px-10 pt-6 sm:pt-12 pb-6 sm:pb-8 bg-gradient-to-b from-[#4a1a1a]/80 via-[#1f1215] to-[#121212]">
         {/* Ảnh bìa bài hát to rõ */}
-        <div className="w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 flex-shrink-0 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-2xl overflow-hidden group">
+        <div className="w-44 h-44 sm:w-60 sm:h-60 md:w-72 md:h-72 flex-shrink-0 shadow-[0_20px_50px_rgba(0,0,0,0.8)] rounded-2xl overflow-hidden group">
           <CoverImage
             src={song.coverImage}
             alt={song.title}
@@ -260,7 +255,7 @@ export const SongPage = () => {
 
           {/* Tên bài hát */}
           <h1
-            className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight mb-3 line-clamp-2"
+            className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight mb-2 sm:mb-3 line-clamp-2"
             title={song.title}
           >
             {song.title}
@@ -268,8 +263,8 @@ export const SongPage = () => {
 
           {/* Album (nếu có) */}
           {(song.albumTitle || song.albumId) && (
-            <div className="flex items-center justify-center md:justify-start gap-2 text-sm md:text-base text-neutral-300 mb-2">
-              <Disc3 size={18} className="text-[#fa2d48] flex-shrink-0" />
+            <div className="flex items-center justify-center md:justify-start gap-2 text-xs sm:text-sm md:text-base text-neutral-300 mb-2">
+              <Disc3 size={16} className="text-[#fa2d48] flex-shrink-0" />
               <span className="text-neutral-400">Thuộc album:</span>
               <button
                 type="button"
@@ -286,7 +281,7 @@ export const SongPage = () => {
           )}
 
           {/* Nghệ sĩ sở hữu / Nghệ sĩ chính */}
-          <div className="flex items-center justify-center md:justify-start flex-wrap gap-2 text-sm text-neutral-300 mb-3">
+          <div className="flex items-center justify-center md:justify-start flex-wrap gap-2 text-xs sm:text-sm text-neutral-300 mb-2 sm:mb-3">
             <span className="text-neutral-400">Nghệ sĩ chính:</span>
             <span
               onClick={() =>
@@ -301,16 +296,16 @@ export const SongPage = () => {
           </div>
 
           {/* Metadata: Thời lượng, Lượt nghe, Thể loại, Năm phát hành */}
-          <div className="flex items-center justify-center md:justify-start flex-wrap gap-x-4 gap-y-2 text-xs md:text-sm text-neutral-400 pt-2 border-t border-white/10">
+          <div className="flex items-center justify-center md:justify-start flex-wrap gap-x-3 sm:gap-x-4 gap-y-1.5 sm:gap-y-2 text-xs md:text-sm text-neutral-400 pt-2 border-t border-white/10">
             {/* Thời lượng */}
             <span className="flex items-center gap-1.5">
-              <Clock size={15} className="text-neutral-400" />
+              <Clock size={14} className="text-neutral-400" />
               <span>{formatDuration(song.durationSeconds)}</span>
             </span>
 
             {/* Lượt nghe */}
             <span className="flex items-center gap-1.5">
-              <Headphones size={15} className="text-neutral-400" />
+              <Headphones size={14} className="text-neutral-400" />
               <span>
                 {Number(song.playCount || 0).toLocaleString("vi-VN")} lượt nghe
               </span>
@@ -319,7 +314,7 @@ export const SongPage = () => {
             {/* Ngày/Năm phát hành */}
             {song.createdAt && (
               <span className="flex items-center gap-1.5">
-                <Calendar size={15} className="text-neutral-400" />
+                <Calendar size={14} className="text-neutral-400" />
                 <span>{new Date(song.createdAt).getFullYear()}</span>
               </span>
             )}
@@ -362,11 +357,11 @@ export const SongPage = () => {
       />
 
       {/* ── NỘI DUNG CHÍNH (NGHỆ SĨ THAM GIA, LỜI BÀI HÁT, BÀI HÁT LIÊN QUAN) ── */}
-      <div className="flex flex-col gap-12 px-6 md:px-10 py-8">
+      <div className="flex flex-col gap-8 sm:gap-12 px-4 sm:px-6 md:px-10 py-6 sm:py-8">
         {/* ── SECTION: TOÀN BỘ NGHỆ SĨ THAM GIA ── */}
         <section className="flex flex-col gap-4">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Nghệ sĩ tham gia
             </h2>
             <span className="text-xs text-spotify-sub">
@@ -374,7 +369,7 @@ export const SongPage = () => {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {allArtists.map((art) => (
               <ArtistParticipantCard
                 key={art.artistId}
@@ -390,13 +385,13 @@ export const SongPage = () => {
         {/* ── SECTION: LỜI BÀI HÁT (LYRICS) ── */}
         <section className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <FileText size={22} className="text-[#fa2d48]" />
-            <h2 className="text-2xl font-black text-white tracking-tight">
+            <FileText size={20} className="text-[#fa2d48]" />
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Lời bài hát
             </h2>
           </div>
 
-          <div className="bg-gradient-to-br from-white/[0.07] to-white/[0.02] border border-white/10 rounded-2xl p-6 sm:p-8 backdrop-blur-md">
+          <div className="bg-gradient-to-br from-white/[0.07] to-white/[0.02] border border-white/10 rounded-2xl p-4 sm:p-6 md:p-8 backdrop-blur-md">
             {isLoadingLyrics ? (
               <div className="space-y-3 animate-pulse">
                 <div className="h-4 bg-neutral-800 rounded w-1/3" />
@@ -405,13 +400,13 @@ export const SongPage = () => {
                 <div className="h-4 bg-neutral-800 rounded w-3/4" />
               </div>
             ) : lyrics?.content ? (
-              <div className="text-neutral-200 text-base sm:text-lg leading-relaxed whitespace-pre-line font-medium max-h-[420px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/20">
+              <div className="text-neutral-200 text-sm sm:text-base md:text-lg leading-relaxed whitespace-pre-line font-medium max-h-[420px] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-white/20">
                 {lyrics.content}
               </div>
             ) : (
               <div className="py-8 text-center text-spotify-sub flex flex-col items-center justify-center gap-2">
                 <FileText size={36} className="text-neutral-600 mb-1" />
-                <span>Lời bài hát đang được cập nhật cho ca khúc này.</span>
+                <span className="text-sm">Lời bài hát đang được cập nhật cho ca khúc này.</span>
               </div>
             )}
           </div>
@@ -421,7 +416,7 @@ export const SongPage = () => {
         {moreSongs.length > 0 && (
           <section className="flex flex-col gap-4">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-2xl font-black text-white tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 Thêm từ {song.ownerName}
               </h2>
               <button
@@ -445,9 +440,9 @@ export const SongPage = () => {
                     isPlaying &&
                     (currentSong?.id === item.id || currentSong?.songId === item.id)
                   }
-                  onPlayClick={() =>
-                    playSongWithContext(item, moreSongs, idx)
-                  }
+                  isLiked={isFavoriteSong(item.id)}
+                  onToggleLike={toggleFavoriteSong}
+                  onPlayClick={handlePlayMoreRow}
                 />
               ))}
             </div>

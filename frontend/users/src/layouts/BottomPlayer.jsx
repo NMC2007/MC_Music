@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   Play,
   Pause,
@@ -18,46 +18,88 @@ import { useAuthStore } from "../store/useAuthStore";
 import { Button } from "../components/ui/Button";
 import { QueueDrawer } from "../components/player/QueueDrawer";
 import { LyricsModal } from "../components/player/LyricsModal";
+import { MiniPlayer } from "../components/player/MiniPlayer";
+import { MobileFullPlayer } from "../components/player/MobileFullPlayer";
+import { TouchSlider } from "../components/ui/TouchSlider";
 import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
 import { MarqueeText } from "../components/ui/MarqueeText";
 import { addPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
+import { useIsMobile } from "../hooks/useIsMobile";
 import { useNavigate } from "react-router";
 import { getSongById } from "../api/catalog/public";
 
+const formatTime = (time) => {
+  if (isNaN(time)) return "0:00";
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+};
+
 export const BottomPlayer = () => {
   const navigate = useNavigate();
-  const {
-    currentSong,
-    isPlaying,
-    setIsPlaying,
-    playNext,
-    playPrevious,
-    isShuffle,
-    toggleShuffle,
-    repeatMode,
-    toggleRepeatMode,
-    queue,
-    currentTime: savedCurrentTime,
-    setCurrentTime: setStoreCurrentTime,
-    volume: storeVolume,
-    setVolume: setStoreVolume,
-  } = usePlayerStore();
+  const isMobile = useIsMobile();
+  const currentSong = usePlayerStore((state) => state.currentSong);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
+  const playNext = usePlayerStore((state) => state.playNext);
+  const playPrevious = usePlayerStore((state) => state.playPrevious);
+  const isShuffle = usePlayerStore((state) => state.isShuffle);
+  const toggleShuffle = usePlayerStore((state) => state.toggleShuffle);
+  const repeatMode = usePlayerStore((state) => state.repeatMode);
+  const toggleRepeatMode = usePlayerStore((state) => state.toggleRepeatMode);
+  const queueLength = usePlayerStore((state) => state.queue.length);
+  const setStoreCurrentTime = usePlayerStore((state) => state.setCurrentTime);
+  const storeVolume = usePlayerStore((state) => state.volume);
+  const setStoreVolume = usePlayerStore((state) => state.setVolume);
+
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
 
   const audioRef = useRef(null);
   const recordedSongIdRef = useRef(null);
   const hasRestoredTimeRef = useRef(false);
-  const lastStoreUpdateTimeRef = useRef(savedCurrentTime || 0);
+  const initialSavedTime = usePlayerStore.getState().currentTime || 0;
+  const lastStoreUpdateTimeRef = useRef(initialSavedTime);
 
   const [prevSongId, setPrevSongId] = useState(currentSong?.id);
-  const [currentTime, setCurrentTime] = useState(savedCurrentTime || 0);
+  const [currentTime, setCurrentTime] = useState(initialSavedTime);
   const [audioDuration, setAudioDuration] = useState(0);
   const [volume, setVolume] = useState(storeVolume ?? 1);
   const [isMuted, setIsMuted] = useState(false);
   const [isQueueOpen, setIsQueueOpen] = useState(false);
   const [isLyricsOpen, setIsLyricsOpen] = useState(false);
+  const [isFullPlayerOpen, setIsFullPlayerOpen] = useState(false);
+
+  const handleCloseQueue = useCallback(() => setIsQueueOpen(false), []);
+  const handleCloseLyrics = useCallback(() => setIsLyricsOpen(false), []);
+  const handleCloseFullPlayer = useCallback(() => setIsFullPlayerOpen(false), []);
+
+  const handleToggleLyrics = useCallback(() => {
+    setIsLyricsOpen((prev) => {
+      const next = !prev;
+      if (next) setIsQueueOpen(false);
+      return next;
+    });
+  }, []);
+
+  const handleToggleQueue = useCallback(() => {
+    setIsQueueOpen((prev) => {
+      const next = !prev;
+      if (next) setIsLyricsOpen(false);
+      return next;
+    });
+  }, []);
+
+  const handleOpenLyricsFromMobile = useCallback(() => {
+    setIsLyricsOpen(true);
+    setIsQueueOpen(false);
+  }, []);
+
+  const handleOpenQueueFromMobile = useCallback(() => {
+    setIsQueueOpen(true);
+    setIsLyricsOpen(false);
+  }, []);
 
   // Đồng bộ lại state khi chuyển bài hát mới ngay trong render-phase
   if (currentSong?.id !== prevSongId) {
@@ -77,9 +119,10 @@ export const BottomPlayer = () => {
 
   // Khôi phục vị trí phát (currentTime) từ trạng thái đã lưu
   const restoreAudioTime = () => {
-    if (!hasRestoredTimeRef.current && savedCurrentTime > 0 && audioRef.current) {
+    const savedTime = usePlayerStore.getState().currentTime || 0;
+    if (!hasRestoredTimeRef.current && savedTime > 0 && audioRef.current) {
       try {
-        audioRef.current.currentTime = savedCurrentTime;
+        audioRef.current.currentTime = savedTime;
         hasRestoredTimeRef.current = true;
       } catch (err) {
         console.warn("Chưa thể tua audio ngay lúc này:", err);
@@ -116,7 +159,7 @@ export const BottomPlayer = () => {
     };
   }, [setStoreCurrentTime]);
 
-  // Xử lý Play/Pause khi state isPlaying thay đổi
+  // Xử lý Play/Pause khi state isPlaying hoặc bài hát thay đổi
   useEffect(() => {
     if (!audioRef.current) return;
 
@@ -127,9 +170,10 @@ export const BottomPlayer = () => {
     }
 
     if (isPlaying) {
-      if (!hasRestoredTimeRef.current && savedCurrentTime > 0) {
+      const savedTime = usePlayerStore.getState().currentTime || 0;
+      if (!hasRestoredTimeRef.current && savedTime > 0) {
         try {
-          audioRef.current.currentTime = savedCurrentTime;
+          audioRef.current.currentTime = savedTime;
           hasRestoredTimeRef.current = true;
         } catch {
           // ignore
@@ -142,7 +186,7 @@ export const BottomPlayer = () => {
         setStoreCurrentTime(audioRef.current.currentTime);
       }
     }
-  }, [isPlaying, currentSong, savedCurrentTime, setStoreCurrentTime]);
+  }, [isPlaying, currentSong, setStoreCurrentTime]);
 
   // Cập nhật âm lượng
   useEffect(() => {
@@ -201,7 +245,7 @@ export const BottomPlayer = () => {
   };
 
   // Lùi bài hát (Kiểm tra đăng nhập và replay nếu > 3s)
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     const res = playPrevious(audioRef.current ? audioRef.current.currentTime : 0);
     if (res === "replay" && audioRef.current) {
       audioRef.current.currentTime = 0;
@@ -209,10 +253,10 @@ export const BottomPlayer = () => {
       setStoreCurrentTime(0);
       audioRef.current.play().catch((e) => console.error("Lỗi phát nhạc:", e));
     }
-  };
+  }, [playPrevious, setStoreCurrentTime]);
 
   // Tua nhạc (Seek)
-  const handleSeek = (e) => {
+  const handleSeek = useCallback((e) => {
     const time = Number(e.target.value);
     setCurrentTime(time);
     lastStoreUpdateTimeRef.current = time;
@@ -220,37 +264,38 @@ export const BottomPlayer = () => {
     if (audioRef.current) {
       audioRef.current.currentTime = time;
     }
-  };
+  }, [setStoreCurrentTime]);
 
-  const handleVolumeChange = (e) => {
+  const handleVolumeChange = useCallback((e) => {
     const vol = Number(e.target.value);
     setVolume(vol);
     setStoreVolume(vol);
     if (vol > 0) setIsMuted(false);
-  };
+  }, [setStoreVolume]);
 
-  const formatTime = (time) => {
-    if (isNaN(time)) return "0:00";
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-  };
+  const handleTogglePlay = useCallback(() => {
+    setIsPlaying(!isPlaying);
+  }, [isPlaying, setIsPlaying]);
 
-  if (!currentSong) return null;
+  const handleToggleLike = useCallback(() => {
+    if (currentSong) {
+      toggleFavoriteSong(currentSong);
+    }
+  }, [toggleFavoriteSong, currentSong]);
 
-  const isLiked = isFavoriteSong(currentSong.id);
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const volumePercent = isMuted ? 0 : volume * 100;
+  const handleExpandFullPlayer = useCallback(() => {
+    setIsFullPlayerOpen(true);
+  }, []);
 
-  const handleSongClick = (e) => {
+  const handleSongClick = useCallback((e) => {
     e?.stopPropagation?.();
     const songId = currentSong?.id || currentSong?.songId;
     if (songId) {
       navigate(`/song/${songId}`);
     }
-  };
+  }, [currentSong, navigate]);
 
-  const handleArtistClick = async (e) => {
+  const handleArtistClick = useCallback(async (e) => {
     e?.stopPropagation?.();
     let artistId = currentSong?.ownerId || currentSong?.artistId;
     if (!artistId && (currentSong?.id || currentSong?.songId)) {
@@ -264,25 +309,31 @@ export const BottomPlayer = () => {
     if (artistId) {
       navigate(`/artist/${artistId}`);
     }
-  };
+  }, [currentSong, navigate]);
+
+  if (!currentSong) return null;
+
+  const isLiked = isFavoriteSong(currentSong.id);
+  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <>
-      <footer className="h-20 bg-spotify-black border-t border-neutral-900 flex items-center justify-between px-4 z-50 relative">
-        {/* Thẻ audio ẩn xử lý luồng phát nhạc */}
-        <audio
-          key={currentSong.id || currentSong.audioUrl}
-          ref={audioRef}
-          src={currentSong.audioUrl}
-          preload="metadata"
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
-          onCanPlay={handleCanPlay}
-          onEnded={handleEnded}
-        />
+      {/* Thẻ audio ẩn xử lý luồng phát nhạc (độc lập khỏi UI Desktop/Mobile để không ngắt nhạc khi đổi kích thước màn hình) */}
+      <audio
+        key={currentSong.id || currentSong.audioUrl}
+        ref={audioRef}
+        src={currentSong.audioUrl}
+        preload="metadata"
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onCanPlay={handleCanPlay}
+        onEnded={handleEnded}
+      />
 
+      {/* Giao diện Desktop & Tablet (>= 768px) */}
+      <footer className="hidden md:flex h-20 bg-spotify-black border-t border-neutral-900 items-center justify-between px-4 z-50 relative">
         {/* 1. Thông tin bài hát (Bên trái) - Kích thước cố định & tự động cuộn ngang khi tên dài */}
-        <div className="w-[30%] min-w-[200px] max-w-[320px] flex items-center gap-3 z-10">
+        <div className="w-[28%] min-w-[160px] lg:min-w-[200px] max-w-[320px] flex items-center gap-3 z-10">
           <img
             src={currentSong.coverUrl || currentSong.coverImage}
             alt="Cover"
@@ -337,7 +388,7 @@ export const BottomPlayer = () => {
         </div>
 
         {/* 2. Điều khiển trung tâm (Player Controls) - Căn chính xác tuyệt đối giữa màn hình */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[420px] sm:max-w-lg md:max-w-xl lg:max-w-2xl px-4 flex flex-col items-center justify-center gap-1.5 pointer-events-none [&>*]:pointer-events-auto">
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full md:max-w-[340px] lg:max-w-lg xl:max-w-2xl px-4 flex flex-col items-center justify-center gap-1.5 pointer-events-none [&>*]:pointer-events-auto">
           {/* Nút bấm */}
           <div className="flex items-center gap-6">
             {/* Nút Trộn bài (Smart Shuffle) */}
@@ -446,36 +497,21 @@ export const BottomPlayer = () => {
 
           {/* Thanh Progress (Tua bài hát) */}
           <div className="w-full flex items-center gap-2 text-xs text-spotify-sub">
-            <span className="w-10 text-right">{formatTime(currentTime)}</span>
-            <div className="flex-1 flex items-center group relative h-1">
-              <input
-                type="range"
-                min="0"
-                max={duration || 100}
-                value={currentTime}
-                onChange={handleSeek}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-              />
-              {/* Thanh hiển thị (Background xám) */}
-              <div className="w-full h-1 bg-spotify-hover rounded-full overflow-hidden">
-                {/* Phần đã phát (Màu trắng -> Xanh khi hover) */}
-                <div
-                  className="h-full bg-white group-hover:bg-[#fa2d48] rounded-full transition-colors"
-                  style={{ width: `${progressPercent}%` }}
-                ></div>
-              </div>
-              {/* Nút kéo (Thumb) ẩn, chỉ hiện khi hover */}
-              <div
-                className="absolute h-3 w-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-md transform -translate-x-1/2 pointer-events-none"
-                style={{ left: `${progressPercent}%` }}
-              ></div>
-            </div>
-            <span className="w-10">{formatTime(duration)}</span>
+            <span className="w-10 text-right tabular-nums">{formatTime(currentTime)}</span>
+            <TouchSlider
+              value={currentTime}
+              min={0}
+              max={duration || 100}
+              onChange={handleSeek}
+              hitAreaClass="py-1.5"
+              ariaLabel="Tua thời gian bài hát"
+            />
+            <span className="w-10 tabular-nums">{formatTime(duration)}</span>
           </div>
         </div>
 
         {/* 3. Điều khiển Hàng đợi, Lời bài hát & Âm lượng (Bên phải) */}
-        <div className="w-[30%] min-w-[200px] max-w-[320px] flex items-center justify-end gap-3 text-spotify-sub z-10">
+        <div className="w-[28%] min-w-[160px] lg:min-w-[200px] max-w-[320px] flex items-center justify-end gap-2 lg:gap-3 text-spotify-sub z-10">
           {/* Nút Lời bài hát (Lyrics Modal) */}
           <Button
             variant="ghost"
@@ -488,10 +524,7 @@ export const BottomPlayer = () => {
             }`}
             tooltip="Lời bài hát"
             tooltipPosition="top"
-            onClick={() => {
-              setIsLyricsOpen(!isLyricsOpen);
-              if (!isLyricsOpen) setIsQueueOpen(false);
-            }}
+            onClick={handleToggleLyrics}
           >
             <Mic2 size={20} className={isLyricsOpen ? "text-[#fa2d48]" : "currentColor"} />
             {isLyricsOpen && (
@@ -511,15 +544,12 @@ export const BottomPlayer = () => {
             }`}
             tooltip="Danh sách chờ phát"
             tooltipPosition="top"
-            onClick={() => {
-              setIsQueueOpen(!isQueueOpen);
-              if (!isQueueOpen) setIsLyricsOpen(false);
-            }}
+            onClick={handleToggleQueue}
           >
             <ListMusic size={20} />
-            {queue.length > 0 && (
+            {queueLength > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#fa2d48] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                {queue.length}
+                {queueLength}
               </span>
             )}
           </Button>
@@ -542,41 +572,73 @@ export const BottomPlayer = () => {
           </Button>
 
           {/* Thanh Slider Âm lượng */}
-          <div className="w-24 flex items-center group relative h-1">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.01"
+          <div className="hidden lg:flex w-24 items-center">
+            <TouchSlider
               value={isMuted ? 0 : volume}
+              min={0}
+              max={1}
+              step={0.01}
               onChange={handleVolumeChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              hitAreaClass="py-1.5"
+              ariaLabel="Điều chỉnh âm lượng"
             />
-            {/* Thanh background âm lượng */}
-            <div className="w-full h-1 bg-spotify-hover rounded-full overflow-hidden">
-              <div
-                className="h-full bg-white group-hover:bg-[#fa2d48] rounded-full transition-colors"
-                style={{ width: `${volumePercent}%` }}
-              ></div>
-            </div>
-            <div
-              className="absolute h-3 w-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow-md transform -translate-x-1/2 pointer-events-none"
-              style={{ left: `${volumePercent}%` }}
-            ></div>
           </div>
         </div>
       </footer>
 
+      {/* Giao diện Mobile MiniPlayer (< 768px) */}
+      {isMobile && (
+        <MiniPlayer
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          isLiked={isLiked}
+          progressPercent={progressPercent}
+          onTogglePlay={handleTogglePlay}
+          onToggleLike={handleToggleLike}
+          onExpand={handleExpandFullPlayer}
+        />
+      )}
+
+      {/* Trình phát toàn màn hình cho Mobile (< 768px) */}
+      {isMobile && isFullPlayerOpen && (
+        <MobileFullPlayer
+          isOpen={true}
+          onClose={handleCloseFullPlayer}
+          currentSong={currentSong}
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onNext={playNext}
+          onPrevious={handlePrevious}
+          isShuffle={isShuffle}
+          onToggleShuffle={toggleShuffle}
+          repeatMode={repeatMode}
+          onToggleRepeat={toggleRepeatMode}
+          currentTime={currentTime}
+          duration={duration}
+          onSeek={handleSeek}
+          formatTime={formatTime}
+          isLiked={isLiked}
+          onToggleLike={handleToggleLike}
+          queueCount={queueLength}
+          isLyricsOpen={isLyricsOpen}
+          isQueueOpen={isQueueOpen}
+          onOpenLyrics={handleOpenLyricsFromMobile}
+          onOpenQueue={handleOpenQueueFromMobile}
+          onSongClick={handleSongClick}
+          onArtistClick={handleArtistClick}
+        />
+      )}
+
       {/* Drawer xem trước hàng đợi (Queue Drawer) */}
       <QueueDrawer
         isOpen={isQueueOpen}
-        onClose={() => setIsQueueOpen(false)}
+        onClose={handleCloseQueue}
       />
 
       {/* Modal xem Lời bài hát (Lyrics Modal) */}
       <LyricsModal
         isOpen={isLyricsOpen}
-        onClose={() => setIsLyricsOpen(false)}
+        onClose={handleCloseLyrics}
         currentSong={currentSong}
       />
     </>

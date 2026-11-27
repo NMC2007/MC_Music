@@ -7,7 +7,7 @@ import React, { useRef, useState, useEffect } from "react";
  * - Khi text dài: tự động cuộn ngang qua lại (ping-pong), dừng 20% thời gian ở đầu và cuối để người dùng đọc dễ dàng.
  * - Có lớp phủ gradient mờ mềm mại ở mép phải khi cuộn.
  */
-export const MarqueeText = ({
+export const MarqueeText = React.memo(({
   text = "",
   as: Component = "span",
   className = "",
@@ -87,4 +87,4 @@ export const MarqueeText = ({
       </Component>
     </div>
   );
-};
+});

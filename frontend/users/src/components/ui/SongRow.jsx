@@ -1,28 +1,26 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router";
-import { Play, Heart } from "lucide-react";
+import { Play, Volume2 } from "lucide-react";
 import { CoverImage } from "./CoverImage";
-import { useFavorites } from "../../hooks/useFavorites";
+import { FavoriteButton } from "./FavoriteButton";
 import { AddToPlaylistMenu } from "../playlist/AddToPlaylistMenu";
 
 /**
- * Component hiển thị 1 dòng bài hát trong danh sách ngang (Album Detail, Artist Profile, Playlist Detail).
+ * Component hiển thị 1 dòng bài hát trong danh sách ngang (Album Detail, Artist Profile, Song Detail).
  */
-export const SongRow = ({
+export const SongRow = React.memo(({
   index,
   song,
   onPlayClick,
   isPlaying,
+  isLiked = false,
+  onToggleLike,
   currentPlaylistId = null,
   onRemove = null,
 }) => {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const { isFavoriteSong, toggleFavoriteSong } = useFavorites();
 
-  const isLiked = isFavoriteSong(song?.id || song?.songId);
-
-  // Xử lý hiển thị thời lượng (ms -> mm:ss)
   const formatDuration = (ms) => {
     if (!ms) return "--:--";
     const totalSeconds = Math.floor(ms / 1000);
@@ -32,8 +30,12 @@ export const SongRow = ({
   };
 
   const handleLike = (e) => {
-    e.stopPropagation(); // Ngăn sự kiện click lan ra ngoài (gây play nhạc)
-    toggleFavoriteSong(song);
+    e.stopPropagation();
+    onToggleLike?.(song);
+  };
+
+  const handleRowClick = () => {
+    onPlayClick?.(song, index - 1);
   };
 
   const handleTitleClick = (e) => {
@@ -54,51 +56,50 @@ export const SongRow = ({
 
   return (
     <div
-      className="flex items-center gap-4 py-2 px-4 rounded-md hover:bg-[#2a2a2a] group cursor-pointer transition-colors"
+      className="flex items-center gap-2.5 sm:gap-4 py-1.5 sm:py-2 px-2 sm:px-4 rounded-lg hover:bg-white/[0.08] active:bg-white/[0.12] group cursor-pointer transition-colors min-h-[48px] select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={onPlayClick}
+      onClick={handleRowClick}
     >
-      {/* Cột STT / Nút Play */}
-      <div className="w-6 text-right flex justify-end">
+      {/* Cột STT / Nút Play / Playing Indicator */}
+      <div className="w-5 sm:w-6 text-right flex justify-end items-center flex-shrink-0">
         {isHovered ? (
           <button
             type="button"
+            aria-label="Phát bài này"
             className="text-white hover:scale-110 active:scale-95 transition-transform cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
-              if (onPlayClick) onPlayClick();
+              handleRowClick();
             }}
           >
             <Play size={16} fill="currentColor" />
           </button>
+        ) : isPlaying ? (
+          <Volume2 size={16} className="text-[#fa2d48] animate-pulse flex-shrink-0" />
         ) : (
-          <span
-            className={`text-sm ${
-              isPlaying ? "text-[#fa2d48] font-bold" : "text-spotify-sub"
-            }`}
-          >
+          <span className="text-xs sm:text-sm text-spotify-sub font-medium tabular-nums">
             {index}
           </span>
         )}
       </div>
 
       {/* Thumbnail */}
-      <div className="w-10 h-10 flex-shrink-0">
+      <div className="w-10 h-10 flex-shrink-0 rounded-md overflow-hidden relative shadow-sm">
         <CoverImage
           src={song.coverImage || song.coverUrl}
           alt={song.title}
-          className="w-full h-full object-cover rounded shadow-sm"
+          className="w-full h-full object-cover"
         />
       </div>
 
-      {/* Thông tin bài hát */}
-      <div className="flex-1 flex flex-col justify-center min-w-0">
+      {/* Thông tin bài hát: Tiêu đề tầng 1, Nghệ sĩ tầng 2 */}
+      <div className="flex-1 flex flex-col justify-center min-w-0 pr-1">
         <span
           onClick={handleTitleClick}
           title={song.title}
-          className={`text-base truncate hover:underline cursor-pointer transition-colors ${
-            isPlaying ? "text-[#fa2d48] font-bold" : "text-white"
+          className={`text-xs sm:text-sm md:text-base font-semibold truncate hover:underline cursor-pointer transition-colors leading-tight ${
+            isPlaying ? "text-[#fa2d48]" : "text-white"
           }`}
         >
           {song.title}
@@ -106,48 +107,39 @@ export const SongRow = ({
         <span
           onClick={handleArtistClick}
           title={song.artistName || song.ownerName}
-          className="text-sm text-spotify-sub hover:underline hover:text-white transition-colors truncate cursor-pointer"
+          className="text-[11px] sm:text-xs text-spotify-sub hover:underline hover:text-white transition-colors truncate cursor-pointer mt-0.5 leading-tight"
         >
-          {song.artistName || song.ownerName}
+          {song.artistName || song.ownerName || "MC Music"}
         </span>
       </div>
 
-      {/* Hành động (Like) - Hiện khi đã like hoặc khi hover */}
-      <div
-        className={`w-10 flex items-center justify-center transition-opacity ${
-          isLiked ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        }`}
-      >
-        <button
-          type="button"
-          className={`p-1.5 rounded-full hover:scale-110 active:scale-95 transition-all cursor-pointer ${
-            isLiked
-              ? "text-[#fa2d48]"
-              : "text-spotify-sub hover:text-white"
-          }`}
-          onClick={handleLike}
-          title={isLiked ? "Xóa khỏi danh sách yêu thích" : "Thêm vào danh sách yêu thích"}
-        >
-          <Heart
-            size={18}
-            className={isLiked ? "fill-[#fa2d48] text-[#fa2d48]" : "currentColor"}
-          />
-        </button>
+      {/* Nút Thả tim (Like) - Luôn hiển thị trên Mobile, hover trên Desktop */}
+      <div className="w-8 sm:w-10 flex items-center justify-center flex-shrink-0">
+        <FavoriteButton
+          isLiked={isLiked}
+          onToggle={handleLike}
+          size={18}
+          revealOnGroupHover
+          tooltipLike="Lưu vào Thư viện"
+          tooltipUnlike="Xóa khỏi danh sách yêu thích"
+        />
       </div>
 
       {/* Thời lượng */}
-      <div className="w-12 text-sm text-spotify-sub text-right">
+      <div className="w-10 sm:w-12 text-xs sm:text-sm text-spotify-sub text-right flex-shrink-0 tabular-nums">
         {formatDuration(song.durationMs || (song.durationSeconds ? song.durationSeconds * 1000 : 0))}
       </div>
 
       {/* Tùy chọn khác (Thêm vào playlist / Gỡ khỏi playlist) */}
-      <div className="w-8 flex items-center justify-end">
+      <div className="w-7 sm:w-8 flex items-center justify-end flex-shrink-0">
         <AddToPlaylistMenu
           song={song}
           currentPlaylistId={currentPlaylistId}
           onRemove={onRemove}
+          iconSize={18}
+          buttonClassName="!w-7 !h-7 sm:!w-8 sm:!h-8 text-neutral-400 hover:text-white"
         />
       </div>
     </div>
   );
-};
+});

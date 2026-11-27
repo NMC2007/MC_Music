@@ -12,7 +12,7 @@ export const Button = forwardRef(({
   tooltipPosition = 'top',
   ...props 
 }, ref) => {
-  const baseClasses = "transition-all duration-300 focus:outline-none flex items-center justify-center gap-1.5 rounded-full whitespace-nowrap cursor-pointer";
+  const baseClasses = "transition-[transform,background-color,color,border-color,box-shadow] duration-150 focus:outline-none flex items-center justify-center gap-1.5 rounded-full whitespace-nowrap cursor-pointer";
   
   const variants = {
     primary: "bg-[#fa2d48] hover:bg-[#e0223e] text-white font-bold transform hover:scale-105 shadow-[0_8px_16px_rgba(250,45,72,0.3)]",
@@ -24,9 +24,9 @@ export const Button = forwardRef(({
   };
 
   const sizes = {
-    sm: iconOnly ? "w-8 h-8" : "h-9 px-4 text-sm",
-    md: iconOnly ? "w-12 h-12" : "h-12 px-6 py-2 text-base",
-    lg: iconOnly ? "w-14 h-14" : "h-14 px-10 py-4 text-lg",
+    sm: iconOnly ? "w-8 h-8 flex-shrink-0" : "h-9 px-4 text-sm",
+    md: iconOnly ? "w-12 h-12 flex-shrink-0" : "h-12 px-6 py-2 text-base",
+    lg: iconOnly ? "w-14 h-14 flex-shrink-0" : "h-14 px-10 py-4 text-lg",
   };
 
   const selectedVariant = variants[variant] || variants.primary;

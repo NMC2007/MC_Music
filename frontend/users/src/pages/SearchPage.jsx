@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Play, Pause, Music2, Heart } from "lucide-react";
+import { Play, Pause, Music2, Heart, Search, X } from "lucide-react";
 import {
   searchCatalogApi,
   getPublicGenres,
@@ -10,8 +10,9 @@ import {
 import { usePlayerStore } from "../store/usePlayerStore";
 import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
+import { usePlaybackActions } from "../hooks/usePlaybackActions";
 import { CoverImage } from "../components/ui/CoverImage";
-import { Button } from "../components/ui/Button";
+import { SongCard } from "../components/ui/SongCard";
 import { AddToPlaylistMenu } from "../components/playlist/AddToPlaylistMenu";
 
 // ─── Màu gradient ngẫu nhiên cho card thể loại ─────────────────────────────
@@ -66,10 +67,27 @@ export const SearchPage = () => {
   const navigate = useNavigate();
   const keyword = searchParams.get("q") || "";
 
-  const [activeFilter, setActiveFilter] = useState("all");
+  const [filterState, setFilterState] = useState({ keyword, filter: "all" });
+  const [searchDraft, setSearchDraft] = useState({ keyword, value: keyword });
   const [loadingSongId, setLoadingSongId] = useState(null);
 
-  const { currentSong, isPlaying, setIsPlaying, playSongWithContext } = usePlayerStore();
+  const activeFilter = filterState.keyword === keyword ? filterState.filter : "all";
+  const setActiveFilter = useCallback(
+    (filter) => setFilterState({ keyword, filter }),
+    [keyword]
+  );
+
+  const mobileSearchText = searchDraft.keyword === keyword ? searchDraft.value : keyword;
+  const setMobileSearchText = useCallback(
+    (value) => setSearchDraft({ keyword, value }),
+    [keyword]
+  );
+
+  const currentSong = usePlayerStore((state) => state.currentSong);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const setIsPlaying = usePlayerStore((state) => state.setIsPlaying);
+  const playSongWithContext = usePlayerStore((state) => state.playSongWithContext);
+  const { playAlbum: handlePlayAlbumCard, playArtist: handlePlayArtistCard } = usePlaybackActions();
   const {
     isFavoriteSong,
     toggleFavoriteSong,
@@ -78,12 +96,19 @@ export const SearchPage = () => {
   } = useFavorites();
   const { isFollowing, toggleFollowArtist } = useFollowArtists();
 
-  // Reset filter khi keyword thay đổi
-  const [prevKeyword, setPrevKeyword] = useState(keyword);
-  if (keyword !== prevKeyword) {
-    setPrevKeyword(keyword);
-    setActiveFilter("all");
-  }
+  const handleMobileSearchSubmit = (e) => {
+    e.preventDefault();
+    if (mobileSearchText.trim()) {
+      navigate(`/search?q=${encodeURIComponent(mobileSearchText.trim())}`);
+    } else {
+      navigate("/search");
+    }
+  };
+
+  const handleClearMobileSearch = () => {
+    setMobileSearchText("");
+    navigate("/search");
+  };
 
   // ── 1. Fetch thể loại (luôn fetch để dùng ở Browse Mode) ──────────────────
   const { data: genresData, isLoading: isLoadingGenres } = useQuery({
@@ -104,7 +129,7 @@ export const SearchPage = () => {
 
   const searchResult = useMemo(() => searchData?.data || null, [searchData]);
   const topResult = searchResult?.topResult || null;
-  const songs = searchResult?.songs || [];
+  const songs = useMemo(() => searchResult?.songs || [], [searchResult]);
   const albums = searchResult?.albums || [];
   const artists = searchResult?.artists || [];
 
@@ -144,24 +169,51 @@ export const SearchPage = () => {
       title: s.title,
       artistName: s.ownerName,
       coverImage: s.coverImage,
-    })), [searchResult]); // eslint-disable-line react-hooks/exhaustive-deps
+    })), [songs]);
+
+  // Mobile Search Bar Component
+  const renderMobileSearchBar = () => (
+    <form onSubmit={handleMobileSearchSubmit} className="md:hidden mb-5">
+      <div className="relative flex items-center bg-[#242424] focus-within:bg-[#2c2c2c] rounded-full px-3.5 py-2.5 border border-white/10 focus-within:border-white/30 transition-all shadow-inner">
+        <Search size={18} className="text-neutral-400 flex-shrink-0" />
+        <input
+          type="text"
+          value={mobileSearchText}
+          onChange={(e) => setMobileSearchText(e.target.value)}
+          placeholder="Bạn muốn nghe gì?"
+          className="w-full bg-transparent border-none outline-none text-white text-sm ml-2.5 placeholder-neutral-400"
+        />
+        {mobileSearchText && (
+          <button
+            type="button"
+            onClick={handleClearMobileSearch}
+            className="p-1 rounded-full text-neutral-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+    </form>
+  );
 
   // ═══════════════════════════════════════════════════════════════════════════
   // RENDER: BROWSE MODE (chưa nhập keyword)
   // ═══════════════════════════════════════════════════════════════════════════
   if (!keyword.trim()) {
     return (
-      <div className="flex flex-col pb-24 min-h-full px-6 pt-6">
-        <h1 className="text-3xl font-black text-white mb-6">Duyệt tìm tất cả</h1>
+      <div className="flex flex-col pb-24 min-h-full px-4 sm:px-6 pt-4 sm:pt-6">
+        {renderMobileSearchBar()}
+
+        <h1 className="text-2xl sm:text-3xl font-black text-white mb-4 sm:mb-6">Duyệt tìm tất cả</h1>
 
         {isLoadingGenres ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <SkeletonGenreCard key={i} />
             ))}
           </div>
         ) : genres.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
             {genres.map((genre, i) => (
               <div
                 key={genre.id}
@@ -170,12 +222,11 @@ export const SearchPage = () => {
                     state: { genreId: genre.id, title: genre.name },
                   })
                 }
-                className={`relative rounded-lg overflow-hidden cursor-pointer group transition-all hover:scale-[1.03] active:scale-[0.97] shadow-md bg-gradient-to-br ${GENRE_GRADIENTS[i % GENRE_GRADIENTS.length]}`}
-                style={{ height: '160px' }}
+                className={`relative rounded-xl overflow-hidden cursor-pointer group transition-all hover:scale-[1.03] active:scale-[0.97] shadow-md bg-gradient-to-br h-28 sm:h-36 md:h-40 ${GENRE_GRADIENTS[i % GENRE_GRADIENTS.length]}`}
               >
                 {/* Tên thể loại ở góc trên bên trái */}
-                <div className="absolute top-0 left-0 p-4 z-10">
-                  <span className="text-white font-black text-base leading-snug line-clamp-2 drop-shadow">
+                <div className="absolute top-0 left-0 p-3 sm:p-4 z-10">
+                  <span className="text-white font-black text-sm sm:text-base leading-snug line-clamp-2 drop-shadow">
                     {genre.name}
                   </span>
                 </div>
@@ -185,7 +236,7 @@ export const SearchPage = () => {
                   <img
                     src={genre.coverImage}
                     alt={genre.name}
-                    className="absolute bottom-0 right-0 w-[90px] h-[90px] object-cover rounded-md shadow-2xl rotate-[25deg] translate-x-4 translate-y-4 transition-transform duration-300 group-hover:rotate-[20deg] group-hover:translate-x-3 group-hover:translate-y-3"
+                    className="absolute bottom-0 right-0 w-16 h-16 sm:w-20 sm:h-20 md:w-[90px] md:h-[90px] object-cover rounded-md shadow-2xl rotate-[25deg] translate-x-3 translate-y-3 sm:translate-x-4 sm:translate-y-4 transition-transform duration-300 group-hover:rotate-[20deg] group-hover:translate-x-2 group-hover:translate-y-2"
                   />
                 )}
 
@@ -207,14 +258,16 @@ export const SearchPage = () => {
   // RENDER: RESULTS MODE (có keyword)
   // ═══════════════════════════════════════════════════════════════════════════
   return (
-    <div className="flex flex-col pb-24 min-h-full px-6 pt-6">
+    <div className="flex flex-col pb-24 min-h-full px-4 sm:px-6 pt-4 sm:pt-6">
+      {renderMobileSearchBar()}
+
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 mb-6 flex-wrap">
+      <div className="flex items-center gap-2 mb-5 sm:mb-6 overflow-x-auto scrollbar-none pb-1">
         {FILTER_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveFilter(tab.id)}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-all cursor-pointer ${
+            className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer flex-shrink-0 select-none ${
               activeFilter === tab.id
                 ? "bg-white text-black"
                 : "bg-neutral-800 text-white hover:bg-neutral-700"
@@ -260,6 +313,8 @@ export const SearchPage = () => {
                 topResult={topResult}
                 loadingSongId={loadingSongId}
                 onPlay={handlePlaySong}
+                onPlayAlbum={handlePlayAlbumCard}
+                onPlayArtist={handlePlayArtistCard}
                 onNavigate={navigate}
                 isPlaying={isPlaying}
                 currentSong={currentSong}
@@ -349,10 +404,10 @@ export const SearchPage = () => {
                             e.stopPropagation();
                             toggleFavoriteSong(song);
                           }}
-                          className={`p-1.5 rounded-full transition-all opacity-0 group-hover:opacity-100 ${isLiked ? "opacity-100 text-[#fa2d48]" : "text-spotify-sub hover:text-white"}`}
+                          className={`p-2 sm:p-1.5 rounded-full transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100 cursor-pointer ${isLiked ? "text-[#fa2d48]" : "text-spotify-sub hover:text-white"}`}
                           title={isLiked ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18"
                             fill={isLiked ? "#fa2d48" : "none"} stroke={isLiked ? "#fa2d48" : "currentColor"}
                             strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -379,34 +434,21 @@ export const SearchPage = () => {
           {albums.length > 0 && (activeFilter === "all" || activeFilter === "albums") && (
             <section>
               <h2 className="text-2xl font-black text-white mb-4">Album</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                 {albums.map((album) => (
-                  <div
+                  <SongCard
                     key={album.id}
-                    onClick={() => navigate(`/album/${album.id}`)}
-                    className="bg-transparent hover:bg-spotify-hover transition-all p-3 rounded-lg cursor-pointer group"
-                  >
-                    <div className="relative mb-3">
-                      <CoverImage
-                        src={album.coverImage}
-                        alt={album.title}
-                        className="w-full aspect-square object-cover rounded-md shadow-lg"
-                      />
-                      <Button
-                        variant="primary"
-                        size="md"
-                        iconOnly
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg"
-                      >
-                        <Play size={20} className="fill-white text-white ml-0.5" />
-                      </Button>
-                    </div>
-                    <p className="text-white font-semibold text-sm truncate">{album.title}</p>
-                    <p className="text-spotify-sub text-xs mt-0.5 truncate">
-                      {album.releaseDate ? new Date(album.releaseDate).getFullYear() : ""} • Album
-                    </p>
-                  </div>
+                    type="album"
+                    id={album.id}
+                    albumId={album.id}
+                    artistId={album.ownerId}
+                    title={album.title}
+                    subtitle={`${album.releaseDate ? new Date(album.releaseDate).getFullYear() : "Album"} • ${album.ownerName || "Album"}`}
+                    artistName={album.ownerName}
+                    imageUrl={album.coverImage}
+                    onClick={() => navigate(`/album/${album.id}`, { state: { album } })}
+                    onPlayClick={() => handlePlayAlbumCard(album.id)}
+                  />
                 ))}
               </div>
             </section>
@@ -416,33 +458,20 @@ export const SearchPage = () => {
           {artists.length > 0 && (activeFilter === "all" || activeFilter === "artists") && (
             <section>
               <h2 className="text-2xl font-black text-white mb-4">Nghệ sĩ</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
                 {artists.map((artist) => (
-                  <div
+                  <SongCard
                     key={artist.id}
+                    type="artist"
+                    id={artist.id}
+                    artistId={artist.id}
+                    title={artist.stageName}
+                    subtitle="Nghệ sĩ"
+                    artistName={artist.stageName}
+                    imageUrl={artist.avatarUrl}
                     onClick={() => navigate(`/artist/${artist.id}`)}
-                    className="bg-transparent hover:bg-spotify-hover transition-all p-3 rounded-lg cursor-pointer group"
-                  >
-                    <div className="relative mb-3">
-                      <CoverImage
-                        src={artist.avatarUrl}
-                        alt={artist.stageName}
-                        isArtist={true}
-                        className="w-full aspect-square object-cover rounded-full shadow-lg"
-                      />
-                      <Button
-                        variant="primary"
-                        size="md"
-                        iconOnly
-                        onClick={(e) => { e.stopPropagation(); }}
-                        className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-lg"
-                      >
-                        <Play size={20} className="fill-white text-white ml-0.5" />
-                      </Button>
-                    </div>
-                    <p className="text-white font-semibold text-sm truncate">{artist.stageName}</p>
-                    <p className="text-spotify-sub text-xs mt-0.5 truncate">Nghệ sĩ</p>
-                  </div>
+                    onPlayClick={() => handlePlayArtistCard(artist.id)}
+                  />
                 ))}
               </div>
             </section>
@@ -459,6 +488,8 @@ const TopResultCard = ({
   topResult,
   loadingSongId,
   onPlay,
+  onPlayAlbum,
+  onPlayArtist,
   onNavigate,
   isPlaying,
   currentSong,
@@ -483,7 +514,7 @@ const TopResultCard = ({
   const handleCardClick = () => {
     if (isArtist) onNavigate(`/artist/${item.id}`);
     else if (isAlbum) onNavigate(`/album/${item.id}`);
-    else onPlay(item, [item]);
+    else if (isSong) onNavigate(`/song/${item.id}`);
   };
 
   const isCurrentPlaying = isSong && currentSong?.id === item.id && isPlaying;
@@ -497,6 +528,10 @@ const TopResultCard = ({
     e.stopPropagation();
     if (isSong) {
       onPlay(item, [item]);
+    } else if (isAlbum && onPlayAlbum) {
+      onPlayAlbum(item.id);
+    } else if (isArtist && onPlayArtist) {
+      onPlayArtist(item.id);
     } else {
       handleCardClick();
     }
@@ -505,10 +540,10 @@ const TopResultCard = ({
   return (
     <div
       onClick={handleCardClick}
-      className="relative w-full bg-gradient-to-r from-[#1c1c1c] via-[#161616] to-[#121212] hover:from-[#242424] hover:via-[#1a1a1a] hover:to-[#161616] border border-white/5 hover:border-white/10 transition-all duration-300 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-col sm:flex-row items-center sm:items-stretch gap-6 group cursor-pointer"
+      className="relative w-full bg-gradient-to-r from-[#1c1c1c] via-[#161616] to-[#121212] hover:from-[#242424] hover:via-[#1a1a1a] hover:to-[#161616] border border-white/5 hover:border-white/10 transition-all duration-300 rounded-2xl p-4 sm:p-6 shadow-2xl flex flex-col sm:flex-row items-center sm:items-stretch gap-4 sm:gap-6 group cursor-pointer"
     >
       {/* ── Ảnh hiển thị hình vuông bên trái ── */}
-      <div className="w-40 h-40 sm:w-44 sm:h-44 md:w-52 md:h-52 aspect-square flex-shrink-0 shadow-[0_16px_36px_rgba(0,0,0,0.7)] overflow-hidden rounded-2xl border border-white/10 relative">
+      <div className="w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 aspect-square flex-shrink-0 shadow-[0_16px_36px_rgba(0,0,0,0.7)] overflow-hidden rounded-2xl border border-white/10 relative">
         <CoverImage
           src={image}
           alt={name}
@@ -549,7 +584,7 @@ const TopResultCard = ({
               else if (isAlbum) onNavigate(`/album/${item.id}`);
               else if (isSong) onNavigate(`/song/${item.id}`);
             }}
-            className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 my-1 hover:underline cursor-pointer group-hover:text-[#fa2d48] transition-colors"
+            className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight line-clamp-2 my-1 hover:underline cursor-pointer group-hover:text-[#fa2d48] transition-colors"
             title={name}
           >
             {name}
@@ -567,7 +602,7 @@ const TopResultCard = ({
 
         {/* Các nút hành động bên phải */}
         <div
-          className="flex items-center justify-center sm:justify-start gap-3.5 mt-6 pt-2 flex-wrap"
+          className="flex items-center justify-center sm:justify-start gap-2.5 sm:gap-3.5 mt-4 sm:mt-6 pt-2 flex-wrap"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Nút Play */}

@@ -60,3 +60,47 @@
     transform: translateX(var(--marquee-distance, 0px));
   }
 }
+
+/* Keyframes trượt mượt cho BottomSheet di động & Popup Desktop */
+@keyframes sheet-slide-up {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes popup-slide-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes sheet-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-sheet-up {
+  animation: sheet-slide-up 0.18s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform;
+}
+
+.animate-popup-up {
+  animation: popup-slide-up 0.16s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-sheet-backdrop {
+  animation: sheet-fade-in 0.15s ease-out forwards;
+}

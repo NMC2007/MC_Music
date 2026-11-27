@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/useAuthStore";
@@ -271,25 +271,6 @@ export const useFavorites = () => {
     },
   });
 
-  // Hàm gọi thả tim / bỏ thích bài hát (có kiểm tra login)
-  const toggleFavoriteSong = useCallback(
-    (song) => {
-      if (!song) return;
-
-      if (!isAuthenticated) {
-        showLoginToast("thêm bài hát vào danh sách yêu thích");
-        return;
-      }
-
-      const songId = song.id || song.songId;
-      if (!songId) return;
-
-      const isLiked = favoriteSongIds.has(songId);
-      toggleFavoriteSongMutation.mutate({ song, isLiked });
-    },
-    [isAuthenticated, favoriteSongIds, toggleFavoriteSongMutation]
-  );
-
   // ── MUTATION THẢ TIM ALBUM (OPTIMISTIC UPDATE) ──
   const toggleFavoriteAlbumMutation = useMutation({
     mutationFn: async ({ album, isLiked }) => {
@@ -393,23 +374,50 @@ export const useFavorites = () => {
     },
   });
 
-  // Hàm gọi thả tim / bỏ thích album (có kiểm tra login)
+  const { mutate: mutateSong, isPending: isTogglingSong } = toggleFavoriteSongMutation;
+  const { mutate: mutateAlbum, isPending: isTogglingAlbum } = toggleFavoriteAlbumMutation;
+
+  // Giữ reference ổn định vĩnh viễn cho các hàm toggle nhằm ngăn phá vỡ React.memo ở các danh sách con
+  const favoriteSongIdsRef = useRef(favoriteSongIds);
+  const favoriteAlbumIdsRef = useRef(favoriteAlbumIds);
+
+  useEffect(() => {
+    favoriteSongIdsRef.current = favoriteSongIds;
+    favoriteAlbumIdsRef.current = favoriteAlbumIds;
+  }, [favoriteSongIds, favoriteAlbumIds]);
+
+  const toggleFavoriteSong = useCallback(
+    (song) => {
+      if (!song) return;
+      if (!useAuthStore.getState().isAuthenticated) {
+        showLoginToast("thêm bài hát vào danh sách yêu thích");
+        return;
+      }
+      const songId = song.id || song.songId;
+      if (!songId) return;
+      mutateSong({
+        song,
+        isLiked: favoriteSongIdsRef.current.has(songId),
+      });
+    },
+    [mutateSong]
+  );
+
   const toggleFavoriteAlbum = useCallback(
     (album) => {
       if (!album) return;
-
-      if (!isAuthenticated) {
+      if (!useAuthStore.getState().isAuthenticated) {
         showLoginToast("thêm album vào danh sách yêu thích");
         return;
       }
-
       const albumId = album.id || album.albumId;
       if (!albumId) return;
-
-      const isLiked = favoriteAlbumIds.has(albumId);
-      toggleFavoriteAlbumMutation.mutate({ album, isLiked });
+      mutateAlbum({
+        album,
+        isLiked: favoriteAlbumIdsRef.current.has(albumId),
+      });
     },
-    [isAuthenticated, favoriteAlbumIds, toggleFavoriteAlbumMutation]
+    [mutateAlbum]
   );
 
   return {
@@ -419,7 +427,7 @@ export const useFavorites = () => {
     isLoadingSongs: songsQuery.isLoading,
     isFavoriteSong,
     toggleFavoriteSong,
-    isTogglingSong: toggleFavoriteSongMutation.isPending,
+    isTogglingSong,
 
     // Albums
     favoriteAlbums,
@@ -427,7 +435,7 @@ export const useFavorites = () => {
     isLoadingAlbums: albumsQuery.isLoading,
     isFavoriteAlbum,
     toggleFavoriteAlbum,
-    isTogglingAlbum: toggleFavoriteAlbumMutation.isPending,
+    isTogglingAlbum,
 
     // Refetch helpers
     refetchFavorites: songsQuery.refetch,

@@ -1,28 +1,30 @@
-import React, { useEffect, useMemo } from "react";
+import React, { memo, useEffect, useMemo } from "react";
 import { Mic2, MicOff, X, Music } from "lucide-react";
 import { usePlayerStore } from "../../store/usePlayerStore";
 import { CoverImage } from "../ui/CoverImage";
+import { Button } from "../ui/Button";
+import { BottomSheet } from "../ui/BottomSheet";
+import { Z_INDEX } from "../../constants/layout";
+import { useIsMobile } from "../../hooks/useIsMobile";
 
 /**
- * Component hiển thị Lời bài hát (Lyrics Modal/Drawer)
- * - Tối ưu hóa: Chỉ gửi request 1 lần duy nhất cho mỗi bài hát nếu chưa có dữ liệu.
- * - Lưu trạng thái kết quả (có lời hoặc không có lời) vào cache trong playerStore.
- * - Khi mở/đóng lại bài hát đó: 0 request gửi lên mạng!
+ * Nội dung chi tiết của LyricsModal - chỉ mount khi isOpen = true để tránh chạy hooks/render thừa lúc đóng.
  */
-export const LyricsModal = ({ isOpen, onClose, currentSong }) => {
+const LyricsModalContent = memo(({ onClose, currentSong }) => {
+  const isMobile = useIsMobile();
   const songId = currentSong?.id;
-  const { lyricsCache, fetchLyrics } = usePlayerStore();
 
-  const cached = songId ? lyricsCache[songId] : null;
+  const cached = usePlayerStore((state) => (songId ? state.lyricsCache[songId] : null));
+  const fetchLyrics = usePlayerStore((state) => state.fetchLyrics);
 
   // Khi modal mở và bài hát chưa có trong cache thì chỉ gọi 1 lần duy nhất
   useEffect(() => {
-    if (isOpen && songId && !lyricsCache[songId]) {
+    if (songId && !cached) {
       fetchLyrics(songId);
     }
-  }, [isOpen, songId, lyricsCache, fetchLyrics]);
+  }, [songId, cached, fetchLyrics]);
 
-  const isLoading = cached?.isLoading || (!cached && isOpen && !!songId);
+  const isLoading = cached?.isLoading || (!cached && !!songId);
   const content = cached?.content;
   const language = cached?.language;
   const isNotFound = cached?.notFound || (!isLoading && !content);
@@ -33,19 +35,125 @@ export const LyricsModal = ({ isOpen, onClose, currentSong }) => {
     return content.split("\n");
   }, [content]);
 
-  if (!isOpen) return null;
+  const songTitle = currentSong?.title || "Lời bài hát";
+  const artistName =
+    currentSong?.artist || currentSong?.ownerName || currentSong?.artistName || "MC Music";
+
+  // Hàm render nội dung lời bài hát dùng chung cho cả Mobile và Desktop
+  const renderLyricsBody = (mobileLayout = false) => (
+    <div className={`flex-1 overflow-y-auto scrollbar-thin select-text ${mobileLayout ? "px-4 sm:px-6 py-4" : "px-6 py-5"}`}>
+      {isLoading ? (
+        /* TRẠNG THÁI ĐANG TẢI (Skeleton Loading) */
+        <div className="space-y-4 py-8 animate-pulse max-w-md mx-auto">
+          <div className={`${mobileLayout ? "h-5" : "h-4"} bg-white/10 rounded-full w-3/4 mx-auto`} />
+          <div className={`${mobileLayout ? "h-5" : "h-4"} bg-white/10 rounded-full w-5/6 mx-auto`} />
+          <div className={`${mobileLayout ? "h-5" : "h-4"} bg-white/10 rounded-full w-2/3 mx-auto`} />
+          <div className={`${mobileLayout ? "h-5" : "h-4"} bg-white/10 rounded-full w-4/5 mx-auto`} />
+          <div className={`${mobileLayout ? "h-5" : "h-4"} bg-white/10 rounded-full w-1/2 mx-auto`} />
+          <div className={`${mobileLayout ? "h-5" : "h-4"} bg-white/10 rounded-full w-3/4 mx-auto`} />
+        </div>
+      ) : isNotFound || !content || lines.length === 0 ? (
+        /* TRẠNG THÁI CHƯA CÓ LỜI BÀI HÁT */
+        <div className="py-16 text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-14 h-14 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-500 shadow-inner">
+            <MicOff size={24} />
+          </div>
+          <div className="space-y-1">
+            <h6 className="text-sm font-bold text-white">Chưa có lời bài hát</h6>
+            <p className="text-xs text-spotify-sub max-w-[240px]">
+              Lời bài hát cho ca khúc này hiện đang được cập nhật.
+            </p>
+          </div>
+        </div>
+      ) : (
+        /* DANH SÁCH LỜI BÀI HÁT ĐẦY ĐỦ */
+        <div className={`space-y-3 ${mobileLayout ? "text-center py-2 max-w-lg mx-auto" : "text-left"}`}>
+          {lines.map((line, idx) => {
+            const trimmed = line.trim();
+            if (!trimmed) {
+              return <div key={idx} className={mobileLayout ? "h-5" : "h-4"} />;
+            }
+            return (
+              <p
+                key={idx}
+                className={`transition-colors leading-relaxed tracking-wide ${
+                  mobileLayout
+                    ? "text-lg sm:text-xl font-semibold text-neutral-200 hover:text-white active:text-[#fa2d48]"
+                    : "text-base font-medium text-neutral-300 hover:text-white"
+                }`}
+              >
+                {trimmed}
+              </p>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // Footer hiển thị ngôn ngữ nếu có
+  const renderLyricsFooter = () =>
+    language ? (
+      <div className="px-5 py-2.5 bg-black/40 border-t border-neutral-800/80 flex items-center justify-between text-[11px] text-neutral-400 flex-shrink-0">
+        <span className="flex items-center gap-1.5">
+          <Music size={12} className="text-[#fa2d48]" />
+          Ngôn ngữ: <strong className="text-neutral-200">{language.toUpperCase()}</strong>
+        </span>
+        <span>MC Music Catalog</span>
+      </div>
+    ) : null;
+
+  if (isMobile) {
+    return (
+      /* ── GIAO DIỆN MOBILE (< 768px): BOTTOM SHEET CHUẨN CÔNG THÁI HỌC ── */
+      <BottomSheet
+        isOpen
+        onClose={onClose}
+        heightClass="h-[88dvh] max-h-[88dvh]"
+        showDragHandle
+        showCloseButton
+        zIndexClass={Z_INDEX.MODAL}
+        ariaLabel="Lời bài hát"
+        className="bg-[#121212] border-t border-neutral-800/80"
+        headerLeft={
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 relative border border-neutral-700/50 shadow-sm">
+              <CoverImage
+                src={currentSong?.coverUrl || currentSong?.coverImage}
+                alt={songTitle}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <Mic2 size={13} className="text-[#fa2d48] flex-shrink-0" />
+                <h5 className="text-xs sm:text-sm font-bold text-white truncate max-w-[160px] sm:max-w-[220px]">
+                  {songTitle}
+                </h5>
+              </div>
+              <p className="text-[11px] text-spotify-sub truncate max-w-[160px] sm:max-w-[220px] mt-0.5">
+                {artistName}
+              </p>
+            </div>
+          </div>
+        }
+      >
+        {renderLyricsBody(true)}
+        {renderLyricsFooter()}
+      </BottomSheet>
+    );
+  }
 
   return (
-    <div
-      className="fixed bottom-24 right-4 w-[420px] max-w-[calc(100vw-32px)] max-h-[600px] bg-[#121212]/95 backdrop-blur-2xl border border-neutral-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] z-50 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200"
-    >
-      {/* ── HEADER ── */}
+    /* ── GIAO DIỆN DESKTOP (>= 768px): CỬA SỔ FLOATING GLASSMORPHISM ── */
+    <div className="fixed bottom-24 right-4 w-[420px] max-w-[calc(100vw-32px)] max-h-[600px] bg-[#141414]/95 backdrop-blur-md border border-neutral-800 rounded-2xl shadow-[0_16px_40px_rgba(0,0,0,0.85)] z-50 flex flex-col overflow-hidden animate-popup-up">
+      {/* Header Desktop */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-800/80 bg-neutral-900/60 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 relative border border-neutral-700/50 shadow-sm">
             <CoverImage
               src={currentSong?.coverUrl || currentSong?.coverImage}
-              alt={currentSong?.title || "Song Cover"}
+              alt={songTitle}
               className="w-full h-full object-cover"
             />
           </div>
@@ -53,82 +161,49 @@ export const LyricsModal = ({ isOpen, onClose, currentSong }) => {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <Mic2 size={14} className="text-[#fa2d48] flex-shrink-0" />
-              <h5 className="text-sm font-bold text-white truncate">
-                {currentSong?.title || "Lời bài hát"}
+              <h5 className="text-sm font-bold text-white truncate max-w-[250px]">
+                {songTitle}
               </h5>
             </div>
-            <p className="text-xs text-spotify-sub truncate mt-0.5">
-              {currentSong?.artist || currentSong?.ownerName || currentSong?.artistName}
+            <p className="text-xs text-spotify-sub truncate max-w-[250px] mt-0.5">
+              {artistName}
             </p>
           </div>
         </div>
 
-        {/* Nút đóng */}
-        <button
+        {/* Nút đóng chuẩn Button component */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          iconOnly
           onClick={onClose}
-          className="w-8 h-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer flex-shrink-0 ml-2"
-          title="Đóng"
+          aria-label="Đóng"
+          className="text-neutral-400 hover:text-white hover:bg-white/10 flex-shrink-0 ml-2"
+          tooltip="Đóng"
+          tooltipPosition="bottom"
         >
           <X size={18} />
-        </button>
+        </Button>
       </div>
 
-      {/* ── NỘI DUNG LỜI BÀI HÁT ── */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin px-6 py-6 select-text">
-        {isLoading ? (
-          /* TRẠNG THÁI ĐANG TẢI (Chỉ xuất hiện đúng 1 lần khi fetch) */
-          <div className="space-y-4 py-8 animate-pulse">
-            <div className="h-4 bg-white/10 rounded-full w-3/4 mx-auto" />
-            <div className="h-4 bg-white/10 rounded-full w-5/6 mx-auto" />
-            <div className="h-4 bg-white/10 rounded-full w-2/3 mx-auto" />
-            <div className="h-4 bg-white/10 rounded-full w-4/5 mx-auto" />
-            <div className="h-4 bg-white/10 rounded-full w-1/2 mx-auto" />
-            <div className="h-4 bg-white/10 rounded-full w-3/4 mx-auto" />
-          </div>
-        ) : isNotFound || !content || lines.length === 0 ? (
-          /* TRẠNG THÁI CHƯA CÓ LỜI BÀI HÁT (Được lưu lại để không gọi lại API) */
-          <div className="py-16 text-center flex flex-col items-center justify-center gap-3">
-            <div className="w-14 h-14 rounded-full bg-neutral-900 border border-neutral-800 flex items-center justify-center text-neutral-500 shadow-inner">
-              <MicOff size={24} />
-            </div>
-            <div className="space-y-1">
-              <h6 className="text-sm font-bold text-white">Chưa có lời bài hát</h6>
-              <p className="text-xs text-spotify-sub max-w-[240px]">
-                Lời bài hát cho ca khúc này hiện đang được cập nhật.
-              </p>
-            </div>
-          </div>
-        ) : (
-          /* DANH SÁCH LỜI BÀI HÁT ĐẦY ĐỦ */
-          <div className="space-y-3 text-center sm:text-left">
-            {lines.map((line, idx) => {
-              const trimmed = line.trim();
-              if (!trimmed) {
-                return <div key={idx} className="h-4" />;
-              }
-              return (
-                <p
-                  key={idx}
-                  className="text-base sm:text-lg font-medium text-neutral-300 hover:text-white transition-colors leading-relaxed tracking-wide"
-                >
-                  {trimmed}
-                </p>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Nội dung Desktop */}
+      {renderLyricsBody(false)}
 
-      {/* ── FOOTER NHẸ ── */}
-      {language && (
-        <div className="px-5 py-2.5 bg-black/40 border-t border-neutral-800/80 flex items-center justify-between text-[11px] text-neutral-400">
-          <span className="flex items-center gap-1">
-            <Music size={12} className="text-[#fa2d48]" />
-            Ngôn ngữ: {language.toUpperCase()}
-          </span>
-          <span>MC Music Catalog</span>
-        </div>
-      )}
+      {/* Footer Desktop */}
+      {renderLyricsFooter()}
     </div>
   );
-};
+});
+
+LyricsModalContent.displayName = "LyricsModalContent";
+
+/**
+ * Component hiển thị Lời bài hát (Lyrics Modal / BottomSheet)
+ */
+export const LyricsModal = memo(({ isOpen, onClose, currentSong }) => {
+  if (!isOpen) return null;
+  return <LyricsModalContent onClose={onClose} currentSong={currentSong} />;
+});
+
+LyricsModal.displayName = "LyricsModal";

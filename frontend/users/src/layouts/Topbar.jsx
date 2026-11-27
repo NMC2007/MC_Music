@@ -182,48 +182,48 @@ export const Topbar = () => {
   const showSuggestBox = isFocused && inputValue.trim().length > 0;
 
   return (
-    <header className="absolute top-0 left-0 w-full h-16 bg-spotify-base/80 backdrop-blur-md z-40 flex items-center justify-between px-6 transition-all rounded-t-lg">
+    <header className="absolute top-0 left-0 w-full h-16 bg-spotify-base/80 backdrop-blur-md z-40 flex items-center justify-between px-3 md:px-6 transition-all md:rounded-t-lg">
       {/* Điều hướng & Tìm kiếm */}
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex items-center gap-2 lg:gap-3 flex-1 min-w-0 mr-3">
         {/* Nút Back/Forward */}
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" iconOnly onClick={() => navigate(-1)} className="bg-black/50" tooltip="Quay lại" tooltipPosition="bottom-left">
-            <ChevronLeft size={20} />
+        <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+          <Button variant="ghost" size="sm" iconOnly onClick={() => navigate(-1)} className="bg-black/50 !w-8 !h-8" tooltip="Quay lại" tooltipPosition="bottom-left">
+            <ChevronLeft size={18} />
           </Button>
-          <Button variant="ghost" size="sm" iconOnly onClick={() => navigate(1)} className="bg-black/50" tooltip="Tiếp theo" tooltipPosition="bottom">
-            <ChevronRight size={20} />
+          <Button variant="ghost" size="sm" iconOnly onClick={() => navigate(1)} className="bg-black/50 !w-8 !h-8 hidden sm:inline-flex" tooltip="Tiếp theo" tooltipPosition="bottom">
+            <ChevronRight size={18} />
           </Button>
         </div>
 
-        {/* Nút Home */}
+        {/* Nút Home (chỉ hiển thị trên desktop/tablet, mobile đã có MobileBottomNav) */}
         <Button
           variant="dark"
           size="md"
           iconOnly
           onClick={() => navigate('/')}
-          className={`ml-2 bg-[#1f1f1f] hover:bg-[#282828] transition-all ${
+          className={`bg-[#1f1f1f] hover:bg-[#282828] transition-all hidden md:inline-flex flex-shrink-0 !w-10 !h-10 xl:!w-12 xl:!h-12 ${
             isHome ? 'text-white' : 'text-[#b3b3b3] hover:text-white'
           }`}
           tooltip="Trang chủ"
           tooltipPosition="bottom"
         >
           {isHome ? (
-            <svg role="img" height="24" width="24" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+            <svg role="img" height="22" width="22" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
               <path d="M12.5 3.247a1 1 0 0 0-1 0L4 7.577V20h4.5v-6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v6H20V7.577l-7.5-4.33z" />
             </svg>
           ) : (
-            <svg role="img" height="24" width="24" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor">
+            <svg role="img" height="22" width="22" aria-hidden="true" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
               <path d="M12.5 3.247a1 1 0 0 0-1 0L4 7.577V20h4.5v-6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v6H20V7.577l-7.5-4.33zm-2-1.732a3 3 0 0 1 3 0l7.5 4.33A2 2 0 0 1 22 7.577V21a1 1 0 0 1-1 1h-5.5a1 1 0 0 1-1-1v-5h-3v5a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7.577a2 2 0 0 1 1-1.732l7.5-4.33z" />
             </svg>
           )}
         </Button>
 
         {/* ── Thanh Tìm kiếm tích hợp Nút Duyệt tìm chuẩn Spotify ────────── */}
-        <div ref={searchContainerRef} className="relative max-w-[480px] w-full hidden md:flex">
+        <div ref={searchContainerRef} className="relative max-w-[480px] w-full min-w-0 hidden md:flex flex-1">
           {/* Vỏ bao bọc thanh tìm kiếm dạng viên thuốc (Pill Search Bar) */}
           <div
             onClick={() => inputRef.current?.focus()}
-            className={`flex items-center w-full h-12 bg-spotify-card hover:bg-spotify-card-hover rounded-full transition-all border-2 pl-3 pr-2.5 cursor-text ${
+            className={`flex items-center w-full min-w-0 h-10 xl:h-12 bg-spotify-card hover:bg-spotify-card-hover rounded-full transition-all border-2 pl-3 pr-2.5 cursor-text ${
               isFocused ? 'border-white bg-[#2a2a2a]' : 'border-transparent'
             }`}
           >
@@ -423,32 +423,32 @@ export const Topbar = () => {
       </div>
 
       {/* Hành động của người dùng (Auth) */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
         {isAuthenticated ? (
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen((prev) => !prev)}
-              className="flex items-center gap-2 p-1 pl-1 pr-3 bg-black/60 hover:bg-[#282828] text-white rounded-full transition-all border border-neutral-800 hover:border-neutral-700 cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 p-1 pl-1 pr-2 sm:pr-3 bg-black/60 hover:bg-[#282828] text-white rounded-full transition-all border border-neutral-800 hover:border-neutral-700 cursor-pointer flex-shrink-0"
             >
               {user?.avatarUrl ? (
                 <img
                   src={user.avatarUrl}
                   alt={user.fullName || 'User Avatar'}
-                  className="w-8 h-8 rounded-full object-cover flex-shrink-0 border border-neutral-700/80"
+                  className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 border border-neutral-700/80"
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-[#282828] border border-neutral-700/80 flex items-center justify-center text-neutral-300 overflow-hidden flex-shrink-0 shadow-sm">
-                  <svg className="w-5 h-5 text-neutral-300 translate-y-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#282828] border border-neutral-700/80 flex items-center justify-center text-neutral-300 overflow-hidden flex-shrink-0 shadow-sm">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 translate-y-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                   </svg>
                 </div>
               )}
-              <span className="text-sm font-semibold max-w-[130px] truncate">
+              <span className="text-xs sm:text-sm font-semibold max-w-[64px] sm:max-w-[90px] xl:max-w-[130px] truncate">
                 {user?.fullName || user?.email?.split('@')[0] || 'Người dùng'}
               </span>
               <ChevronDown
-                size={16}
-                className={`text-neutral-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`}
+                size={14}
+                className={`text-neutral-400 transition-transform duration-200 flex-shrink-0 ${isDropdownOpen ? 'rotate-180 text-white' : ''}`}
               />
             </button>
 

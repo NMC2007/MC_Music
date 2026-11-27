@@ -9,17 +9,13 @@ import { usePlayerStore } from "../store/usePlayerStore";
 import {
   getPublicSongs,
   getPublicAlbums,
-  getArtistSongs,
-  getAlbumSongs,
-  getSongById,
   getPublicGenres,
 } from "../api/catalog/public";
 import { getPublicArtists } from "../api/artists/public";
 import { getUserPlayHistoryApi } from "../api/users/history";
 import { useFavorites } from "../hooks/useFavorites";
 import { useFollowArtists } from "../hooks/useFollowArtists";
-
-const getRandomIndex = (len) => Math.floor(Math.random() * len);
+import { usePlaybackActions } from "../hooks/usePlaybackActions";
 
 export const SectionPage = () => {
   const { id: sectionId } = useParams();
@@ -28,7 +24,8 @@ export const SectionPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { playSongWithContext, playWithAutoQueue } = usePlayerStore();
+  const playSongWithContext = usePlayerStore((state) => state.playSongWithContext);
+  const { playSongById, playArtist: handlePlayArtistCard, playAlbum: handlePlayAlbumCard } = usePlaybackActions();
   const { favoriteSongs, isLoadingSongs: isLoadingFavorites } = useFavorites();
   const { followedArtists, isLoadingFollowed } = useFollowArtists();
 
@@ -128,60 +125,8 @@ export const SectionPage = () => {
     return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
   };
 
-  const handlePlayHistoryCard = async (historyItem) => {
-    try {
-      const res = await getSongById(historyItem.songId);
-      const song = res?.data;
-      if (song) {
-        playWithAutoQueue(song);
-      }
-    } catch (err) {
-      console.error("Lỗi khi phát bài hát từ lịch sử:", err);
-    }
-  };
-
-  const handlePlayFavoriteCard = async (favItem) => {
-    try {
-      const res = await getSongById(favItem.songId);
-      const song = res?.data;
-      if (song) {
-        playWithAutoQueue(song);
-      }
-    } catch (err) {
-      console.error("Lỗi khi phát bài hát từ danh sách yêu thích:", err);
-    }
-  };
-
-  const handlePlayArtistCard = async (artistId) => {
-    try {
-      const res = await getArtistSongs(artistId, {
-        size: 50,
-        sort: "likeCount,desc",
-      });
-      const songs = res.data?.content || [];
-      if (songs.length > 0) {
-        const randomIndex = getRandomIndex(songs.length);
-        playSongWithContext(songs[randomIndex], songs, randomIndex);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handlePlayAlbumCard = async (albumId) => {
-    try {
-      const res = await getAlbumSongs(albumId, {
-        size: 50,
-        sort: "createdAt,asc",
-      });
-      const songs = res.data?.content || [];
-      if (songs.length > 0) {
-        playSongWithContext(songs[0], songs, 0);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const handlePlayHistoryCard = (historyItem) => playSongById(historyItem?.songId);
+  const handlePlayFavoriteCard = (favItem) => playSongById(favItem?.songId);
 
   // Lọc trùng lặp bài hát gần đây
   const recentHistorySongs = useMemo(() => {
@@ -331,7 +276,7 @@ export const SectionPage = () => {
           subtitle={item.artistName}
           artistName={item.artistName}
           imageUrl={item.coverImage}
-          onClick={() => handlePlayHistoryCard(item)}
+          onClick={() => navigate(`/song/${item.songId || item.id}`)}
           onPlayClick={() => handlePlayHistoryCard(item)}
         />
       );
@@ -349,7 +294,7 @@ export const SectionPage = () => {
           subtitle={item.artistName}
           artistName={item.artistName}
           imageUrl={item.coverImage}
-          onClick={() => handlePlayFavoriteCard(item)}
+          onClick={() => navigate(`/song/${item.songId}`)}
           onPlayClick={() => handlePlayFavoriteCard(item)}
         />
       );
@@ -367,16 +312,16 @@ export const SectionPage = () => {
         subtitle={item.ownerName}
         artistName={item.ownerName}
         imageUrl={item.coverImage}
-        onClick={() => playSongWithContext(item, items, idx)}
+        onClick={() => navigate(`/song/${item.id}`)}
         onPlayClick={() => playSongWithContext(item, items, idx)}
       />
     );
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-16 min-h-full">
+    <div className="flex flex-col gap-5 sm:gap-6 pb-16 min-h-full">
       <div className="flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+        <h1 className="text-xl sm:text-3xl font-bold text-white tracking-tight">
           {title}
         </h1>
         {isGenre && totalElements > 0 && (
@@ -387,13 +332,13 @@ export const SectionPage = () => {
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {Array.from({ length: isGenre ? 30 : 20 }).map((_, idx) => (
             <SkeletonCard key={idx} isArtist={itemType === "artist"} />
           ))}
         </div>
       ) : items.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
           {items.map((item, idx) => renderCard(item, idx))}
         </div>
       ) : (
@@ -404,12 +349,12 @@ export const SectionPage = () => {
 
       {/* Phân trang khi có nhiều hơn 1 trang */}
       {isGenre && totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8 pt-6 border-t border-white/5">
+        <div className="flex items-center justify-center gap-1.5 sm:gap-2 mt-8 pt-6 border-t border-white/5 flex-wrap">
           <button
             type="button"
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage <= 1}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
               currentPage <= 1
                 ? "opacity-30 cursor-not-allowed text-neutral-500"
                 : "hover:bg-neutral-800 text-white cursor-pointer"
@@ -419,13 +364,13 @@ export const SectionPage = () => {
             <span>Trước</span>
           </button>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5">
             {getPageNumbers(currentPage, totalPages).map((p, idx) => {
               if (p === "...") {
                 return (
                   <span
                     key={`dots-${idx}`}
-                    className="px-2 text-neutral-500 text-sm select-none"
+                    className="px-1.5 text-neutral-500 text-xs sm:text-sm select-none"
                   >
                     ...
                   </span>
@@ -437,7 +382,7 @@ export const SectionPage = () => {
                   type="button"
                   key={p}
                   onClick={() => handlePageChange(p)}
-                  className={`w-9 h-9 rounded-full text-sm font-semibold transition-all cursor-pointer flex items-center justify-center ${
+                  className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center ${
                     isActive
                       ? "bg-[#fa2d48] text-white shadow-md shadow-[#fa2d48]/30"
                       : "text-neutral-300 hover:bg-neutral-800 hover:text-white"
@@ -453,7 +398,7 @@ export const SectionPage = () => {
             type="button"
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage >= totalPages}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
               currentPage >= totalPages
                 ? "opacity-30 cursor-not-allowed text-neutral-500"
                 : "hover:bg-neutral-800 text-white cursor-pointer"
